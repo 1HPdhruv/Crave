@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">GaG</string>
+    <string name="app_full_name">GaG – Grab &amp; Go</string>
+    <string name="srm_campus">SRM Institute of Science and Technology, KTR</string>
+
+    <!-- Auth -->
+    <string name="login">Login</string>
+    <string name="register">Register</string>
+    <string name="logout">Logout</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="forgot_password">Forgot Password?</string>
+    <string name="student_login">Student Login</string>
+    <string name="vendor_login">Vendor Login</string>
+    <string name="admin_login">Admin Login</string>
+
+    <!-- Home -->
+    <string name="good_morning">Good morning</string>
+    <string name="good_afternoon">Good afternoon</string>
+    <string name="good_evening">Good evening</string>
+    <string name="what_are_you_craving">What are you craving?</string>
+    <string name="search_food">Search food, outlets…</string>
+    <string name="popular_foods">Popular Foods</string>
+    <string name="nearby_outlets">Nearby Outlets</string>
+    <string name="recommended">Recommended</string>
+    <string name="categories">Categories</string>
+    <string name="available_now">Available Now</string>
+
+    <!-- Outlet -->
+    <string name="open">Open</string>
+    <string name="closed">Closed</string>
+    <string name="view_menu">View Menu</string>
+    <string name="current_queue">Current Queue</string>
+    <string name="estimated_wait">Est. wait</string>
+    <string name="min">min</string>
+
+    <!-- Cart -->
+    <string name="cart">Cart</string>
+    <string name="add_to_cart">Add to Cart</string>
+    <string name="checkout">Checkout</string>
+    <string name="empty_cart">Your cart is empty</string>
+    <string name="clear_cart">Clear Cart</string>
+    <string name="mixed_outlet_title">Different Outlet</string>
+    <string name="mixed_outlet_message">Your cart has items from another outlet. Clear cart and add from this outlet?</string>
+
+    <!-- Orders -->
+    <string name="my_orders">My Orders</string>
+    <string name="order_placed">Order Placed</string>
+    <string name="order_accepted">Order Accepted</string>
+    <string name="preparing">Preparing</string>
+    <string name="ready">Ready for Pickup</string>
+    <string name="picked_up">Picked Up</string>
+    <string name="cancelled">Cancelled</string>
+    <string name="rejected">Rejected</string>
+
+    <!-- Pickup -->
+    <string name="pickup_slot">Pickup Slot</string>
+    <string name="select_pickup_slot">Select Pickup Slot</string>
+    <string name="available">Available</string>
+    <string name="limited">Limited</string>
+    <string name="full">Full</string>
+    <string name="show_qr">Show QR Code</string>
+    <string name="qr_pickup_code">Pickup QR Code</string>
+
+    <!-- Common -->
+    <string name="retry">Retry</string>
+    <string name="cancel">Cancel</string>
+    <string name="confirm">Confirm</string>
+    <string name="save">Save</string>
+    <string name="edit">Edit</string>
+    <string name="delete">Delete</string>
+    <string name="no_internet">No internet connection</string>
+    <string name="server_error">Server error. Please try again</string>
+    <string name="loading">Loading…</string>
+    <string name="veg">Veg</string>
+    <string name="non_veg">Non-Veg</string>
+
+    <!-- Vendor -->
+    <string name="vendor_dashboard">Vendor Dashboard</string>
+    <string name="new_orders">New Orders</string>
+    <string name="accept">Accept</string>
+    <string name="reject">Reject</string>
+    <string name="start_preparing">Start Preparing</string>
+    <string name="mark_ready">Mark Ready</string>
+    <string name="scan_qr">Scan QR</string>
+    <string name="confirm_pickup">Confirm Pickup</string>
+    <string name="valid_order">Valid Order</string>
+    <string name="invalid_qr">Invalid QR Code</string>
+
+    <!-- Notifications -->
+    <string name="notifications">Notifications</string>
+    <string name="order_notification_channel">Order Updates</string>
+    <string name="order_notification_channel_desc">Notifications about your food orders</string>
+
+    <!-- Profile -->
+    <string name="profile">Profile</string>
+    <string name="settings">Settings</string>
+    <string name="help_support">Help &amp; Support</string>
+    <string name="favorites">Favorites</string>
+
+    <!-- Accessibility -->
+    <string name="cd_food_image">Food item image</string>
+    <string name="cd_outlet_image">Outlet image</string>
+    <string name="cd_back_button">Go back</string>
+    <string name="cd_cart_button">Open cart</string>
+    <string name="cd_search_button">Open search</string>
+    <string name="cd_veg_indicator">Vegetarian indicator</string>
+</resources>

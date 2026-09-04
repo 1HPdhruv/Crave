@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "962206290728",
+    "project_id": "gag---srm-food",
+    "storage_bucket": "gag---srm-food.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:962206290728:android:d3935bedb46c56d74ab61d",
+        "android_client_info": {
+          "package_name": "com.srmfood.gag"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAGGXao1llpoAIIZcyEwHy2BUeOI-0YANI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

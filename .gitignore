@@ -1,0 +1,26 @@
+# Android Studio / IntelliJ
+*.iml
+.idea/
+
+# Gradle
+.gradle/
+**/build/
+
+# Local configuration / secrets
+local.properties
+
+# Android generated/native files
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Kotlin
+.kotlin/
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+# Generated artifacts
+.artifacts/
