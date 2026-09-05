@@ -49,7 +49,7 @@ This project is built using modern Android development practices:
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/1HPdhruv/Gag.git
+   git clone https://github.com/1HPdhruv/Crave.git
    ```
 
 2. **Configure Local Properties:**
