@@ -17,9 +17,17 @@ sealed class Screen(val route: String) {
 
     // ─── Student ─────────────────────────────────────────────────
     object Home : Screen("home")
-    object Search : Screen("search?query={query}") {
-        fun createRoute(query: String = "") = "search?query=$query"
+    object Search : Screen("search?query={query}&category={category}") {
+        fun createRoute(query: String = "", category: String? = null): String {
+            val q = query.ifBlank { "" }
+            return if (category != null) {
+                "search?query=$q&category=$category"
+            } else {
+                "search?query=$q"
+            }
+        }
         const val ARG_QUERY = "query"
+        const val ARG_CATEGORY = "category"
     }
     object SearchResults : Screen("search_results?query={query}") {
         fun createRoute(query: String) = "search_results?query=$query"
@@ -53,7 +61,7 @@ sealed class Screen(val route: String) {
         fun createRoute(orderId: String) = "order/$orderId"
         const val ARG_ORDER_ID = "orderId"
     }
-    object Favorites : Screen("favourites")
+    object Favorites : Screen("favorites")
     object Notifications : Screen("notifications")
     object Profile : Screen("profile")
     object Settings : Screen("settings")

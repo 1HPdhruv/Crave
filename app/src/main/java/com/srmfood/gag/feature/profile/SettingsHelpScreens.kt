@@ -3,6 +3,7 @@ package com.srmfood.gag.feature.profile
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -69,59 +70,107 @@ fun SettingsScreen(
         topBar = { GagTopBar("Settings", onBack = onBack) },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(padding),
+            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            Text("Preferences", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-            
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 1.dp
-            ) {
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Outlined.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Push Notifications", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
-                            Text("Receive updates about your orders", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            item {
+                // Section header
+                Column(
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp)
+                ) {
+                    Text(
+                        "Preferences",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
+            item {
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = 2.dp,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)
+                ) {
+                    Column {
+                        // Notifications toggle
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f), RoundedCornerShape(12.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Outlined.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Push Notifications", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                                Text("Receive updates about your orders", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Switch(
+                                checked = notificationsEnabled,
+                                onCheckedChange = { viewModel.setNotificationsEnabled(it) },
+                                colors = SwitchDefaults.colors(checkedTrackColor = MaterialTheme.colorScheme.primary)
+                            )
                         }
-                        Switch(
-                            checked = notificationsEnabled,
-                            onCheckedChange = { viewModel.setNotificationsEnabled(it) }
-                        )
-                    }
-                    
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth().clickable { showThemeDialog = true }.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Outlined.ColorLens, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("App Theme", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
-                            Text(themeMode.name.lowercase().replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                        // Theme row
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showThemeDialog = true }
+                                .padding(horizontal = 20.dp, vertical = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f), RoundedCornerShape(12.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Outlined.ColorLens, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp))
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("App Theme", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                                Text(
+                                    themeMode.name.lowercase().replaceFirstChar { it.uppercase() },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                            Icon(
+                                Icons.Default.KeyboardArrowDown,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
                     }
                 }
             }
+            item { Spacer(modifier = Modifier.height(32.dp)) }
         }
     }
     
     if (showThemeDialog) {
         AlertDialog(
             onDismissRequest = { showThemeDialog = false },
-            title = { Text("Select Theme") },
+            shape = RoundedCornerShape(24.dp),
+            title = { Text("App Theme", fontWeight = FontWeight.ExtraBold) },
             text = {
                 Column {
                     ThemeMode.values().forEach { mode ->
@@ -140,10 +189,15 @@ fun SettingsScreen(
                                 onClick = {
                                     viewModel.setThemeMode(mode)
                                     showThemeDialog = false
-                                }
+                                },
+                                colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(mode.name.lowercase().replaceFirstChar { it.uppercase() })
+                            Text(
+                                mode.name.lowercase().replaceFirstChar { it.uppercase() },
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = if (themeMode == mode) FontWeight.Bold else FontWeight.Normal
+                            )
                         }
                     }
                 }
@@ -176,101 +230,150 @@ fun HelpScreen(onBack: () -> Unit) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(padding),
+            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            item { Spacer(modifier = Modifier.height(8.dp)) }
-            
             item {
-                Text("Contact Us", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                // Header
+                Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp)) {
+                    Text(
+                        "How can we help? 💬",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "We're here for you anytime.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
-            
+
+            item {
+                Text(
+                    "Contact Us",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                )
+            }
+
             item {
                 Surface(
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(20.dp),
                     color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 1.dp
+                    shadowElevation = 2.dp,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)
                 ) {
-                    Column {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().clickable { 
-                                val intent = Intent(Intent.ACTION_SENDTO).apply {
-                                    data = Uri.parse("mailto:")
-                                    putExtra(Intent.EXTRA_EMAIL, arrayOf("support@srmfood.com"))
-                                    putExtra(Intent.EXTRA_SUBJECT, "Crave App Support Request")
-                                }
-                                context.startActivity(Intent.createChooser(intent, "Send Email"))
-                            }.padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                    Row(
+                        modifier = Modifier.fillMaxWidth().clickable { 
+                            val intent = Intent(Intent.ACTION_SENDTO).apply {
+                                data = Uri.parse("mailto:")
+                                putExtra(Intent.EXTRA_EMAIL, arrayOf("support@srmfood.com"))
+                                putExtra(Intent.EXTRA_SUBJECT, "Crave App Support Request")
+                            }
+                            context.startActivity(Intent.createChooser(intent, "Send Email"))
+                        }.padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier.size(44.dp).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), RoundedCornerShape(12.dp)),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Outlined.Email, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Text("Email Support", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+                            Icon(Icons.Outlined.Email, contentDescription = "Email support", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Email Support", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                            Text("support@srmfood.com", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
             }
 
             item {
-                Text("Frequently Asked Questions", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 8.dp))
+                Text(
+                    "Frequently Asked Questions",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                )
             }
             
             items(dummyFaqs) { faq ->
                 var expanded by remember { mutableStateOf(false) }
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(20.dp),
                     color = MaterialTheme.colorScheme.surface,
-                    modifier = Modifier.fillMaxWidth()
+                    shadowElevation = if (expanded) 3.dp else 1.dp,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)
                 ) {
                     Column(
-                        modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(16.dp)
+                        modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(20.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(faq.question, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface)
+                            Text(
+                                faq.question,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.weight(1f),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
                             Icon(
                                 if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                contentDescription = if (expanded) "Collapse" else "Expand",
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
                         AnimatedVisibility(visible = expanded) {
-                            Text(faq.answer, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
+                            Text(
+                                faq.answer,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 12.dp)
+                            )
                         }
                     }
                 }
             }
             
             item {
-                Text("Legal & About", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 8.dp))
-            }
-            
-            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    "Legal & About",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
                 Surface(
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(20.dp),
                     color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 1.dp
+                    shadowElevation = 2.dp,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)
                 ) {
                     Column {
                         Row(
-                            modifier = Modifier.fillMaxWidth().clickable { 
-                                // Placeholder for actual web view or intent
-                            }.padding(16.dp),
+                            modifier = Modifier.fillMaxWidth().clickable { }.padding(horizontal = 20.dp, vertical = 16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(Icons.Outlined.Policy, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
                             Spacer(modifier = Modifier.width(16.dp))
-                            Text("Privacy Policy & Terms", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+                            Text("Privacy Policy & Terms", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                         }
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(Icons.Outlined.Info, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
                             Spacer(modifier = Modifier.width(16.dp))
                             Column {
-                                Text("About Crave", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+                                Text("About Crave", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                                 Text("Version 1.0.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }

@@ -32,12 +32,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.srmfood.gag.core.common.UiState
-import com.srmfood.gag.core.ui.component.CartIconButton
-import com.srmfood.gag.core.ui.component.FoodItemCard
-import com.srmfood.gag.core.ui.component.GagBottomNavBar
-import com.srmfood.gag.core.ui.component.GagLoadingScreen
-import com.srmfood.gag.core.ui.component.ShimmerBox
-import com.srmfood.gag.core.ui.component.studentBottomNavItems
+import com.srmfood.gag.core.ui.component.*
 import com.srmfood.gag.core.ui.theme.*
 import com.srmfood.gag.domain.model.FoodCategory
 import com.srmfood.gag.domain.model.FoodItem
@@ -49,6 +44,7 @@ import java.util.Calendar
 @Composable
 fun HomeScreen(
     onSearchClick: () -> Unit,
+    onCategoryClick: (String) -> Unit,
     onOutletClick: (String) -> Unit,
     onFoodClick: (String) -> Unit,
     onCartClick: () -> Unit,
@@ -78,92 +74,44 @@ fun HomeScreen(
                 onItemSelected = onNavigateBottom
             )
         },
-        containerColor = GagBackground
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            contentPadding = PaddingValues(bottom = 16.dp)
+            contentPadding = PaddingValues(bottom = GagSpacing.ExtraLarge)
         ) {
             // ─── Header ──────────────────────────────────────────
             item {
-                Column(
+                HomeTopHeader(
+                    greeting = greeting,
+                    userName = uiState.user?.name ?: "Loading...",
+                    cartCount = uiState.cartItemCount,
+                    onCartClick = onCartClick,
+                    onNotificationsClick = { onNavigateBottom("alerts") }
+                )
+            }
+
+            // ─── Search Bar ──────────────────────────────────────
+            item {
+                GagSearchBar(
+                    query = "",
+                    onQueryChange = {},
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(GagOrangeDark.copy(alpha = 0.1f), Color.Transparent)
-                            )
-                        )
-                        .padding(horizontal = 20.dp)
-                        .statusBarsPadding()
-                        .padding(top = 16.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = greeting,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = GagOnSurfaceVariant
-                            )
-                            Text(
-                                text = uiState.user?.name ?: "Loading...",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            // Campus badge
-                            Surface(
-                                shape = RoundedCornerShape(20.dp),
-                                color = GagSurface
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(Icons.Default.LocationOn, null, tint = GagOrange, modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("SRM KTR", style = MaterialTheme.typography.labelSmall, color = GagOnSurface)
-                                }
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            IconButton(onClick = { onNavigateBottom("notifications") }) {
-                                Icon(Icons.Default.Notifications, "Notifications", tint = GagOnBackground)
-                            }
-                            CartIconButton(
-                                cartCount = uiState.cartItemCount,
-                                onClick = onCartClick
-                            )
-                        }
-                    }
+                        .padding(horizontal = GagSpacing.Large)
+                        .clickable { onSearchClick() }
+                )
+                Spacer(modifier = Modifier.height(GagSpacing.Large))
+            }
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Search Bar
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = GagSurface,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(onClick = onSearchClick)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.Search, null, tint = GagOnSurfaceVariant, modifier = Modifier.size(20.dp))
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text("Search food, outlets…", style = MaterialTheme.typography.bodyMedium, color = GagOnSurfaceVariant)
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(20.dp))
-                }
+            // ─── Promotional Banner ──────────────────────────────
+            item {
+                PromoBanner(
+                    modifier = Modifier
+                        .padding(horizontal = GagSpacing.Large)
+                        .padding(bottom = GagSpacing.Large)
+                )
             }
 
             // ─── Active Order Card ────────────────────────────────
@@ -172,52 +120,150 @@ fun HomeScreen(
                     ActiveOrderCard(
                         order = order,
                         onClick = { onNavigateBottom("orders") },
-                        modifier = Modifier.padding(horizontal = 20.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = GagSpacing.Large)
+                            .padding(bottom = GagSpacing.Large)
                     )
-                    Spacer(modifier = Modifier.height(20.dp))
                 }
             }
 
             // ─── Categories ───────────────────────────────────────
             item {
-                SectionHeader(title = "Categories", onSeeAll = null)
+                GagSectionHeader(
+                    title = "What are you craving?",
+                    modifier = Modifier.padding(horizontal = GagSpacing.Large)
+                )
+                Spacer(modifier = Modifier.height(GagSpacing.Medium))
+                
                 when (val catState = uiState.categories) {
                     is UiState.Success -> {
                         LazyRow(
-                            contentPadding = PaddingValues(horizontal = 20.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            contentPadding = PaddingValues(horizontal = GagSpacing.Large),
+                            horizontalArrangement = Arrangement.spacedBy(GagSpacing.Medium)
                         ) {
+                            item {
+                                GagCategoryChip(
+                                    label = "All",
+                                    isSelected = true,
+                                    onClick = { /* Already on All */ },
+                                    emoji = "🏠"
+                                )
+                            }
                             items(catState.data) { category ->
-                                CategoryChip(category = category, onClick = { onSearchClick() })
+                                GagCategoryChip(
+                                    label = category.name,
+                                    isSelected = false,
+                                    onClick = { onCategoryClick(category.name) },
+                                    iconUrl = category.imageUrl,
+                                    emoji = category.emoji
+                                )
                             }
                         }
                     }
                     is UiState.Loading -> {
-                        LazyRow(contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            items(6) { ShimmerBox(modifier = Modifier.size(80.dp, 88.dp), cornerRadius = 16.dp) }
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = GagSpacing.Large),
+                            horizontalArrangement = Arrangement.spacedBy(GagSpacing.Medium)
+                        ) {
+                            items(6) { GagLoadingSkeleton(modifier = Modifier.size(68.dp)) }
                         }
                     }
                     is UiState.Error -> {
-                        Text(
-                            text = catState.message,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(horizontal = 20.dp)
+                        GagErrorState(
+                            message = catState.message,
+                            onRetry = { viewModel.loadData() },
+                            modifier = Modifier.padding(horizontal = GagSpacing.Large)
                         )
                     }
                     else -> {}
                 }
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(GagSpacing.ExtraLarge))
             }
+
+            // ─── Popular Foods ────────────────────────────────────
+            item {
+                GagSectionHeader(
+                    title = "🔥 Popular Right Now",
+                    modifier = Modifier.padding(horizontal = GagSpacing.Large)
+                )
+                Spacer(modifier = Modifier.height(GagSpacing.Medium))
+            }
+            when (val popularState = uiState.popularFood) {
+                is UiState.Success -> {
+                    item {
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = GagSpacing.Large),
+                            horizontalArrangement = Arrangement.spacedBy(GagSpacing.Medium)
+                        ) {
+                            items(popularState.data.take(5)) { food ->
+                                FoodItemCard(
+                                    foodItem = food,
+                                    onClick = { onFoodClick(food.id) },
+                                    onAddToCart = {
+                                        if (food.customizations.isNotEmpty()) {
+                                            onFoodClick(food.id)
+                                        } else {
+                                            viewModel.addToCart(food)
+                                        }
+                                    },
+                                    modifier = Modifier.width(220.dp)
+                                )
+                            }
+                        }
+                    }
+                    if (popularState.data.isEmpty()) {
+                        item {
+                            GagEmptyState(
+                                title = "No popular food",
+                                description = "Check back later for trending items.",
+                                modifier = Modifier.padding(horizontal = GagSpacing.Large)
+                            )
+                        }
+                    }
+                }
+                is UiState.Loading -> {
+                    item {
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = GagSpacing.Large),
+                            horizontalArrangement = Arrangement.spacedBy(GagSpacing.Medium)
+                        ) {
+                            items(3) {
+                                GagLoadingSkeleton(
+                                    modifier = Modifier.size(220.dp, 260.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+                is UiState.Error -> {
+                    item {
+                        GagErrorState(
+                            message = popularState.message,
+                            onRetry = { viewModel.loadData() },
+                            modifier = Modifier.padding(horizontal = GagSpacing.Large)
+                        )
+                    }
+                }
+                else -> {}
+            }
+            item { Spacer(modifier = Modifier.height(GagSpacing.Medium)) }
 
             // ─── Nearby Outlets ───────────────────────────────────
             item {
-                SectionHeader(title = "Nearby Outlets", onSeeAll = { onNavigateBottom("outlets") })
+                GagSectionHeader(
+                    title = "Explore Outlets",
+                    actionText = "See All",
+                    onActionClick = { onNavigateBottom("outlets") },
+                    modifier = Modifier.padding(horizontal = GagSpacing.Large)
+                )
+                Spacer(modifier = Modifier.height(GagSpacing.Medium))
+                
                 when (val outletState = uiState.outlets) {
                     is UiState.Success -> {
                         LazyRow(
-                            contentPadding = PaddingValues(horizontal = 20.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            contentPadding = PaddingValues(horizontal = GagSpacing.Large),
+                            horizontalArrangement = Arrangement.spacedBy(GagSpacing.Medium)
                         ) {
                             items(outletState.data.take(4)) { outlet ->
                                 OutletCard(outlet = outlet, onClick = { onOutletClick(outlet.id) })
@@ -225,88 +271,86 @@ fun HomeScreen(
                         }
                     }
                     is UiState.Loading -> {
-                        LazyRow(contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            items(3) { ShimmerBox(modifier = Modifier.size(200.dp, 160.dp), cornerRadius = 16.dp) }
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = GagSpacing.Large),
+                            horizontalArrangement = Arrangement.spacedBy(GagSpacing.Medium)
+                        ) {
+                            items(3) { GagLoadingSkeleton(modifier = Modifier.size(220.dp, 180.dp)) }
                         }
                     }
                     is UiState.Error -> {
-                        Text(
-                            text = outletState.message,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(horizontal = 20.dp)
+                        GagErrorState(
+                            message = outletState.message,
+                            onRetry = { viewModel.loadData() },
+                            modifier = Modifier.padding(horizontal = GagSpacing.Large)
                         )
                     }
                     else -> {}
                 }
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(GagSpacing.ExtraLarge))
             }
 
-            // ─── Popular Foods ────────────────────────────────────
+            // ─── Recommended Foods ─────────────────────────────────────
             item {
-                SectionHeader(title = "🔥 Popular Right Now", onSeeAll = null)
-            }
-            when (val popularState = uiState.popularFood) {
-                is UiState.Success -> {
-                    items(popularState.data.take(5)) { food ->
-                        FoodItemCard(
-                            foodItem = food,
-                            onClick = { onFoodClick(food.id) },
-                            onAddToCart = { viewModel.addToCart(food) },
-                            modifier = Modifier
-                                .padding(horizontal = 20.dp)
-                                .padding(bottom = 10.dp)
-                        )
-                    }
-                }
-                is UiState.Loading -> {
-                    items(3) {
-                        ShimmerBox(modifier = Modifier.fillMaxWidth().height(110.dp).padding(horizontal = 20.dp, vertical = 5.dp))
-                    }
-                }
-                is UiState.Error -> {
-                    item {
-                        Text(
-                            text = popularState.message,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 10.dp)
-                        )
-                    }
-                }
-                else -> {}
-            }
-
-            // ─── Recommended ─────────────────────────────────────
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                SectionHeader(title = "⭐ Recommended for You", onSeeAll = null)
+                GagSectionHeader(
+                    title = "⭐ Recommended for You",
+                    modifier = Modifier.padding(horizontal = GagSpacing.Large)
+                )
+                Spacer(modifier = Modifier.height(GagSpacing.Medium))
             }
             when (val recState = uiState.recommendedFood) {
                 is UiState.Success -> {
-                    items(recState.data.take(4)) { food ->
-                        FoodItemCard(
-                            foodItem = food,
-                            onClick = { onFoodClick(food.id) },
-                            onAddToCart = { viewModel.addToCart(food) },
-                            modifier = Modifier
-                                .padding(horizontal = 20.dp)
-                                .padding(bottom = 10.dp)
-                        )
+                    item {
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = GagSpacing.Large),
+                            horizontalArrangement = Arrangement.spacedBy(GagSpacing.Medium)
+                        ) {
+                            items(recState.data.take(4)) { food ->
+                                FoodItemCard(
+                                    foodItem = food,
+                                    onClick = { onFoodClick(food.id) },
+                                    onAddToCart = {
+                                        if (food.customizations.isNotEmpty()) {
+                                            onFoodClick(food.id)
+                                        } else {
+                                            viewModel.addToCart(food)
+                                        }
+                                    },
+                                    modifier = Modifier.width(220.dp)
+                                )
+                            }
+                        }
+                    }
+                    if (recState.data.isEmpty()) {
+                        item {
+                            GagEmptyState(
+                                title = "Nothing recommended yet",
+                                description = "Order more food to get personalized recommendations.",
+                                modifier = Modifier.padding(horizontal = GagSpacing.Large)
+                            )
+                        }
                     }
                 }
                 is UiState.Loading -> {
-                    items(3) {
-                        ShimmerBox(modifier = Modifier.fillMaxWidth().height(110.dp).padding(horizontal = 20.dp, vertical = 5.dp))
+                    item {
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = GagSpacing.Large),
+                            horizontalArrangement = Arrangement.spacedBy(GagSpacing.Medium)
+                        ) {
+                            items(3) {
+                                GagLoadingSkeleton(
+                                    modifier = Modifier.size(220.dp, 260.dp)
+                                )
+                            }
+                        }
                     }
                 }
                 is UiState.Error -> {
                     item {
-                        Text(
-                            text = recState.message,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 10.dp)
+                        GagErrorState(
+                            message = recState.message,
+                            onRetry = { viewModel.loadData() },
+                            modifier = Modifier.padding(horizontal = GagSpacing.Large)
                         )
                     }
                 }
@@ -319,56 +363,112 @@ fun HomeScreen(
 // ─── Sub-Components ───────────────────────────────────────────────────────────
 
 @Composable
-private fun SectionHeader(title: String, onSeeAll: (() -> Unit)?) {
+private fun HomeTopHeader(
+    greeting: String,
+    userName: String,
+    cartCount: Int,
+    onCartClick: () -> Unit,
+    onNotificationsClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 8.dp),
+            .statusBarsPadding()
+            .padding(horizontal = GagSpacing.Large, vertical = GagSpacing.Medium),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        onSeeAll?.let {
-            Row(modifier = Modifier.clickable(onClick = it), verticalAlignment = Alignment.CenterVertically) {
-                Text("See all", style = MaterialTheme.typography.labelMedium, color = GagOrange)
-                Icon(Icons.Default.ArrowForward, null, tint = GagOrange, modifier = Modifier.size(14.dp))
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.LocationOn, contentDescription = null, tint = GagPink, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "SRM KTR Campus",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = GagPink,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "$greeting, ${userName.split(" ").firstOrNull() ?: ""}",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(GagSpacing.Small)
+        ) {
+            GagIconButton(
+                icon = Icons.Default.Notifications,
+                onClick = onNotificationsClick
+            )
+            CartIconButton(
+                cartCount = cartCount,
+                onClick = onCartClick
+            )
+        }
+    }
+}
+
+@Composable
+private fun PromoBanner(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.large)
+            .background(
+                Brush.horizontalGradient(
+                    colors = listOf(GagPink, GagBlue)
+                )
+            )
+            .padding(GagSpacing.Large)
+    ) {
+        Column {
+            Text(
+                text = "Hungry?",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color.White
+            )
+            Text(
+                text = "Your favourites\nare waiting!",
+                style = MaterialTheme.typography.titleMedium,
+                color = Color.White.copy(alpha = 0.9f)
+            )
+            Spacer(modifier = Modifier.height(GagSpacing.Medium))
+            Surface(
+                shape = CircleShape,
+                color = Color.White,
+                modifier = Modifier.clickable { /* decorative */ }
+            ) {
+                Text(
+                    text = "ORDER NOW 🍕",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = GagPink,
+                    modifier = Modifier.padding(horizontal = GagSpacing.Medium, vertical = GagSpacing.Small)
+                )
             }
         }
     }
 }
 
 @Composable
-private fun CategoryChip(category: FoodCategory, onClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(GagSurface)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(text = category.emoji, fontSize = 28.sp)
-        Spacer(modifier = Modifier.height(6.dp))
-        Text(text = category.name, style = MaterialTheme.typography.labelSmall, color = GagOnSurface)
-    }
-}
-
-@Composable
 private fun OutletCard(outlet: Outlet, onClick: () -> Unit) {
-    Card(
+    GagCard(
         modifier = Modifier
-            .width(200.dp)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = GagSurface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            .width(240.dp)
+            .clickable(onClick = onClick)
     ) {
         Column {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(110.dp)
-                    .background(GagSurfaceVariant)
+                    .height(130.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 AsyncImage(
                     model = outlet.imageUrl,
@@ -377,28 +477,39 @@ private fun OutletCard(outlet: Outlet, onClick: () -> Unit) {
                     modifier = Modifier.matchParentSize()
                 )
                 // Open/closed badge
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = if (outlet.isOpen) GagSuccessContainer else GagErrorContainer,
-                    modifier = Modifier.padding(8.dp).align(Alignment.TopStart)
-                ) {
-                    Text(
-                        text = if (outlet.isOpen) "Open" else "Closed",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (outlet.isOpen) GagSuccess else GagError,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
-                    )
-                }
+                GagBadge(
+                    text = if (outlet.isOpen) "Open" else "Closed",
+                    color = Color.White,
+                    containerColor = if (outlet.isOpen) GagGreen else GagOrange,
+                    modifier = Modifier
+                        .padding(GagSpacing.Medium)
+                        .align(Alignment.TopStart)
+                )
             }
-            Column(modifier = Modifier.padding(12.dp)) {
-                Text(text = outlet.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(text = outlet.location.building, style = MaterialTheme.typography.bodySmall, color = GagOnSurfaceVariant)
-                Spacer(modifier = Modifier.height(6.dp))
+            Column(modifier = Modifier.padding(GagSpacing.Medium)) {
+                Text(
+                    text = outlet.name, 
+                    style = MaterialTheme.typography.titleMedium, 
+                    fontWeight = FontWeight.Bold, 
+                    maxLines = 1, 
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = outlet.location.building, 
+                    style = MaterialTheme.typography.bodySmall, 
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(GagSpacing.Small))
                 if (outlet.isOpen && outlet.estimatedWaitMinutes > 0) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.Schedule, null, tint = GagAmber, modifier = Modifier.size(12.dp))
+                        Icon(Icons.Outlined.Schedule, null, tint = GagOrange, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("~${outlet.estimatedWaitMinutes} min wait", style = MaterialTheme.typography.labelSmall, color = GagOnSurfaceVariant)
+                        Text(
+                            text = "~${outlet.estimatedWaitMinutes} min wait", 
+                            style = MaterialTheme.typography.labelMedium, 
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 }
             }
@@ -409,35 +520,47 @@ private fun OutletCard(outlet: Outlet, onClick: () -> Unit) {
 @Composable
 private fun ActiveOrderCard(order: Order, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val statusColor = when (order.status) {
-        OrderStatus.PREPARING -> StatusPreparing
-        OrderStatus.READY -> StatusReady
-        OrderStatus.ACCEPTED -> StatusAccepted
-        else -> GagInfo
+        OrderStatus.PREPARING -> GagBlue
+        OrderStatus.READY -> GagGreen
+        OrderStatus.ACCEPTED -> GagBlue
+        else -> GagPink
     }
 
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        color = GagSurface
-    ) {
+    GagCard(modifier = modifier.clickable(onClick = onClick)) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(GagSpacing.Large),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Circle, null, tint = statusColor, modifier = Modifier.size(8.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Active Order · ${order.status.displayName}", style = MaterialTheme.typography.labelMedium, color = statusColor, fontWeight = FontWeight.SemiBold)
+                    Icon(Icons.Default.Circle, null, tint = statusColor, modifier = Modifier.size(10.dp))
+                    Spacer(modifier = Modifier.width(GagSpacing.Small))
+                    Text(
+                        text = "Active Order · ${order.status.displayName}", 
+                        style = MaterialTheme.typography.labelLarge, 
+                        color = statusColor, 
+                        fontWeight = FontWeight.Bold
+                    )
                 }
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(order.orderNumber, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                Text(order.outletName, style = MaterialTheme.typography.bodySmall, color = GagOnSurfaceVariant)
+                Spacer(modifier = Modifier.height(GagSpacing.Small))
+                Text(
+                    text = order.orderNumber, 
+                    style = MaterialTheme.typography.titleMedium, 
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = order.outletName, 
+                    style = MaterialTheme.typography.bodyMedium, 
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-            Icon(Icons.Default.ArrowForward, "View order", tint = GagOrange)
+            GagIconButton(
+                icon = Icons.Default.ArrowForward,
+                onClick = onClick,
+                containerColor = GagPink.copy(alpha = 0.1f),
+                contentColor = GagPink
+            )
         }
     }
 }
@@ -449,5 +572,5 @@ private fun getGreeting(firstName: String): String {
         hour < 17 -> "Good afternoon"
         else -> "Good evening"
     }
-    return "$greet, $firstName 👋"
+    return greet
 }

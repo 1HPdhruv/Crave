@@ -47,7 +47,8 @@ import androidx.compose.ui.unit.sp
 import com.srmfood.gag.core.ui.theme.BottomNavBackground
 import com.srmfood.gag.core.ui.theme.BottomNavBorder
 import com.srmfood.gag.core.ui.theme.GagOnSurfaceVariant
-import com.srmfood.gag.core.ui.theme.GagOrange
+import com.srmfood.gag.core.ui.theme.GagPink
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 data class BottomNavItem(
     val label: String,
@@ -59,7 +60,7 @@ data class BottomNavItem(
 val studentBottomNavItems = listOf(
     BottomNavItem("Home", Icons.Filled.Home, Icons.Outlined.Home, "home"),
     BottomNavItem("Orders", Icons.Filled.Receipt, Icons.Outlined.Receipt, "orders"),
-    BottomNavItem("Favourites", Icons.Filled.Favorite, Icons.Outlined.FavoriteBorder, "favourites"),
+    BottomNavItem("Favorites", Icons.Filled.Favorite, Icons.Outlined.FavoriteBorder, "favorites"),
     BottomNavItem("Alerts", Icons.Filled.Notifications, Icons.Outlined.Notifications, "notifications"),
     BottomNavItem("Profile", Icons.Filled.Person, Icons.Outlined.Person, "profile")
 )
@@ -91,25 +92,28 @@ fun GagBottomNavBar(
             items.forEach { item ->
                 val selected = currentRoute == item.route
                 val iconTint by animateColorAsState(
-                    targetValue = if (selected) GagOrange else GagOnSurfaceVariant,
+                    targetValue = if (selected) GagPink else GagOnSurfaceVariant,
                     animationSpec = tween(200),
                     label = "icon_tint"
+                )
+                val indicatorWidth by animateDpAsState(
+                    targetValue = if (selected) 24.dp else 0.dp,
+                    animationSpec = tween(200),
+                    label = "indicator_width"
                 )
                 NavigationBarItem(
                     selected = selected,
                     onClick = { onItemSelected(item.route) },
                     icon = {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            if (selected) {
-                                Box(
-                                    modifier = Modifier
-                                        .width(24.dp)
-                                        .height(3.dp)
-                                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
-                                        .background(GagOrange)
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                            }
+                            Box(
+                                modifier = Modifier
+                                    .width(indicatorWidth)
+                                    .height(3.dp)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(GagPink)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
                             Icon(
                                 imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
                                 contentDescription = item.label,

@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Circle
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -78,18 +79,19 @@ fun OrderDetailScreen(
     val orderState by viewModel.order.collectAsState()
 
     Scaffold(
-        topBar = { GagTopBar(title = "Order Details", onBack = onBack) },
-        containerColor = GagBackground
+        containerColor = GagBackground,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         when (val state = orderState) {
             is UiState.Loading -> GagLoadingScreen(modifier = Modifier.padding(padding))
             is UiState.Error -> GagErrorScreen(message = state.message, onRetry = { viewModel.loadOrder(orderId) }, modifier = Modifier.padding(padding))
             is UiState.Success -> OrderDetailContent(
                 order = state.data,
+                onBack = onBack,
                 onTrack = { onTrackOrder(orderId) },
                 onShowQR = { onShowQR(orderId) },
                 onCancel = { viewModel.cancelOrder(orderId) },
-                modifier = Modifier.padding(padding)
+                modifier = Modifier.padding(top = padding.calculateTopPadding(), bottom = padding.calculateBottomPadding() + 24.dp)
             )
             else -> {}
         }
@@ -97,25 +99,88 @@ fun OrderDetailScreen(
 }
 
 @Composable
-private fun OrderDetailContent(order: Order, onTrack: () -> Unit, onShowQR: () -> Unit, onCancel: () -> Unit, modifier: Modifier = Modifier) {
+private fun OrderDetailContent(order: Order, onBack: () -> Unit, onTrack: () -> Unit, onShowQR: () -> Unit, onCancel: () -> Unit, modifier: Modifier = Modifier) {
     val statusColor = order.status.color()
 
-    LazyColumn(modifier = modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    LazyColumn(modifier = modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
         // Header
         item {
-            Surface(shape = RoundedCornerShape(16.dp), color = GagSurface, modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(order.orderNumber, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                        Surface(shape = RoundedCornerShape(20.dp), color = statusColor.copy(alpha = 0.15f)) {
-                            Text(order.status.displayName, color = statusColor, fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp))
-                        }
+            Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp).statusBarsPadding()) {
+                IconButton(onClick = onBack, modifier = Modifier.offset(x = (-12).dp)) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Go back")
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text(order.orderNumber, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold)
+                    Surface(shape = RoundedCornerShape(20.dp), color = statusColor.copy(alpha = 0.15f)) {
+                        Text(order.status.displayName, color = statusColor, fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp))
                     }
+                }
+            }
+        }
+
+        // Outlet Info
+        item {
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+                shape = RoundedCornerShape(16.dp), 
+                color = MaterialTheme.colorScheme.surfaceVariant
+            ) {
+                Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                    Text("Pickup from", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(order.outletName, style = MaterialTheme.typography.bodyMedium, color = GagOnSurfaceVariant)
+                    Text(order.outletName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     order.pickupSlot?.let {
-                        Text("Pickup: ${it.displayTime}", style = MaterialTheme.typography.bodySmall, color = GagInfo)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text("Scheduled: ${it.displayTime}", style = MaterialTheme.typography.bodySmall, color = GagPink, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+        }
+
+        // Action buttons
+        item {
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (order.status == OrderStatus.READY) {
+                    GagPrimaryButton(
+                        text = "Show Pickup QR Code",
+                        onClick = onShowQR,
+                        icon = Icons.Default.QrCode2,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                if (order.status.isActive && order.status != OrderStatus.READY) {
+                    GagPrimaryButton(
+                        text = "Track Order", 
+                        onClick = onTrack,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                if (order.status == OrderStatus.PLACED) {
+                    OutlinedButton(
+                        onClick = onCancel,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        contentPadding = PaddingValues(16.dp),
+                        border = androidx.compose.foundation.BorderStroke(2.dp, GagError)
+                    ) { Text("Cancel Order", color = GagError, fontWeight = FontWeight.Bold) }
+                }
+            }
+        }
+
+        // Cancellation reason
+        if (!order.cancellationReason.isNullOrBlank()) {
+            item {
+                Surface(
+                    shape = RoundedCornerShape(16.dp), 
+                    color = GagErrorContainer, 
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("Cancellation Reason", style = MaterialTheme.typography.labelMedium, color = GagError, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(order.cancellationReason, style = MaterialTheme.typography.bodyMedium, color = GagError)
                     }
                 }
             }
@@ -123,52 +188,53 @@ private fun OrderDetailContent(order: Order, onTrack: () -> Unit, onShowQR: () -
 
         // Items
         item {
-            Surface(shape = RoundedCornerShape(16.dp), color = GagSurface, modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Items", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(10.dp))
-                    order.items.forEach { item ->
+            Spacer(modifier = Modifier.height(8.dp))
+            Surface(
+                shape = RoundedCornerShape(20.dp), 
+                color = MaterialTheme.colorScheme.surface, 
+                shadowElevation = 2.dp,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text("Order Summary", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    order.items.forEachIndexed { index, item ->
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Box(modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)).background(GagSurfaceVariant)) {
+                            Box(modifier = Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)).background(GagSurfaceVariant)) {
                                 GagFoodImage(
                                     model = item.foodImageUrl,
                                     contentDescription = item.foodName,
                                     modifier = Modifier.matchParentSize()
                                 )
                             }
-                            Spacer(modifier = Modifier.width(12.dp))
+                            Spacer(modifier = Modifier.width(16.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Text("${item.foodName} × ${item.quantity}", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                                    Text("₹${item.totalPrice.toInt()}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                    Text(
+                                        text = "${item.foodName} × ${item.quantity}", 
+                                        style = MaterialTheme.typography.titleSmall, 
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Text("₹${item.totalPrice.toInt()}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold)
                                 }
                                 if (item.customizations.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        item.customizations.joinToString(", "),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = GagOnSurfaceVariant
+                                        "• " + item.customizations.joinToString(", "),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
                         }
-                    }
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = GagOutlineVariant)
-                    Row(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Subtotal", style = MaterialTheme.typography.bodyMedium)
-                        Text("₹${order.subtotal.toInt()}", style = MaterialTheme.typography.bodyMedium)
-                    }
-                    if (order.tax > 0) {
-                        Row(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Tax & Fees", style = MaterialTheme.typography.bodyMedium)
-                            Text("₹${order.tax.toInt()}", style = MaterialTheme.typography.bodyMedium)
+                        if (index < order.items.size - 1) {
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant)
                         }
-                    }
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Total", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                        Text("₹${order.total.toInt()}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = GagOrange)
                     }
                 }
             }
@@ -177,47 +243,53 @@ private fun OrderDetailContent(order: Order, onTrack: () -> Unit, onShowQR: () -
         // Special Instructions
         if (!order.specialInstructions.isNullOrBlank()) {
             item {
-                Surface(shape = RoundedCornerShape(16.dp), color = GagSurface, modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Special Instructions", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(order.specialInstructions, style = MaterialTheme.typography.bodyMedium, color = GagOnSurfaceVariant)
+                Spacer(modifier = Modifier.height(16.dp))
+                Surface(
+                    shape = RoundedCornerShape(20.dp), 
+                    color = MaterialTheme.colorScheme.surface, 
+                    shadowElevation = 2.dp,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)
+                ) {
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Text("Special Instructions", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(order.specialInstructions, style = MaterialTheme.typography.bodyMedium, color = GagOrange)
                     }
                 }
             }
         }
 
-        // Action buttons
+        // Payment Summary
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (order.status == OrderStatus.READY) {
-                    GagPrimaryButton(
-                        text = "Show Pickup QR Code",
-                        onClick = onShowQR,
-                        icon = Icons.Default.QrCode2
-                    )
-                }
-                if (order.status.isActive && order.status != OrderStatus.READY) {
-                    GagPrimaryButton(text = "Track Order", onClick = onTrack)
-                }
-                if (order.status == OrderStatus.PLACED) {
-                    OutlinedButton(
-                        onClick = onCancel,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, GagError)
-                    ) { Text("Cancel Order", color = GagError) }
-                }
-            }
-        }
-
-        // Cancellation reason
-        if (!order.cancellationReason.isNullOrBlank()) {
-            item {
-                Surface(shape = RoundedCornerShape(12.dp), color = GagErrorContainer, modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text("Cancellation Reason", style = MaterialTheme.typography.labelMedium, color = GagError, fontWeight = FontWeight.Bold)
-                        Text(order.cancellationReason, style = MaterialTheme.typography.bodySmall, color = GagError)
+            Spacer(modifier = Modifier.height(16.dp))
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text("Payment Summary", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Subtotal", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("₹${order.subtotal.toInt()}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                    }
+                    if (order.tax > 0) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("GST (5%)", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("₹${order.tax.toInt()}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("Total", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+                        Text("₹${order.total.toInt()}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = GagPink)
                     }
                 }
             }

@@ -1,10 +1,13 @@
 package com.srmfood.gag.feature.profile
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.ExitToApp
 import androidx.compose.material.icons.outlined.FavoriteBorder
@@ -95,52 +98,62 @@ fun ProfileScreen(
     val user by viewModel.user.collectAsState()
     val updateState by viewModel.updateState.collectAsState()
     var showEditDialog by remember { mutableStateOf(false) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
 
     Scaffold(
-        topBar = { GagTopBar(title = "Profile", onBack = null) },
         bottomBar = { GagBottomNavBar(items = studentBottomNavItems, currentRoute = "profile", onItemSelected = onNavigateBottom) },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = GagBackground,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 16.dp),
+                .padding(top = padding.calculateTopPadding(), bottom = padding.calculateBottomPadding()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            item { Spacer(modifier = Modifier.height(8.dp)) }
+            item { Spacer(modifier = Modifier.height(8.dp).statusBarsPadding()) }
 
             // Profile Header
             item {
                 Surface(
                     shape = RoundedCornerShape(24.dp),
                     color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 2.dp,
-                    shadowElevation = 4.dp,
-                    modifier = Modifier.fillMaxWidth()
+                    shadowElevation = 6.dp,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)
                 ) {
                     Column(
-                        modifier = Modifier.padding(24.dp),
+                        modifier = Modifier.padding(28.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Surface(
-                            shape = RoundedCornerShape(50),
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                            modifier = Modifier.size(96.dp)
-                        ) {
-                            Icon(
-                                Icons.Outlined.Person,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(24.dp)
-                            )
+                        // Avatar with pink ring
+                        Box(contentAlignment = Alignment.Center) {
+                            Box(
+                                modifier = Modifier
+                                    .size(104.dp)
+                                    .background(GagPink.copy(alpha = 0.15f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(88.dp)
+                                        .background(GagPink.copy(alpha = 0.25f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.Person,
+                                        contentDescription = "Profile avatar",
+                                        tint = GagPink,
+                                        modifier = Modifier.size(44.dp)
+                                    )
+                                }
+                            }
                         }
+
                         Spacer(modifier = Modifier.height(16.dp))
-                        
                         Text(
                             text = user?.name ?: "Loading...",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(4.dp))
@@ -150,6 +163,7 @@ fun ProfileScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         if (!user?.phone.isNullOrBlank()) {
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = user?.phone ?: "",
                                 style = MaterialTheme.typography.bodySmall,
@@ -157,22 +171,29 @@ fun ProfileScreen(
                             )
                         }
                         if (!user?.registrationNumber.isNullOrBlank()) {
-                            Text(
-                                text = user?.registrationNumber ?: "",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = GagPink.copy(alpha = 0.1f)
+                            ) {
+                                Text(
+                                    text = user?.registrationNumber ?: "",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = GagPink,
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                )
+                            }
                         }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
+                        Spacer(modifier = Modifier.height(20.dp))
                         OutlinedButton(
                             onClick = { showEditDialog = true },
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(16.dp),
+                            border = androidx.compose.foundation.BorderStroke(2.dp, GagPink)
                         ) {
-                            Icon(Icons.Outlined.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Outlined.Edit, contentDescription = "Edit profile", modifier = Modifier.size(18.dp), tint = GagPink)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Edit Profile")
+                            Text("Edit Profile", color = GagPink, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
@@ -181,18 +202,20 @@ fun ProfileScreen(
             // Quick Actions
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     QuickActionCard(
                         title = "My Orders",
-                        icon = Icons.Outlined.Edit, // TODO use List/Assignment
+                        icon = Icons.Default.ShoppingBag,
+                        tint = GagPink,
                         onClick = onNavigateToOrders,
                         modifier = Modifier.weight(1f)
                     )
                     QuickActionCard(
                         title = "Favorites",
                         icon = Icons.Outlined.FavoriteBorder,
+                        tint = GagPink,
                         onClick = onNavigateToFavorites,
                         modifier = Modifier.weight(1f)
                     )
@@ -202,21 +225,23 @@ fun ProfileScreen(
             // Menu Options
             item {
                 Surface(
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(20.dp),
                     color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 1.dp,
-                    modifier = Modifier.fillMaxWidth()
+                    shadowElevation = 2.dp,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)
                 ) {
                     Column {
                         ProfileMenuItem(
                             icon = Icons.Outlined.Settings,
                             title = "Settings",
+                            subtitle = "Theme, notifications",
                             onClick = onNavigateToSettings
                         )
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         ProfileMenuItem(
                             icon = Icons.Outlined.HelpOutline,
                             title = "Help & Support",
+                            subtitle = "FAQs, contact us",
                             onClick = onNavigateToHelp
                         )
                     }
@@ -225,19 +250,19 @@ fun ProfileScreen(
 
             item {
                 Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 16.dp)
-                        .clickable { viewModel.logout(); onLogoutSuccess() }
+                        .padding(horizontal = 20.dp, vertical = 8.dp)
+                        .clickable { showLogoutDialog = true }
                 ) {
                     Row(
                         modifier = Modifier.padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        Icon(Icons.Outlined.ExitToApp, contentDescription = "Logout", tint = MaterialTheme.colorScheme.error)
+                        Icon(Icons.Outlined.ExitToApp, contentDescription = "Log out", tint = MaterialTheme.colorScheme.error)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Log Out",
@@ -251,6 +276,28 @@ fun ProfileScreen(
             
             item { Spacer(modifier = Modifier.height(32.dp)) }
         }
+    }
+
+    // Logout confirmation dialog
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            shape = RoundedCornerShape(24.dp),
+            title = { Text("Log Out?", fontWeight = FontWeight.ExtraBold) },
+            text = { Text("Are you sure you want to log out of Crave?") },
+            confirmButton = {
+                Button(
+                    onClick = { showLogoutDialog = false; viewModel.logout(); onLogoutSuccess() },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shape = RoundedCornerShape(12.dp)
+                ) { Text("Log Out", fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) {
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        )
     }
 
     if (showEditDialog && user != null) {
@@ -331,35 +378,71 @@ fun ProfileScreen(
 }
 
 @Composable
-private fun QuickActionCard(title: String, icon: ImageVector, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun QuickActionCard(
+    title: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    tint: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.primary,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Surface(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp,
+        shadowElevation = 2.dp,
         modifier = modifier.clickable(onClick = onClick)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .background(tint.copy(alpha = 0.12f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, contentDescription = title, tint = tint, modifier = Modifier.size(26.dp))
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
         }
     }
 }
 
 @Composable
-private fun ProfileMenuItem(icon: ImageVector, title: String, tint: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface, onClick: () -> Unit) {
+private fun ProfileMenuItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String? = null,
+    tint: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface,
+    onClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(16.dp),
+            .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(icon, null, tint = tint)
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .background(tint.copy(alpha = 0.08f), RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = title, tint = tint, modifier = Modifier.size(20.dp))
+        }
         Spacer(modifier = Modifier.width(16.dp))
-        Text(title, style = MaterialTheme.typography.bodyLarge, color = tint)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = tint)
+            if (!subtitle.isNullOrBlank()) {
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        Text(
+            "›",
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }

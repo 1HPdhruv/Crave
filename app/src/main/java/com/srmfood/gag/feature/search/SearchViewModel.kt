@@ -12,6 +12,7 @@ import com.srmfood.gag.domain.usecase.cart.ClearCartUseCase
 import com.srmfood.gag.domain.usecase.food.SearchFoodUseCase
 import com.srmfood.gag.domain.usecase.food.ToggleFavoriteUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import androidx.lifecycle.SavedStateHandle
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,6 +26,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+import com.srmfood.gag.domain.model.FoodCategory
+import com.srmfood.gag.domain.usecase.food.GetCategoriesUseCase
+
 sealed class SearchUiEvent {
     data class ShowSnackbar(val message: String) : SearchUiEvent()
 }
@@ -32,6 +36,7 @@ sealed class SearchUiEvent {
 data class SearchUiState(
     val query: String = "",
     val results: UiState<List<FoodItem>> = UiState.Idle,
+    val categories: UiState<List<FoodCategory>> = UiState.Loading,
     val filterVegOnly: Boolean? = null,
     val filterMaxPrice: Double? = null,
     val filterMaxPrepTime: Int? = null,
@@ -48,28 +53,54 @@ data class SearchUiState(
 @HiltViewModel
 class SearchViewModel @Inject constructor(
     private val searchFoodUseCase: SearchFoodUseCase,
+    private val getCategoriesUseCase: GetCategoriesUseCase,
     private val addToCartUseCase: AddToCartUseCase,
     private val getCartOutletIdUseCase: GetCartOutletIdUseCase,
     private val toggleFavoriteUseCase: ToggleFavoriteUseCase,
-    private val clearCartUseCase: ClearCartUseCase
+    private val clearCartUseCase: ClearCartUseCase,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(SearchUiState())
+    private val _uiState = MutableStateFlow(SearchUiState(
+        selectedCategory = savedStateHandle.get<String>("category")
+    ))
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
 
     private val _events = MutableSharedFlow<SearchUiEvent>()
     val events: SharedFlow<SearchUiEvent> = _events.asSharedFlow()
 
-    private val _queryFlow = MutableStateFlow("")
+    private val _queryFlow = MutableStateFlow(savedStateHandle.get<String>("query") ?: "")
 
     init {
+        // Fetch categories for the carousel
+        viewModelScope.launch {
+            val catResult = getCategoriesUseCase()
+            _uiState.update { state ->
+                state.copy(
+                    categories = catResult.fold(
+                        onSuccess = { cats -> if (cats.isEmpty()) UiState.Empty else UiState.Success(cats) },
+                        onFailure = { err -> UiState.Error(err.message ?: "Failed to load categories") }
+                    )
+                )
+            }
+        }
+
+        // If a category was passed initially, trigger a search immediately.
+        if (_uiState.value.selectedCategory != null) {
+            search()
+        }
+
         viewModelScope.launch {
             _queryFlow
                 .debounce(400)
                 .distinctUntilChanged()
                 .collect { query ->
-                    if (query.length >= 2) search()
-                    else if (query.isBlank()) _uiState.update { it.copy(results = UiState.Idle) }
+                    val hasCategory = _uiState.value.selectedCategory != null
+                    if (query.length >= 2 || (hasCategory && query.isBlank())) {
+                        search()
+                    } else if (query.isBlank() && !hasCategory) {
+                        _uiState.update { it.copy(results = UiState.Idle) }
+                    }
                 }
         }
     }
@@ -83,7 +114,12 @@ class SearchViewModel @Inject constructor(
     fun onMaxPriceChanged(price: Double?) = _uiState.update { it.copy(filterMaxPrice = price) }
     fun onMaxPrepTimeChanged(mins: Int?) = _uiState.update { it.copy(filterMaxPrepTime = mins) }
     fun onMinRatingChanged(rating: Double?) = _uiState.update { it.copy(filterMinRating = rating) }
-    fun onCategorySelected(cat: String?) = _uiState.update { it.copy(selectedCategory = cat) }
+    
+    fun onCategorySelected(cat: String?) {
+        _uiState.update { it.copy(selectedCategory = cat) }
+        search() // Automatically trigger search when category changes
+    }
+    
     fun onSortChanged(sort: SortOption) = _uiState.update { it.copy(sortBy = sort) }
     fun toggleFilters() = _uiState.update { it.copy(showFilters = !it.showFilters) }
 

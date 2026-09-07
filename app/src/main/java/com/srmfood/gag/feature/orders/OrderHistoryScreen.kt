@@ -64,33 +64,65 @@ fun OrderHistoryScreen(
     val ordersState by viewModel.orders.collectAsState()
 
     Scaffold(
-        topBar = { GagTopBar(title = "My Orders", onBack = onBack) },
         bottomBar = { GagBottomNavBar(items = studentBottomNavItems, currentRoute = "orders", onItemSelected = onNavigateBottom) },
-        containerColor = GagBackground
+        containerColor = GagBackground,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         when (val state = ordersState) {
             is UiState.Loading -> GagLoadingScreen(modifier = Modifier.padding(padding))
-            is UiState.Empty -> GagEmptyScreen(title = "No orders yet", message = "Your order history will appear here", modifier = Modifier.padding(padding))
+            is UiState.Empty -> {
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(padding),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "No orders yet 🍽️", 
+                        style = MaterialTheme.typography.headlineMedium, 
+                        fontWeight = FontWeight.ExtraBold, 
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "Your next craving is waiting.", 
+                        style = MaterialTheme.typography.bodyLarge, 
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(32.dp))
+                    com.srmfood.gag.core.ui.component.GagPrimaryButton(
+                        text = "Explore Food",
+                        onClick = { onNavigateBottom("home") }
+                    )
+                }
+            }
             is UiState.Success -> {
                 val active = state.data.filter { it.status.isActive }
                 val past = state.data.filter { it.status.isTerminal }
 
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(padding),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = padding.calculateBottomPadding() + 24.dp)
                 ) {
+                    // Header
+                    item {
+                        Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp).statusBarsPadding()) {
+                            Text("Your Orders", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Track your cravings", style = MaterialTheme.typography.titleMedium, color = GagPink)
+                        }
+                    }
+
                     if (active.isNotEmpty()) {
-                        item { SectionLabel("Active Orders") }
+                        item { SectionLabel("CURRENT ORDER") }
                         items(active, key = { it.id }) { order ->
-                            OrderHistoryCard(order = order, onClick = { onOrderClick(order.id) })
+                            OrderHistoryCard(order = order, isActive = true, onClick = { onOrderClick(order.id) })
                         }
                         item { Spacer(modifier = Modifier.height(8.dp)) }
                     }
                     if (past.isNotEmpty()) {
-                        item { SectionLabel("Past Orders") }
+                        item { SectionLabel("PAST ORDERS") }
                         items(past, key = { it.id }) { order ->
-                            OrderHistoryCard(order = order, onClick = { onOrderClick(order.id) })
+                            OrderHistoryCard(order = order, isActive = false, onClick = { onOrderClick(order.id) })
                         }
                     }
                 }
@@ -102,37 +134,88 @@ fun OrderHistoryScreen(
 
 @Composable
 private fun SectionLabel(label: String) {
-    Text(label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 4.dp))
+    Text(
+        text = label, 
+        style = MaterialTheme.typography.labelMedium, 
+        fontWeight = FontWeight.ExtraBold, 
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+    )
 }
 
 @Composable
-private fun OrderHistoryCard(order: Order, onClick: () -> Unit) {
+private fun OrderHistoryCard(order: Order, isActive: Boolean, onClick: () -> Unit) {
     val statusColor = order.status.color()
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = GagSurface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    val bgColor = if (isActive) GagPink.copy(alpha = 0.05f) else MaterialTheme.colorScheme.surface
+    val outlineColor = if (isActive) GagPink.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant
+
+    Surface(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp),
+        shape = RoundedCornerShape(20.dp),
+        color = bgColor,
+        border = androidx.compose.foundation.BorderStroke(1.dp, outlineColor),
+        shadowElevation = if (isActive) 4.dp else 2.dp
     ) {
-        Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(order.orderNumber, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(Icons.Default.Circle, null, tint = statusColor, modifier = Modifier.size(8.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(order.status.displayName, style = MaterialTheme.typography.labelSmall, color = statusColor, fontWeight = FontWeight.SemiBold)
+        Column(modifier = Modifier.clickable(onClick = onClick).padding(16.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
+                Column {
+                    Text(order.outletName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(order.orderNumber, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(order.outletName, style = MaterialTheme.typography.bodySmall, color = GagOnSurfaceVariant)
-                Text("${order.items.size} item(s)  ·  ₹${order.total.toInt()}", style = MaterialTheme.typography.bodySmall, color = GagOnSurfaceVariant)
-                // Add Date/Time and Pickup Slot info
-                Text(order.createdAt.take(10), style = MaterialTheme.typography.bodySmall, color = GagOnSurfaceVariant)
-                order.pickupSlot?.let {
-                    Text("Pickup: ${it.displayTime}", style = MaterialTheme.typography.labelSmall, color = GagInfo)
+                Surface(
+                    shape = RoundedCornerShape(20.dp), 
+                    color = statusColor.copy(alpha = 0.15f)
+                ) {
+                    Text(
+                        text = order.status.displayName, 
+                        color = statusColor, 
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.labelSmall, 
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                    )
                 }
             }
-            Text("₹${order.total.toInt()}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = GagOrange)
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (isActive) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Circle, null, tint = statusColor, modifier = Modifier.size(8.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = when (order.status) {
+                            OrderStatus.PREPARING -> "Your food is being prepared."
+                            OrderStatus.READY -> "Ready for pickup!"
+                            else -> "Processing your order."
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = statusColor
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    Text("${order.items.size} item(s)  ·  ₹${order.total.toInt()}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(order.createdAt.take(10), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+
+                if (isActive) {
+                    com.srmfood.gag.core.ui.component.GagPrimaryButton(
+                        text = "Track Order",
+                        onClick = onClick,
+                        modifier = Modifier.height(36.dp)
+                    )
+                } else {
+                    TextButton(onClick = onClick, modifier = Modifier.padding(0.dp)) {
+                        Text("View Details", color = GagPink, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
+                    }
+                }
+            }
         }
     }
 }
@@ -140,8 +223,8 @@ private fun OrderHistoryCard(order: Order, onClick: () -> Unit) {
 fun OrderStatus.color() = when (this) {
     OrderStatus.PLACED -> GagInfo
     OrderStatus.ACCEPTED -> StatusAccepted
-    OrderStatus.PREPARING -> StatusPreparing
-    OrderStatus.READY -> StatusReady
+    OrderStatus.PREPARING -> GagPink
+    OrderStatus.READY -> GagSuccess
     OrderStatus.PICKED_UP -> GagSuccess
     OrderStatus.CANCELLED, OrderStatus.REJECTED -> GagError
     OrderStatus.EXPIRED -> GagOnSurfaceVariant

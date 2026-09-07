@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Circle
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -91,8 +92,8 @@ fun LiveOrderTrackingScreen(
     LaunchedEffect(orderId) { viewModel.observeOrder(orderId) }
 
     Scaffold(
-        topBar = { GagTopBar(title = "Order Tracking", onBack = onBack) },
-        containerColor = GagBackground
+        containerColor = GagBackground,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         when (val state = orderState) {
             is UiState.Idle, is UiState.Empty -> GagLoadingScreen(modifier = Modifier.padding(padding))
@@ -107,120 +108,163 @@ fun LiveOrderTrackingScreen(
                 val status = order.status
 
                 Column(
-                    modifier = Modifier.fillMaxSize().padding(padding).padding(24.dp),
+                    modifier = Modifier.fillMaxSize(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Order Info Card
-                    Surface(shape = RoundedCornerShape(16.dp), color = GagSurface, modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(order.orderNumber, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                                Text("₹${order.total.toInt()}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = GagOrange)
+                    // Custom Header
+                    Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp).statusBarsPadding().fillMaxWidth()) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = onBack, modifier = Modifier.offset(x = (-12).dp)) {
+                                Icon(Icons.Default.ArrowBack, contentDescription = "Go back")
                             }
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(order.outletName, style = MaterialTheme.typography.bodyMedium, color = GagOnSurfaceVariant)
-                            order.pickupSlot?.let {
-                                Text("Pickup: ${it.displayTime}", style = MaterialTheme.typography.bodySmall, color = GagInfo)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                val pulseAnim = rememberInfiniteTransition(label = "live_pulse")
+                                val alpha by pulseAnim.animateFloat(
+                                    initialValue = 0.4f, targetValue = 1f,
+                                    animationSpec = infiniteRepeatable(animation = tween(1000), repeatMode = RepeatMode.Reverse),
+                                    label = "live_alpha"
+                                )
+                                Icon(Icons.Default.Circle, contentDescription = "Live", tint = GagPink.copy(alpha = alpha), modifier = Modifier.size(10.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Live updates", style = MaterialTheme.typography.labelMedium, color = GagPink, fontWeight = FontWeight.Bold)
                             }
-                            Text("${order.items.size} item(s)", style = MaterialTheme.typography.bodySmall, color = GagOnSurfaceVariant)
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Pulsing status indicator
-                    val isReady = status == OrderStatus.READY
-                    val pulseAnim = rememberInfiniteTransition(label = "pulse")
-                    val scale by pulseAnim.animateFloat(
-                        initialValue = 1f, targetValue = if (isReady) 1f else 1.12f,
-                        animationSpec = infiniteRepeatable(animation = tween(800), repeatMode = RepeatMode.Reverse),
-                        label = "scale"
-                    )
-
-                    Box(
-                        modifier = Modifier.size(120.dp).scale(scale)
-                            .background(if (isReady) GagSuccessContainer else GagOrange.copy(0.15f), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = if (isReady) Icons.Default.CheckCircle else Icons.Default.Circle,
-                            contentDescription = null,
-                            tint = if (isReady) GagSuccess else GagOrange,
-                            modifier = Modifier.size(60.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Text(
-                        text = if (isReady) "Your order is ready! 🎉" else "Preparing your order…",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center
-                    )
-                    Text(
-                        text = status.displayName,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = GagOnSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Progress steps
-            Surface(shape = RoundedCornerShape(16.dp), color = GagSurface, modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    trackingSteps.forEachIndexed { index, (stepStatus, label) ->
-                        val isDone = isStepDone(stepStatus, status)
-                        val isCurrent = stepStatus == status
-
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier.size(32.dp)
-                                    .background(
-                                        when {
-                                            isDone -> GagSuccess
-                                            isCurrent -> GagOrange
-                                            else -> GagSurfaceVariant
-                                        },
-                                        CircleShape
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (isDone) {
-                                    Icon(Icons.Default.CheckCircle, null, tint = Color.White, modifier = Modifier.size(18.dp))
-                                } else {
-                                    Text("${index + 1}", color = if (isCurrent) Color.White else GagOnSurfaceVariant,
-                                        style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp)) {
+                        // Order Info Card
+                        Surface(
+                            shape = RoundedCornerShape(20.dp), 
+                            color = MaterialTheme.colorScheme.surfaceVariant, 
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(20.dp)) {
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Text(order.orderNumber, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+                                    Text("₹${order.total.toInt()}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = GagPink)
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(order.outletName, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                order.pickupSlot?.let {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text("Pickup: ${it.displayTime}", style = MaterialTheme.typography.bodySmall, color = GagPink, fontWeight = FontWeight.SemiBold)
                                 }
                             }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                label,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
-                                color = when {
-                                    isDone || isCurrent -> GagOnBackground
-                                    else -> GagOnSurfaceVariant
+                        }
+
+                        Spacer(modifier = Modifier.height(32.dp))
+
+                        // Pulsing status indicator
+                        val isReady = status == OrderStatus.READY
+                        val pulseAnim = rememberInfiniteTransition(label = "pulse")
+                        val scale by pulseAnim.animateFloat(
+                            initialValue = 1f, targetValue = if (isReady) 1f else 1.12f,
+                            animationSpec = infiniteRepeatable(animation = tween(800), repeatMode = RepeatMode.Reverse),
+                            label = "scale"
+                        )
+
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Box(
+                                modifier = Modifier.size(140.dp).scale(scale)
+                                    .background(if (isReady) GagSuccessContainer else GagPink.copy(alpha = 0.15f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = if (isReady) Icons.Default.CheckCircle else Icons.Default.Circle,
+                                    contentDescription = null,
+                                    tint = if (isReady) GagSuccess else GagPink,
+                                    modifier = Modifier.size(64.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(32.dp))
+                        
+                        Text(
+                            text = if (isReady) "Your order is ready! 🎉" else "Preparing your order…",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.ExtraBold,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = status.displayName,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Spacer(modifier = Modifier.height(32.dp))
+
+                        // Progress steps
+                        Surface(
+                            shape = RoundedCornerShape(20.dp), 
+                            color = MaterialTheme.colorScheme.surface, 
+                            shadowElevation = 2.dp,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                                trackingSteps.forEachIndexed { index, (stepStatus, label) ->
+                                    val isDone = isStepDone(stepStatus, status)
+                                    val isCurrent = stepStatus == status
+
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier.size(36.dp)
+                                                .background(
+                                                    when {
+                                                        isDone -> GagSuccess
+                                                        isCurrent -> GagPink
+                                                        else -> MaterialTheme.colorScheme.surfaceVariant
+                                                    },
+                                                    CircleShape
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            if (isDone) {
+                                                Icon(Icons.Default.CheckCircle, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                                            } else {
+                                                Text("${index + 1}", color = if (isCurrent) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold)
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.width(16.dp))
+                                        Text(
+                                            label,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = if (isCurrent || isDone) FontWeight.Bold else FontWeight.Medium,
+                                            color = when {
+                                                isDone || isCurrent -> MaterialTheme.colorScheme.onBackground
+                                                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                            }
+                                        )
+                                    }
                                 }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.weight(1f))
+
+                        if (status == OrderStatus.READY) {
+                            GagPrimaryButton(
+                                text = "Show Pickup QR Code",
+                                onClick = { onShowQR(orderId) },
+                                icon = Icons.Default.QrCode2,
+                                modifier = Modifier.fillMaxWidth().padding(bottom = padding.calculateBottomPadding() + 24.dp)
                             )
+                        } else {
+                            Spacer(modifier = Modifier.height(padding.calculateBottomPadding() + 24.dp))
                         }
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            if (status == OrderStatus.READY) {
-                GagPrimaryButton(
-                    text = "Show Pickup QR",
-                    onClick = { onShowQR(orderId) },
-                    icon = Icons.Default.QrCode2
-                )
-            }
-            }
         }
     }
-}
 }
 
 private fun isStepDone(stepStatus: OrderStatus, currentStatus: OrderStatus): Boolean {

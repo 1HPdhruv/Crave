@@ -35,8 +35,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.srmfood.gag.core.ui.theme.GagError
 import com.srmfood.gag.core.ui.theme.GagOnSurfaceVariant
-import com.srmfood.gag.core.ui.theme.GagOrange
-import com.srmfood.gag.core.ui.theme.GagSurface
+import com.srmfood.gag.core.ui.theme.GagPink
 
 @Composable
 fun GagLoadingScreen(
@@ -52,7 +51,7 @@ fun GagLoadingScreen(
             verticalArrangement = Arrangement.Center
         ) {
             CircularProgressIndicator(
-                color = GagOrange,
+                color = GagPink,
                 strokeWidth = 3.dp,
                 modifier = Modifier.size(48.dp)
             )
@@ -171,7 +170,6 @@ fun GagNoInternetScreen(
     )
 }
 
-// Shimmer loading placeholder
 @Composable
 fun ShimmerBox(
     modifier: Modifier = Modifier,
@@ -179,10 +177,10 @@ fun ShimmerBox(
 ) {
     val transition = rememberInfiniteTransition(label = "shimmer")
     val alpha by transition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 0.7f,
+        initialValue = 0.4f,
+        targetValue = 0.85f,
         animationSpec = infiniteRepeatable(
-            animation = tween(800),
+            animation = tween(900),
             repeatMode = RepeatMode.Reverse
         ),
         label = "shimmer_alpha"
@@ -191,7 +189,7 @@ fun ShimmerBox(
         modifier = modifier
             .alpha(alpha)
             .background(
-                color = GagSurface,
+                color = MaterialTheme.colorScheme.surfaceVariant,
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(cornerRadius)
             )
     )

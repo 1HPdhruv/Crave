@@ -1,6 +1,7 @@
 package com.srmfood.gag.feature.food
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -8,12 +9,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -188,7 +191,14 @@ fun FoodDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState.addedToCart) {
-        if (uiState.addedToCart) { viewModel.resetAddedToCart(); onCartClick() }
+        if (uiState.addedToCart) { 
+            viewModel.resetAddedToCart()
+            // Just show snackbar handled by AddToCartUseCase/events, or keep user here if no auto-nav requested.
+            // The prompt says: "Do not automatically navigate away unless the existing behavior already does so. The user should be able to continue browsing."
+            // Wait, the existing behavior was `onCartClick()`. So I will keep `onCartClick()`.
+            // Let me look at previous implementation: `if (uiState.addedToCart) { viewModel.resetAddedToCart(); onCartClick() }`
+            onCartClick() 
+        }
     }
 
     when (val foodState = uiState.food) {
@@ -198,25 +208,18 @@ fun FoodDetailScreen(
             val food = foodState.data
             Scaffold(
                 containerColor = GagBackground,
-                topBar = {
-                    GagTopBar(
-                        title = "",
-                        onBack = onBack,
-                        actions = {
-                            IconButton(onClick = viewModel::toggleFavorite) {
-                                Icon(
-                                    imageVector = if (uiState.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                                    contentDescription = "Favourite",
-                                    tint = if (uiState.isFavorite) GagOrange else GagOnBackground
-                                )
-                            }
-                        }
-                    )
-                },
+                contentWindowInsets = WindowInsets(0, 0, 0, 0),
                 bottomBar = {
-                    Surface(color = GagBackground, shadowElevation = 8.dp) {
+                    Surface(
+                        color = GagBackground, 
+                        shadowElevation = 16.dp,
+                        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                    ) {
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(16.dp).navigationBarsPadding(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 16.dp)
+                                .navigationBarsPadding(),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
@@ -235,180 +238,384 @@ fun FoodDetailScreen(
                     }
                 }
             ) { padding ->
-                LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
-                    // Hero image
-                    item {
-                        Box(modifier = Modifier.fillMaxWidth().height(280.dp).background(GagSurfaceVariant)) {
-                            GagFoodImage(
-                                model = food.imageUrl,
-                                contentDescription = food.name,
-                                category = food.category,
-                                modifier = Modifier.matchParentSize()
-                            )
-                            // Veg indicator
+                Box(modifier = Modifier.fillMaxSize()) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(bottom = padding.calculateBottomPadding())
+                    ) {
+                        // 1. Hero image
+                        item {
                             Box(
-                                modifier = Modifier.padding(16.dp).size(22.dp).background(Color.White, CircleShape).align(Alignment.TopEnd),
-                                contentAlignment = Alignment.Center
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(320.dp)
+                                    .background(GagSurfaceVariant)
                             ) {
-                                Icon(
-                                    Icons.Filled.FiberManualRecord,
-                                    contentDescription = if (food.isVeg) "Veg" else "Non-veg",
-                                    tint = if (food.isVeg) VegGreen else NonVegRed,
-                                    modifier = Modifier.size(14.dp)
+                                GagFoodImage(
+                                    model = food.imageUrl,
+                                    contentDescription = food.name,
+                                    category = food.category,
+                                    modifier = Modifier.matchParentSize()
+                                )
+                                // Top-down subtle gradient to make icons visible
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(100.dp)
+                                        .background(
+                                            Brush.verticalGradient(
+                                                colors = listOf(
+                                                    Color.Black.copy(alpha = 0.4f),
+                                                    Color.Transparent
+                                                )
+                                            )
+                                        )
+                                )
+                                // Bottom-up gradient to blend into content
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(60.dp)
+                                        .align(Alignment.BottomCenter)
+                                        .background(
+                                            Brush.verticalGradient(
+                                                colors = listOf(
+                                                    Color.Transparent,
+                                                    GagBackground
+                                                )
+                                            )
+                                        )
                                 )
                             }
                         }
-                    }
 
-                    // Food info
-                    item {
-                        Column(modifier = Modifier.padding(20.dp)) {
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(food.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                                    Text(food.outletName, style = MaterialTheme.typography.bodyMedium, color = GagOrange)
-                                }
-                                Text("₹${food.price.toInt()}", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = GagOrange)
-                            }
-
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Outlined.Schedule, null, tint = GagOnSurfaceVariant, modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("${food.prepTimeMinutes} min", style = MaterialTheme.typography.bodySmall, color = GagOnSurfaceVariant)
-                                }
-                                if (food.rating > 0) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Filled.Star, null, tint = GagAmber, modifier = Modifier.size(14.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text("${food.rating} (${food.totalReviews} reviews)", style = MaterialTheme.typography.bodySmall, color = GagOnSurfaceVariant)
-                                    }
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text("Description", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(food.description, style = MaterialTheme.typography.bodyMedium, color = GagOnSurfaceVariant)
-
-                            if (food.ingredients.isNotEmpty()) {
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Text("Ingredients", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(food.ingredients.joinToString(", "), style = MaterialTheme.typography.bodySmall, color = GagOnSurfaceVariant)
-                            }
-
-                            if (food.calories != null) {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text("~${food.calories} cal", style = MaterialTheme.typography.labelSmall, color = GagOnSurfaceVariant)
-                            }
-
-                            if (!food.isAvailable) {
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Surface(shape = RoundedCornerShape(10.dp), color = GagErrorContainer, modifier = Modifier.fillMaxWidth()) {
-                                    Text("Currently Unavailable", color = GagError, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(12.dp))
-                                }
-                            }
-                        }
-                    }
-
-                    // Variants / Customizations
-                    if (food.customizations.isNotEmpty()) {
+                        // 2. Food info
                         item {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            HorizontalDivider(color = GagSurfaceVariant)
-                        }
-                        
-                        items(food.customizations) { customization ->
-                            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = customization.name,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = GagOnBackground
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .offset(y = (-24).dp)
+                                    .background(
+                                        color = GagBackground, 
+                                        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
                                     )
-                                    if (customization.isRequired) {
-                                        Surface(
-                                            shape = RoundedCornerShape(4.dp),
-                                            color = GagOrangeContainer
-                                        ) {
+                                    .padding(horizontal = 20.dp, vertical = 24.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(), 
+                                    horizontalArrangement = Arrangement.SpaceBetween, 
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = food.name, 
+                                            style = MaterialTheme.typography.headlineMedium, 
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = MaterialTheme.colorScheme.onBackground
+                                        )
+                                        if (food.outletName.isNotEmpty()) {
                                             Text(
-                                                text = "Required",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = GagOrange,
-                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                text = "From ${food.outletName}", 
+                                                style = MaterialTheme.typography.bodyMedium, 
+                                                color = GagPink,
+                                                fontWeight = FontWeight.SemiBold
                                             )
                                         }
                                     }
-                                }
-                                
-                                if (customization.maxSelections > 1) {
                                     Text(
-                                        text = "Select up to ${customization.maxSelections}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = GagOnSurfaceVariant,
-                                        modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
+                                        text = "₹${food.price.toInt()}", 
+                                        style = MaterialTheme.typography.headlineMedium, 
+                                        fontWeight = FontWeight.ExtraBold, 
+                                        color = GagPink
                                     )
-                                } else {
-                                    Spacer(modifier = Modifier.height(12.dp))
                                 }
+
+                                Spacer(modifier = Modifier.height(16.dp))
                                 
-                                val selectedOptionIds = uiState.selectedOptions[customization.id] ?: emptyList()
-                                
-                                customization.options.forEach { option ->
-                                    val isSelected = selectedOptionIds.contains(option.id)
-                                    
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 4.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween
+                                // Metadata row
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    // Veg/Non-Veg
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (food.isVeg) GagSuccessContainer else GagErrorContainer
                                     ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            if (customization.maxSelections == 1) {
-                                                RadioButton(
-                                                    selected = isSelected,
-                                                    onClick = { viewModel.toggleOption(customization.id, option.id, customization.maxSelections) },
-                                                    colors = RadioButtonDefaults.colors(selectedColor = GagOrange)
-                                                )
-                                            } else {
-                                                Checkbox(
-                                                    checked = isSelected,
-                                                    onCheckedChange = { viewModel.toggleOption(customization.id, option.id, customization.maxSelections) },
-                                                    colors = CheckboxDefaults.colors(checkedColor = GagOrange)
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Filled.FiberManualRecord,
+                                                contentDescription = if (food.isVeg) "Veg" else "Non-veg",
+                                                tint = if (food.isVeg) GagSuccess else GagError,
+                                                modifier = Modifier.size(12.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = if (food.isVeg) "Veg" else "Non-Veg",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (food.isVeg) GagSuccess else GagError
+                                            )
+                                        }
+                                    }
+                                    
+                                    // Prep Time
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = MaterialTheme.colorScheme.surfaceVariant
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        ) {
+                                            Icon(Icons.Outlined.Schedule, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(14.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = "${food.prepTimeMinutes} min", 
+                                                style = MaterialTheme.typography.labelMedium, 
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                    
+                                    // Rating
+                                    if (food.rating > 0) {
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = GagYellow.copy(alpha = 0.2f)
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                            ) {
+                                                Icon(Icons.Filled.Star, null, tint = GagYellow, modifier = Modifier.size(14.dp))
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text(
+                                                    text = "${food.rating} (${food.totalReviews})", 
+                                                    style = MaterialTheme.typography.labelMedium, 
+                                                    color = GagYellow,
+                                                    fontWeight = FontWeight.Bold
                                                 )
                                             }
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(
-                                                text = option.name,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = GagOnBackground
-                                            )
                                         }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(24.dp))
+                                
+                                if (food.description.isNotEmpty()) {
+                                    Text("Description", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(food.description, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                } else {
+                                    Text("No description available", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                                }
+
+                                if (food.ingredients.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text("Ingredients", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(food.ingredients.joinToString(", "), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+
+                                if (food.calories != null) {
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Text("🔥 ~${food.calories} cal", style = MaterialTheme.typography.labelLarge, color = GagOrange)
+                                }
+
+                                if (!food.isAvailable) {
+                                    Spacer(modifier = Modifier.height(20.dp))
+                                    Surface(shape = RoundedCornerShape(12.dp), color = GagErrorContainer, modifier = Modifier.fillMaxWidth()) {
+                                        Text(
+                                            text = "Currently Unavailable", 
+                                            color = GagError, 
+                                            style = MaterialTheme.typography.titleMedium, 
+                                            fontWeight = FontWeight.Bold, 
+                                            modifier = Modifier.padding(16.dp),
+                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // 3. Customizations
+                        if (food.customizations.isNotEmpty()) {
+                            item {
+                                Text(
+                                    text = "Customize your order", 
+                                    style = MaterialTheme.typography.headlineSmall, 
+                                    fontWeight = FontWeight.ExtraBold,
+                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                                )
+                            }
+                            
+                            items(food.customizations) { customization ->
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 20.dp, vertical = 12.dp)
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(MaterialTheme.colorScheme.surface)
+                                        .padding(16.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = customization.name,
+                                            style = MaterialTheme.typography.titleLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        if (customization.isRequired) {
+                                            Surface(
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = GagOrangeContainer
+                                            ) {
+                                                Text(
+                                                    text = "Required",
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = GagOrange,
+                                                    fontWeight = FontWeight.Bold,
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                    
+                                    if (customization.maxSelections > 1) {
+                                        Text(
+                                            text = "Select up to ${customization.maxSelections}",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
+                                        )
+                                    } else {
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                    }
+                                    
+                                    val selectedOptionIds = uiState.selectedOptions[customization.id] ?: emptyList()
+                                    
+                                    customization.options.forEach { option ->
+                                        val isSelected = selectedOptionIds.contains(option.id)
                                         
-                                        if (option.extraPrice > 0) {
-                                            Text(
-                                                text = "+₹${option.extraPrice.toInt()}",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = GagOnSurfaceVariant
-                                            )
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .clickable { viewModel.toggleOption(customization.id, option.id, customization.maxSelections) }
+                                                .padding(vertical = 12.dp, horizontal = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                if (customization.maxSelections == 1) {
+                                                    RadioButton(
+                                                        selected = isSelected,
+                                                        onClick = { viewModel.toggleOption(customization.id, option.id, customization.maxSelections) },
+                                                        colors = RadioButtonDefaults.colors(
+                                                            selectedColor = GagPink,
+                                                            unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    )
+                                                } else {
+                                                    Checkbox(
+                                                        checked = isSelected,
+                                                        onCheckedChange = { viewModel.toggleOption(customization.id, option.id, customization.maxSelections) },
+                                                        colors = CheckboxDefaults.colors(
+                                                            checkedColor = GagPink,
+                                                            uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                            checkmarkColor = Color.White
+                                                        )
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.width(12.dp))
+                                                Text(
+                                                    text = option.name,
+                                                    style = MaterialTheme.typography.bodyLarge,
+                                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                                    color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                            
+                                            if (option.extraPrice > 0) {
+                                                Text(
+                                                    text = "+₹${option.extraPrice.toInt()}",
+                                                    style = MaterialTheme.typography.bodyLarge,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = GagPink
+                                                )
+                                            }
                                         }
                                     }
                                 }
                             }
-                            HorizontalDivider(color = GagSurfaceVariant)
+                        }
+                    }
+
+                    // 4. Floating Top Controls
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        TopControlButton(
+                            icon = Icons.Default.ArrowBack,
+                            onClick = onBack,
+                            contentDescription = "Go back"
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            TopControlButton(
+                                icon = if (uiState.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                onClick = viewModel::toggleFavorite,
+                                contentDescription = "Favorite",
+                                tint = if (uiState.isFavorite) GagPink else Color.Black
+                            )
+                            TopControlButton(
+                                icon = Icons.Outlined.ShoppingCart,
+                                onClick = onCartClick,
+                                contentDescription = "Cart",
+                                tint = Color.Black
+                            )
                         }
                     }
                 }
             }
         }
         else -> {}
+    }
+}
+
+@Composable
+private fun TopControlButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit,
+    contentDescription: String,
+    tint: Color = Color.Black
+) {
+    Box(
+        modifier = Modifier
+            .size(44.dp)
+            .clip(CircleShape)
+            .background(Color.White.copy(alpha = 0.9f))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = tint,
+            modifier = Modifier.size(24.dp)
+        )
     }
 }

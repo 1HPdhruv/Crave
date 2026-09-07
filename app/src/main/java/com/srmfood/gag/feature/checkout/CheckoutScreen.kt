@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material3.*
@@ -13,7 +14,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import java.text.NumberFormat
+import java.util.Locale
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -240,6 +244,7 @@ fun CheckoutScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val fmt = NumberFormat.getInstance(Locale("en", "IN"))
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -280,17 +285,30 @@ fun CheckoutScreen(
     }
 
     Scaffold(
-        topBar = { GagTopBar(title = "Checkout", onBack = onBack) },
         containerColor = GagBackground,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
-            Surface(color = GagBackground, shadowElevation = 8.dp) {
-                GagPrimaryButton(
-                    text = if (uiState.selectedSlot == null) "Select a Pickup Slot First" else "Place Order",
-                    onClick = viewModel::placeOrder,
-                    enabled = uiState.selectedSlot != null && uiState.cart != null,
-                    isLoading = uiState.orderState is UiState.Loading,
-                    modifier = Modifier.padding(16.dp).navigationBarsPadding()
-                )
+            if (uiState.cart != null) {
+                Surface(
+                    color = GagBackground, 
+                    shadowElevation = 16.dp,
+                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                            .navigationBarsPadding()
+                    ) {
+                        GagPrimaryButton(
+                            text = if (uiState.selectedSlot == null) "Select Pickup Slot First" else "Proceed to Payment   ₹${fmt.format(uiState.cart!!.total)}",
+                            onClick = viewModel::placeOrder,
+                            enabled = uiState.selectedSlot != null && uiState.cart != null,
+                            isLoading = uiState.orderState is UiState.Loading || uiState.paymentVerificationState is UiState.Loading,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
             }
         }
     ) { padding ->
@@ -299,63 +317,107 @@ fun CheckoutScreen(
             GagLoadingScreen(modifier = Modifier.padding(padding))
         } else {
             LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = padding.calculateBottomPadding() + 24.dp)
             ) {
+                // Header
+                item {
+                    Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp).statusBarsPadding()) {
+                        IconButton(onClick = onBack, modifier = Modifier.offset(x = (-12).dp)) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Go back")
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Checkout", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text("Almost there! Complete your order.", style = MaterialTheme.typography.titleMedium, color = GagPink)
+                    }
+                }
+
+                // Outlet info
+                item {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+                        shape = RoundedCornerShape(16.dp), 
+                        color = GagPinkContainer
+                    ) {
+                        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Pickup from", style = MaterialTheme.typography.bodyMedium, color = GagOnPinkContainer)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(cart.outletName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = GagPink)
+                        }
+                    }
+                }
+
                 // Order summary
                 item {
-                    CheckoutSection(title = "Order Summary") {
-                        cart.items.forEach { item ->
-                            Column(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    CheckoutSection(
+                        title = "Order Summary",
+                        action = { 
+                            TextButton(onClick = onBack) { 
+                                Text("Edit Cart", color = GagPink, fontWeight = FontWeight.Bold) 
+                            } 
+                        }
+                    ) {
+                        cart.items.forEachIndexed { index, item ->
+                            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Text("${item.foodName} × ${item.quantity}", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                                    Text("₹${item.itemTotal.toInt()}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                    Text(
+                                        text = "${item.foodName} × ${item.quantity}", 
+                                        style = MaterialTheme.typography.titleSmall, 
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Text("₹${fmt.format(item.itemTotal)}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold)
                                 }
                                 if (item.selectedCustomizations.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.height(4.dp))
                                     val customText = item.selectedCustomizations.joinToString(", ") { it.optionName }
-                                    Text(customText, style = MaterialTheme.typography.bodySmall, color = GagOnSurfaceVariant)
+                                    Text("• $customText", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 if (!item.specialInstructions.isNullOrBlank()) {
-                                    Text("Note: ${item.specialInstructions}", style = MaterialTheme.typography.bodySmall, color = GagOnSurfaceVariant)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text("Note: ${item.specialInstructions}", style = MaterialTheme.typography.labelSmall, color = GagOrange)
                                 }
                             }
-                        }
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = GagOutlineVariant)
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Subtotal", style = MaterialTheme.typography.bodyMedium, color = GagOnSurfaceVariant)
-                            Text("₹${cart.subtotal.toInt()}", style = MaterialTheme.typography.bodyMedium)
-                        }
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("GST (5%)", style = MaterialTheme.typography.bodyMedium, color = GagOnSurfaceVariant)
-                            Text("₹${cart.tax.toInt()}", style = MaterialTheme.typography.bodyMedium)
-                        }
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = GagOutlineVariant)
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Total", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                            Text("₹${cart.total.toInt()}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = GagOrange)
+                            if (index < cart.items.size - 1) {
+                                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                            }
                         }
                     }
                 }
 
                 // Pickup slot
                 item {
+                    Spacer(modifier = Modifier.height(16.dp))
                     CheckoutSection(title = "Pickup Slot") {
                         when (val slotsState = uiState.availableSlots) {
                             is UiState.Loading -> {
                                 Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                                    CircularProgressIndicator(color = GagOrange)
+                                    CircularProgressIndicator(color = GagPink)
                                 }
                             }
                             is UiState.Empty -> {
-                                Text("No pickup slots available for this outlet today.", color = GagOnSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = GagErrorContainer
+                                ) {
+                                    Text(
+                                        "No pickup slots available for this outlet today.", 
+                                        color = GagError, 
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.padding(16.dp),
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
                             }
                             is UiState.Error -> {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                                     Text("Couldn't load pickup slots. Try again.", color = GagError, style = MaterialTheme.typography.bodyMedium)
                                     Spacer(modifier = Modifier.height(8.dp))
                                     TextButton(onClick = { viewModel.loadPickupSlots(cart.outletId) }) {
-                                        Text("Retry", color = GagOrange)
+                                        Text("Retry", color = GagPink, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -370,22 +432,22 @@ fun CheckoutScreen(
                                         val isFull = slot.status == com.srmfood.gag.domain.model.SlotStatus.FULL
                                         
                                         Surface(
-                                            shape = RoundedCornerShape(8.dp),
-                                            color = if (isSelected) GagOrange.copy(alpha = 0.15f) else GagSurface,
-                                            border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) GagOrange else GagOutlineVariant),
+                                            shape = RoundedCornerShape(12.dp),
+                                            color = if (isSelected) GagPink.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant,
+                                            border = androidx.compose.foundation.BorderStroke(2.dp, if (isSelected) GagPink else androidx.compose.ui.graphics.Color.Transparent),
                                             modifier = Modifier.clickable(enabled = !isFull) { viewModel.onSlotSelected(slot) }
                                         ) {
-                                            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                                                 Text(
                                                     slot.displayTime, 
-                                                    style = MaterialTheme.typography.bodyMedium, 
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = if (isFull) GagOnSurfaceVariant.copy(alpha = 0.5f) else GagOnBackground
+                                                    style = MaterialTheme.typography.bodyLarge, 
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    color = if (isFull) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurface
                                                 )
                                                 if (isFull) {
-                                                    Text("FULL", style = MaterialTheme.typography.labelSmall, color = GagError)
+                                                    Text("FULL", style = MaterialTheme.typography.labelSmall, color = GagError, fontWeight = FontWeight.Bold)
                                                 } else {
-                                                    Text("${slot.availableCount} left", style = MaterialTheme.typography.labelSmall, color = GagOnSurfaceVariant)
+                                                    Text("${slot.availableCount} left", style = MaterialTheme.typography.labelSmall, color = GagSuccess, fontWeight = FontWeight.Bold)
                                                 }
                                             }
                                         }
@@ -399,20 +461,29 @@ fun CheckoutScreen(
 
                 // Payment method
                 item {
+                    Spacer(modifier = Modifier.height(16.dp))
                     CheckoutSection(title = "Payment Method") {
                         PaymentMethod.values().filter { it == PaymentMethod.ONLINE }.forEach { method ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth().clickable { viewModel.onPaymentMethodSelected(method) }.padding(vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (uiState.selectedPaymentMethod == method) GagPink.copy(alpha = 0.05f) else MaterialTheme.colorScheme.surfaceVariant,
+                                border = androidx.compose.foundation.BorderStroke(1.dp, if (uiState.selectedPaymentMethod == method) GagPink else androidx.compose.ui.graphics.Color.Transparent),
+                                modifier = Modifier.fillMaxWidth().clickable { viewModel.onPaymentMethodSelected(method) }
                             ) {
-                                Icon(
-                                    imageVector = if (uiState.selectedPaymentMethod == method) Icons.Filled.CheckCircle else Icons.Filled.RadioButtonUnchecked,
-                                    contentDescription = null,
-                                    tint = if (uiState.selectedPaymentMethod == method) GagOrange else GagOnSurfaceVariant
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column {
-                                    Text(method.displayName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = if (uiState.selectedPaymentMethod == method) Icons.Filled.CheckCircle else Icons.Filled.RadioButtonUnchecked,
+                                        contentDescription = null,
+                                        tint = if (uiState.selectedPaymentMethod == method) GagPink else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    Column {
+                                        Text("Razorpay", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                                        Text("Secure online payment", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
                                 }
                             }
                         }
@@ -421,31 +492,92 @@ fun CheckoutScreen(
 
                 // Special instructions
                 item {
-                    CheckoutSection(title = "Special Instructions (Optional)") {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    CheckoutSection(title = "Special Instructions") {
                         OutlinedTextField(
                             value = uiState.specialInstructions,
                             onValueChange = viewModel::onInstructionsChanged,
-                            placeholder = { Text("e.g. Less spice, extra sauce…", color = GagOnSurfaceVariant) },
+                            placeholder = { Text("e.g. Less spice, extra sauce…", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                             modifier = Modifier.fillMaxWidth(),
                             maxLines = 3,
-                            shape = RoundedCornerShape(10.dp),
+                            shape = RoundedCornerShape(12.dp),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = GagOrange,
-                                unfocusedBorderColor = GagOutline,
-                                cursorColor = GagOrange
+                                focusedBorderColor = GagPink,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                                cursorColor = GagPink
                             )
                         )
                     }
                 }
 
+                // Bill Summary
+                item {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Text("Bill Summary", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("Subtotal", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("₹${fmt.format(cart.subtotal)}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("GST (5%)", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("₹${fmt.format(cart.tax)}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                            }
+                            
+                            Spacer(modifier = Modifier.height(16.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Text("Total", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+                                Text("₹${fmt.format(cart.total)}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = GagPink)
+                            }
+                        }
+                    }
+                }
+
                 if (uiState.orderState is UiState.Error) {
                     item {
-                        Text((uiState.orderState as UiState.Error).message, color = GagError, style = MaterialTheme.typography.bodySmall)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Surface(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            color = GagErrorContainer
+                        ) {
+                            Text(
+                                (uiState.orderState as UiState.Error).message, 
+                                color = GagError, 
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(16.dp),
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 }
                 if (uiState.paymentVerificationState is UiState.Error) {
                     item {
-                        Text((uiState.paymentVerificationState as UiState.Error).message, color = GagError, style = MaterialTheme.typography.bodySmall)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Surface(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            color = GagErrorContainer
+                        ) {
+                            Text(
+                                (uiState.paymentVerificationState as UiState.Error).message, 
+                                color = GagError, 
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(16.dp),
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 }
             }
@@ -454,10 +586,28 @@ fun CheckoutScreen(
 }
 
 @Composable
-private fun CheckoutSection(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Surface(shape = RoundedCornerShape(16.dp), color = GagSurface, modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+private fun CheckoutSection(
+    title: String, 
+    action: @Composable (RowScope.() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(20.dp), 
+        color = MaterialTheme.colorScheme.surface, 
+        shadowElevation = 2.dp,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(), 
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+                if (action != null) {
+                    action()
+                }
+            }
             Spacer(modifier = Modifier.height(12.dp))
             content()
         }

@@ -1,7 +1,6 @@
 package com.srmfood.gag.core.ui.component
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -23,13 +23,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.srmfood.gag.core.ui.theme.GagOrange
-import com.srmfood.gag.core.ui.theme.GagOrangeDark
+import com.srmfood.gag.core.ui.theme.GagPink
+import com.srmfood.gag.core.ui.theme.GagPinkContainer
 
 @Composable
 fun GagPrimaryButton(
@@ -45,34 +44,34 @@ fun GagPrimaryButton(
         onClick = { if (!isLoading) onClick() },
         modifier = modifier
             .fillMaxWidth()
-            .height(52.dp)
+            .height(56.dp) // Taller, more modern button
             .scale(scale),
         enabled = enabled && !isLoading,
         colors = ButtonDefaults.buttonColors(
-            containerColor = GagOrange,
+            containerColor = GagPink,
             contentColor = Color.White,
-            disabledContainerColor = GagOrangeDark.copy(alpha = 0.4f),
-            disabledContentColor = Color.White.copy(alpha = 0.5f)
+            disabledContainerColor = GagPinkContainer.copy(alpha = 0.5f),
+            disabledContentColor = Color.White.copy(alpha = 0.7f)
         ),
-        shape = MaterialTheme.shapes.medium,
+        shape = CircleShape, // Pill shape for primary CTAs
         contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp)
     ) {
         if (isLoading) {
             CircularProgressIndicator(
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(24.dp),
                 color = Color.White,
                 strokeWidth = 2.dp
             )
         } else {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 icon?.let {
-                    Icon(imageVector = it, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(imageVector = it, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                 }
                 Text(
                     text = text,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
@@ -91,23 +90,23 @@ fun GagSecondaryButton(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .height(52.dp),
+            .height(56.dp),
         enabled = enabled,
         colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = GagOrange
+            contentColor = MaterialTheme.colorScheme.onBackground
         ),
-        border = androidx.compose.foundation.BorderStroke(1.5.dp, GagOrange),
-        shape = MaterialTheme.shapes.medium
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.outlineVariant),
+        shape = CircleShape
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             icon?.let {
-                Icon(imageVector = it, contentDescription = null, modifier = Modifier.size(18.dp))
+                Icon(imageVector = it, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))
             }
             Text(
                 text = text,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold
             )
         }
     }
@@ -118,7 +117,7 @@ fun GagTextButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    color: Color = GagOrange
+    color: Color = GagPink
 ) {
     TextButton(
         onClick = onClick,
@@ -128,7 +127,7 @@ fun GagTextButton(
         Text(
             text = text,
             style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = FontWeight.Bold
         )
     }
 }
@@ -146,19 +145,27 @@ fun GagTonalButton(
         onClick = { if (!isLoading) onClick() },
         modifier = modifier
             .fillMaxWidth()
-            .height(48.dp),
+            .height(52.dp),
         enabled = enabled && !isLoading,
-        shape = MaterialTheme.shapes.medium
+        colors = ButtonDefaults.filledTonalButtonColors(
+            containerColor = GagPinkContainer,
+            contentColor = GagPink
+        ),
+        shape = MaterialTheme.shapes.large
     ) {
         if (isLoading) {
-            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
         } else {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 icon?.let {
-                    Icon(imageVector = it, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(imageVector = it, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                 }
-                Text(text = text, style = MaterialTheme.typography.labelLarge)
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }

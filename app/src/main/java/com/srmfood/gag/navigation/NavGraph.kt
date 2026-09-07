@@ -117,14 +117,21 @@ fun GagNavGraph() {
         // ─── Student ─────────────────────────────────────────────
         composable(Screen.Home.route) {
             HomeScreen(
-                onSearchClick = { navController.navigate(Screen.Search.route) },
+                onSearchClick = { navController.navigate(Screen.Search.createRoute(query = "")) },
+                onCategoryClick = { category -> navController.navigate(Screen.Search.createRoute(query = "", category = category)) },
                 onOutletClick = { navController.navigate(Screen.OutletDetail.createRoute(it)) },
                 onFoodClick = { navController.navigate(Screen.FoodDetail.createRoute(it)) },
                 onCartClick = { navController.navigate(Screen.Cart.route) },
                 onNavigateBottom = { route -> navController.navigate(route) { launchSingleTop = true; popUpTo(Screen.Home.route) { saveState = true }; restoreState = true } }
             )
         }
-        composable(Screen.Search.route) {
+        composable(
+            route = Screen.Search.route,
+            arguments = listOf(
+                navArgument(Screen.Search.ARG_QUERY) { type = NavType.StringType; defaultValue = "" },
+                navArgument(Screen.Search.ARG_CATEGORY) { type = NavType.StringType; nullable = true }
+            )
+        ) {
             SearchScreen(
                 onBack = { navController.popBackStack() },
                 onFoodClick = { navController.navigate(Screen.FoodDetail.createRoute(it)) },
