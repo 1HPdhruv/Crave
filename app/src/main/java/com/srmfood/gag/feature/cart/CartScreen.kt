@@ -8,7 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.outlined.DeleteOutline
@@ -92,12 +92,12 @@ fun CartScreen(
     val fmt = NumberFormat.getInstance(Locale("en", "IN"))
 
     Scaffold(
-        containerColor = GagBackground,
+        containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             if (cart != null && !cart!!.isEmpty) {
                 Surface(
-                    color = GagBackground, 
+                    color = MaterialTheme.colorScheme.background, 
                     shadowElevation = 16.dp,
                     shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
                 ) {
@@ -155,16 +155,16 @@ fun CartScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             IconButton(onClick = onBack, modifier = Modifier.offset(x = (-12).dp)) {
-                                Icon(Icons.Default.ArrowBack, contentDescription = "Go back")
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Go back")
                             }
                             TextButton(onClick = viewModel::clearCart, modifier = Modifier.offset(x = 12.dp)) {
-                                Text("Clear Cart", color = GagError, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                                Text("Clear Cart", color = CraveError, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                             }
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text("Your Cart", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text("${cart!!.items.size} items", style = MaterialTheme.typography.titleMedium, color = GagPink)
+                        Text("${cart!!.items.size} items", style = MaterialTheme.typography.titleMedium, color = CraveRed)
                     }
                 }
 
@@ -173,12 +173,12 @@ fun CartScreen(
                     Surface(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
                         shape = RoundedCornerShape(16.dp), 
-                        color = GagPinkContainer
+                        color = CraveRedContainer
                     ) {
                         Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("Ordering from", style = MaterialTheme.typography.bodyMedium, color = GagOnPinkContainer)
+                            Text("Ordering from", style = MaterialTheme.typography.bodyMedium, color = CraveOnRedContainer)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(cart!!.outletName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = GagPink)
+                            Text(cart!!.outletName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = CraveRed)
                         }
                     }
                 }
@@ -220,19 +220,19 @@ fun CartScreen(
                             
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                 Text("Total", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
-                                Text("₹${fmt.format(cart!!.total)}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = GagPink)
+                                Text("₹${fmt.format(cart!!.total)}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = CraveRed)
                             }
 
                             if (cart!!.estimatedPrepMinutes > 0) {
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Surface(
                                     shape = RoundedCornerShape(8.dp),
-                                    color = GagYellow.copy(alpha = 0.2f)
+                                    color = CraveWarningContainer
                                 ) {
                                     Text(
                                         text = "Estimated prep time: ~${cart!!.estimatedPrepMinutes} mins",
                                         style = MaterialTheme.typography.labelMedium,
-                                        color = GagYellow,
+                                        color = CraveWarning,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp).fillMaxWidth(),
                                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -262,13 +262,13 @@ private fun CartItemRow(
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.Top) {
                 // Image
-                Box(modifier = Modifier.size(72.dp).clip(RoundedCornerShape(12.dp)).background(GagSurfaceVariant)) {
+                Box(modifier = Modifier.size(72.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant)) {
                     GagFoodImage(
                         model = item.foodImageUrl,
                         contentDescription = item.foodName,
                         modifier = Modifier.matchParentSize()
                     )
-                    Box(modifier = Modifier.padding(6.dp).size(12.dp).background(if (item.isVeg) GagSuccess else GagError, CircleShape).align(Alignment.TopStart))
+                    Box(modifier = Modifier.padding(6.dp).size(12.dp).background(if (item.isVeg) CraveSuccess else CraveError, CircleShape).align(Alignment.TopStart))
                 }
                 
                 Spacer(modifier = Modifier.width(16.dp))
@@ -277,7 +277,7 @@ private fun CartItemRow(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(item.foodName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text("₹${item.price.toInt()}", style = MaterialTheme.typography.titleSmall, color = GagPink, fontWeight = FontWeight.SemiBold)
+                    Text("₹${item.price.toInt()}", style = MaterialTheme.typography.titleSmall, color = CraveRed, fontWeight = FontWeight.SemiBold)
                     
                     if (item.selectedCustomizations.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(6.dp))
@@ -313,9 +313,9 @@ private fun CartItemRow(
                     Spacer(modifier = Modifier.width(16.dp))
                     IconButton(
                         onClick = onRemove, 
-                        modifier = Modifier.size(36.dp).background(GagErrorContainer, CircleShape)
+                        modifier = Modifier.size(36.dp).background(CraveErrorContainer, CircleShape)
                     ) {
-                        Icon(Icons.Outlined.DeleteOutline, "Remove item", tint = GagError, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Outlined.DeleteOutline, "Remove item", tint = CraveError, modifier = Modifier.size(20.dp))
                     }
                 }
             }

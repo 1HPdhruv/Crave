@@ -8,8 +8,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.Remove
@@ -318,7 +318,7 @@ fun FoodDetailScreen(
                                             Text(
                                                 text = "From ${food.outletName}", 
                                                 style = MaterialTheme.typography.bodyMedium, 
-                                                color = GagPink,
+                                                color = CraveRed,
                                                 fontWeight = FontWeight.SemiBold
                                             )
                                         }
@@ -327,7 +327,7 @@ fun FoodDetailScreen(
                                         text = "₹${food.price.toInt()}", 
                                         style = MaterialTheme.typography.headlineMedium, 
                                         fontWeight = FontWeight.ExtraBold, 
-                                        color = GagPink
+                                        color = CraveRed
                                     )
                                 }
 
@@ -522,7 +522,7 @@ fun FoodDetailScreen(
                                                         selected = isSelected,
                                                         onClick = { viewModel.toggleOption(customization.id, option.id, customization.maxSelections) },
                                                         colors = RadioButtonDefaults.colors(
-                                                            selectedColor = GagPink,
+                                                            selectedColor = CraveRed,
                                                             unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
                                                         )
                                                     )
@@ -531,7 +531,7 @@ fun FoodDetailScreen(
                                                         checked = isSelected,
                                                         onCheckedChange = { viewModel.toggleOption(customization.id, option.id, customization.maxSelections) },
                                                         colors = CheckboxDefaults.colors(
-                                                            checkedColor = GagPink,
+                                                            checkedColor = CraveRed,
                                                             uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                                             checkmarkColor = Color.White
                                                         )
@@ -551,7 +551,7 @@ fun FoodDetailScreen(
                                                     text = "+₹${option.extraPrice.toInt()}",
                                                     style = MaterialTheme.typography.bodyLarge,
                                                     fontWeight = FontWeight.SemiBold,
-                                                    color = GagPink
+                                                    color = CraveRed
                                                 )
                                             }
                                         }
@@ -570,7 +570,7 @@ fun FoodDetailScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         TopControlButton(
-                            icon = Icons.Default.ArrowBack,
+                            icon = Icons.AutoMirrored.Filled.ArrowBack,
                             onClick = onBack,
                             contentDescription = "Go back"
                         )
@@ -579,7 +579,7 @@ fun FoodDetailScreen(
                                 icon = if (uiState.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                                 onClick = viewModel::toggleFavorite,
                                 contentDescription = "Favorite",
-                                tint = if (uiState.isFavorite) GagPink else Color.Black
+                                tint = if (uiState.isFavorite) CraveRed else Color.Black
                             )
                             TopControlButton(
                                 icon = Icons.Outlined.ShoppingCart,

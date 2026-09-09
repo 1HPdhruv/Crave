@@ -11,7 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
@@ -39,6 +39,8 @@ import com.srmfood.gag.domain.model.FoodItem
 import com.srmfood.gag.domain.model.Order
 import com.srmfood.gag.domain.model.OrderStatus
 import com.srmfood.gag.domain.model.Outlet
+import com.srmfood.gag.domain.repository.HostelAddress
+import com.srmfood.gag.domain.repository.OrderingMode
 import java.util.Calendar
 
 @Composable
@@ -93,25 +95,55 @@ fun HomeScreen(
                 )
             }
 
+            // ─── Delivery / Pickup Selector ──────────────────────────────
+            item {
+                var showAddressDialog by remember { mutableStateOf(false) }
+
+                Column(
+                    modifier = Modifier
+                        .padding(horizontal = GagSpacing.Large)
+                        .padding(bottom = GagSpacing.Medium)
+                ) {
+                    DeliveryModeSelector(
+                        selectedMode = uiState.orderingMode,
+                        onModeSelected = { viewModel.setOrderingMode(it) }
+                    )
+                    Spacer(modifier = Modifier.height(GagSpacing.Small))
+                    // Delivery mode: hostel address row
+                    HostelAddressBanner(
+                        address = uiState.hostelAddress,
+                        isDelivery = uiState.orderingMode == OrderingMode.DELIVERY,
+                        onChangeAddress = { showAddressDialog = true }
+                    )
+                    // Pickup mode: no outlet known yet on home screen — show generic pickup info
+                    if (uiState.orderingMode == OrderingMode.PICKUP) {
+                        PickupRestaurantBanner(outletName = "Select a restaurant below")
+                    }
+                }
+
+                if (showAddressDialog) {
+                    HostelAddressDialog(
+                        currentAddress = uiState.hostelAddress,
+                        onSave = { address ->
+                            viewModel.saveHostelAddress(address)
+                            showAddressDialog = false
+                        },
+                        onDismiss = { showAddressDialog = false }
+                    )
+                }
+            }
+
             // ─── Search Bar ──────────────────────────────────────
             item {
                 GagSearchBar(
                     query = "",
                     onQueryChange = {},
+                    placeholder = "Search food, drinks, hostels, or outlets...",
                     modifier = Modifier
                         .padding(horizontal = GagSpacing.Large)
                         .clickable { onSearchClick() }
                 )
                 Spacer(modifier = Modifier.height(GagSpacing.Large))
-            }
-
-            // ─── Promotional Banner ──────────────────────────────
-            item {
-                PromoBanner(
-                    modifier = Modifier
-                        .padding(horizontal = GagSpacing.Large)
-                        .padding(bottom = GagSpacing.Large)
-                )
             }
 
             // ─── Active Order Card ────────────────────────────────
@@ -128,26 +160,39 @@ fun HomeScreen(
                 }
             }
 
-            // ─── Categories ───────────────────────────────────────
+            // ─── Promotional Banner ──────────────────────────────
             item {
-                GagSectionHeader(
-                    title = "What are you craving?",
+                CravePromoBanner(
+                    title = "HUNGRY AT SRM?",
+                    subtitle = "Hostel delivery & instant campus pickup available",
+                    ctaText = "ORDER NOW",
+                    onCtaClick = { onSearchClick() },
+                    modifier = Modifier
+                        .padding(horizontal = GagSpacing.Large)
+                        .padding(bottom = GagSpacing.Large)
+                )
+            }
+
+            // ─── Categories Rail ──────────────────────────────────
+            item {
+                CraveSectionHeader(
+                    title = "Explore Categories",
                     modifier = Modifier.padding(horizontal = GagSpacing.Large)
                 )
-                Spacer(modifier = Modifier.height(GagSpacing.Medium))
+                Spacer(modifier = Modifier.height(GagSpacing.Small))
                 
                 when (val catState = uiState.categories) {
                     is UiState.Success -> {
                         LazyRow(
                             contentPadding = PaddingValues(horizontal = GagSpacing.Large),
-                            horizontalArrangement = Arrangement.spacedBy(GagSpacing.Medium)
+                            horizontalArrangement = Arrangement.spacedBy(GagSpacing.Small)
                         ) {
                             item {
                                 GagCategoryChip(
                                     label = "All",
                                     isSelected = true,
                                     onClick = { /* Already on All */ },
-                                    emoji = null
+                                    emoji = "🍟"
                                 )
                             }
                             items(catState.data) { category ->
@@ -164,9 +209,9 @@ fun HomeScreen(
                     is UiState.Loading -> {
                         LazyRow(
                             contentPadding = PaddingValues(horizontal = GagSpacing.Large),
-                            horizontalArrangement = Arrangement.spacedBy(GagSpacing.Medium)
+                            horizontalArrangement = Arrangement.spacedBy(GagSpacing.Small)
                         ) {
-                            items(6) { GagLoadingSkeleton(modifier = Modifier.size(68.dp)) }
+                            items(6) { GagLoadingSkeleton(modifier = Modifier.size(80.dp, 36.dp)) }
                         }
                     }
                     is UiState.Error -> {
@@ -183,11 +228,11 @@ fun HomeScreen(
 
             // ─── Popular Foods ────────────────────────────────────
             item {
-                GagSectionHeader(
-                    title = "Popular right now",
+                CraveSectionHeader(
+                    title = "Popular Right Now",
                     modifier = Modifier.padding(horizontal = GagSpacing.Large)
                 )
-                Spacer(modifier = Modifier.height(GagSpacing.Medium))
+                Spacer(modifier = Modifier.height(GagSpacing.Small))
             }
             when (val popularState = uiState.popularFood) {
                 is UiState.Success -> {
@@ -247,17 +292,16 @@ fun HomeScreen(
                 }
                 else -> {}
             }
-            item { Spacer(modifier = Modifier.height(GagSpacing.Medium)) }
+            item { Spacer(modifier = Modifier.height(GagSpacing.ExtraLarge)) }
 
-            // ─── Nearby Outlets ───────────────────────────────────
+            // ─── Featured Outlets ──────────────────────────────────
             item {
-                GagSectionHeader(
-                    title = "Explore Outlets",
-                    actionText = "See All",
-                    onActionClick = { onNavigateBottom("outlets") },
+                CraveSectionHeader(
+                    title = "Featured Campus Outlets",
+                    onSeeAll = { onNavigateBottom("outlets") },
                     modifier = Modifier.padding(horizontal = GagSpacing.Large)
                 )
-                Spacer(modifier = Modifier.height(GagSpacing.Medium))
+                Spacer(modifier = Modifier.height(GagSpacing.Small))
                 
                 when (val outletState = uiState.outlets) {
                     is UiState.Success -> {
@@ -266,7 +310,11 @@ fun HomeScreen(
                             horizontalArrangement = Arrangement.spacedBy(GagSpacing.Medium)
                         ) {
                             items(outletState.data.take(4)) { outlet ->
-                                OutletCard(outlet = outlet, onClick = { onOutletClick(outlet.id) })
+                                CraveRestaurantCard(
+                                    outlet = outlet,
+                                    onClick = { onOutletClick(outlet.id) },
+                                    modifier = Modifier.width(220.dp)
+                                )
                             }
                         }
                     }
@@ -292,11 +340,11 @@ fun HomeScreen(
 
             // ─── Recommended Foods ─────────────────────────────────────
             item {
-                GagSectionHeader(
-                    title = "Recommended for you",
+                CraveSectionHeader(
+                    title = "Recommended for You",
                     modifier = Modifier.padding(horizontal = GagSpacing.Large)
                 )
-                Spacer(modifier = Modifier.height(GagSpacing.Medium))
+                Spacer(modifier = Modifier.height(GagSpacing.Small))
             }
             when (val recState = uiState.recommendedFood) {
                 is UiState.Success -> {
@@ -380,20 +428,20 @@ private fun HomeTopHeader(
     ) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.LocationOn, contentDescription = null, tint = GagPink, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.LocationOn, contentDescription = null, tint = CraveRed, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = "SRM KTR Campus",
                     style = MaterialTheme.typography.labelLarge,
-                    color = GagPink,
+                    color = CraveRed,
                     fontWeight = FontWeight.Bold
                 )
             }
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = "$greeting, ${userName.split(" ").firstOrNull() ?: ""}",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.ExtraBold,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground
             )
         }
@@ -414,116 +462,12 @@ private fun HomeTopHeader(
 }
 
 @Composable
-private fun PromoBanner(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.large)
-            .background(
-                Brush.horizontalGradient(
-                    colors = listOf(GagPink, GagBlue)
-                )
-            )
-            .padding(GagSpacing.Large)
-    ) {
-        Column {
-            Text(
-                text = "Hungry?",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color.White
-            )
-            Text(
-                text = "Your favourites\nare waiting!",
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White.copy(alpha = 0.9f)
-            )
-            Spacer(modifier = Modifier.height(GagSpacing.Medium))
-            Surface(
-                shape = CircleShape,
-                color = Color.White,
-                modifier = Modifier.clickable { /* decorative */ }
-            ) {
-                Text(
-                    text = "ORDER NOW",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = GagPink,
-                    modifier = Modifier.padding(horizontal = GagSpacing.Medium, vertical = GagSpacing.Small)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun OutletCard(outlet: Outlet, onClick: () -> Unit) {
-    GagCard(
-        modifier = Modifier
-            .width(240.dp)
-            .clickable(onClick = onClick)
-    ) {
-        Column {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(130.dp)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                AsyncImage(
-                    model = outlet.imageUrl,
-                    contentDescription = outlet.name,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.matchParentSize()
-                )
-                // Open/closed badge
-                GagBadge(
-                    text = if (outlet.isOpen) "Open" else "Closed",
-                    color = Color.White,
-                    containerColor = if (outlet.isOpen) GagGreen else GagOrange,
-                    modifier = Modifier
-                        .padding(GagSpacing.Medium)
-                        .align(Alignment.TopStart)
-                )
-            }
-            Column(modifier = Modifier.padding(GagSpacing.Medium)) {
-                Text(
-                    text = outlet.name, 
-                    style = MaterialTheme.typography.titleMedium, 
-                    fontWeight = FontWeight.Bold, 
-                    maxLines = 1, 
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = outlet.location.building, 
-                    style = MaterialTheme.typography.bodySmall, 
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(GagSpacing.Small))
-                if (outlet.isOpen && outlet.estimatedWaitMinutes > 0) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.Schedule, null, tint = GagOrange, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "~${outlet.estimatedWaitMinutes} min wait", 
-                            style = MaterialTheme.typography.labelMedium, 
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun ActiveOrderCard(order: Order, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val statusColor = when (order.status) {
-        OrderStatus.PREPARING -> GagBlue
-        OrderStatus.READY -> GagGreen
-        OrderStatus.ACCEPTED -> GagBlue
-        else -> GagPink
+        OrderStatus.PREPARING -> CraveInfo
+        OrderStatus.READY -> CraveSuccess
+        OrderStatus.ACCEPTED -> CraveInfo
+        else -> CraveRed
     }
 
     GagCard(modifier = modifier.clickable(onClick = onClick)) {
@@ -556,10 +500,10 @@ private fun ActiveOrderCard(order: Order, onClick: () -> Unit, modifier: Modifie
                 )
             }
             GagIconButton(
-                icon = Icons.Default.ArrowForward,
+                icon = Icons.AutoMirrored.Filled.ArrowForward,
                 onClick = onClick,
-                containerColor = GagPink.copy(alpha = 0.1f),
-                contentColor = GagPink
+                containerColor = CraveRedContainer,
+                contentColor = CraveRed
             )
         }
     }

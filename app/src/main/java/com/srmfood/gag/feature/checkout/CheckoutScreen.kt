@@ -25,6 +25,8 @@ import com.srmfood.gag.core.common.UiState
 import com.srmfood.gag.core.ui.component.GagLoadingScreen
 import com.srmfood.gag.core.ui.component.GagPrimaryButton
 import com.srmfood.gag.core.ui.component.GagTopBar
+import com.srmfood.gag.core.ui.component.HostelAddressBanner
+import com.srmfood.gag.core.ui.component.HostelAddressDialog
 import com.srmfood.gag.core.ui.theme.*
 import com.srmfood.gag.domain.model.Cart
 import com.srmfood.gag.domain.model.Order
@@ -34,6 +36,9 @@ import com.srmfood.gag.domain.model.PickupSlot
 import com.srmfood.gag.domain.model.RazorpayOrderDetails
 import com.srmfood.gag.core.payment.RazorpayManager
 import com.srmfood.gag.core.payment.RazorpayResult
+import com.srmfood.gag.domain.repository.HostelAddress
+import com.srmfood.gag.domain.repository.OrderingMode
+import com.srmfood.gag.domain.repository.OrderingModeRepository
 import com.srmfood.gag.domain.repository.PaymentRepository
 import com.srmfood.gag.domain.usecase.cart.GetCartUseCase
 import com.srmfood.gag.domain.usecase.order.PlaceOrderUseCase
@@ -45,6 +50,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.razorpay.Checkout
@@ -62,7 +68,10 @@ data class CheckoutUiState(
     val specialInstructions: String = "",
     val orderState: UiState<Order> = UiState.Idle,
     val razorpayOrderDetails: RazorpayOrderDetails? = null,
-    val paymentVerificationState: UiState<Unit> = UiState.Idle
+    val paymentVerificationState: UiState<Unit> = UiState.Idle,
+    // ─── Ordering mode ───────────────────────────────────────────
+    val orderingMode: OrderingMode = OrderingMode.PICKUP,
+    val hostelAddress: HostelAddress = HostelAddress()
 )
 
 sealed class CheckoutUiEvent {
@@ -79,7 +88,8 @@ class CheckoutViewModel @Inject constructor(
     private val getPickupSlotsUseCase: com.srmfood.gag.domain.usecase.order.GetPickupSlotsUseCase,
     private val cartRepository: com.srmfood.gag.domain.repository.CartRepository,
     private val paymentRepository: PaymentRepository,
-    private val razorpayManager: RazorpayManager
+    private val razorpayManager: RazorpayManager,
+    private val orderingModeRepository: OrderingModeRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CheckoutUiState())
@@ -95,12 +105,24 @@ class CheckoutViewModel @Inject constructor(
         viewModelScope.launch {
             getCartUseCase().collectLatest { cart ->
                 _uiState.value = _uiState.value.copy(cart = cart)
-                
+
                 // Fetch slots if we have an outlet and haven't fetched yet
                 if (cart != null && !hasLoadedSlots) {
                     hasLoadedSlots = true
                     loadPickupSlots(cart.outletId)
                 }
+            }
+        }
+
+        // Observe ordering mode + hostel address from DataStore
+        viewModelScope.launch {
+            orderingModeRepository.orderingMode.collectLatest { mode ->
+                _uiState.value = _uiState.value.copy(orderingMode = mode)
+            }
+        }
+        viewModelScope.launch {
+            orderingModeRepository.hostelAddress.collectLatest { address ->
+                _uiState.value = _uiState.value.copy(hostelAddress = address)
             }
         }
 
@@ -124,6 +146,10 @@ class CheckoutViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun saveHostelAddress(address: HostelAddress) {
+        viewModelScope.launch { orderingModeRepository.setHostelAddress(address) }
     }
 
     fun loadPickupSlots(outletId: String) {
@@ -160,6 +186,24 @@ class CheckoutViewModel @Inject constructor(
         val cart = state.cart ?: return
         val slot = state.selectedSlot ?: return
 
+        // DELIVERY validation: hostel address must be complete
+        if (state.orderingMode == OrderingMode.DELIVERY && !state.hostelAddress.isComplete) {
+            _uiState.value = _uiState.value.copy(
+                orderState = UiState.Error("Please add your hostel delivery address before placing the order.")
+            )
+            return
+        }
+
+        // Build special instructions: hostel prefix for delivery, user text for both
+        val combinedInstructions = when {
+            state.orderingMode == OrderingMode.DELIVERY -> {
+                val base = state.hostelAddress.toDeliveryInstructions()
+                if (state.specialInstructions.isNotBlank()) "$base | ${state.specialInstructions}" else base
+            }
+            state.specialInstructions.isNotBlank() -> state.specialInstructions
+            else -> null
+        }
+
         viewModelScope.launch {
             // Prevent duplicate order lock by cancelling any previous incomplete order
             if (currentOrderId != null) {
@@ -172,7 +216,7 @@ class CheckoutViewModel @Inject constructor(
                 outletId = cart.outletId,
                 pickupSlotId = slot.id,
                 paymentMethod = state.selectedPaymentMethod,
-                specialInstructions = state.specialInstructions.ifBlank { null }
+                specialInstructions = combinedInstructions
             )
 
             result.onSuccess { order ->
@@ -245,6 +289,7 @@ fun CheckoutScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val fmt = NumberFormat.getInstance(Locale("en", "IN"))
+    var showAddressDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -289,8 +334,12 @@ fun CheckoutScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             if (uiState.cart != null) {
+                val isDelivery = uiState.orderingMode == OrderingMode.DELIVERY
+                val isReadyForPayment = uiState.selectedSlot != null &&
+                    (!isDelivery || uiState.hostelAddress.isComplete)
+
                 Surface(
-                    color = GagBackground, 
+                    color = MaterialTheme.colorScheme.surface,
                     shadowElevation = 16.dp,
                     shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
                 ) {
@@ -301,9 +350,13 @@ fun CheckoutScreen(
                             .navigationBarsPadding()
                     ) {
                         GagPrimaryButton(
-                            text = if (uiState.selectedSlot == null) "Select Pickup Slot First" else "Proceed to Payment   ₹${fmt.format(uiState.cart!!.total)}",
+                            text = when {
+                                uiState.selectedSlot == null -> "Select Slot First"
+                                isDelivery && !uiState.hostelAddress.isComplete -> "Add Hostel Address"
+                                else -> "Proceed to Payment   \u20b9${fmt.format(uiState.cart!!.total)}"
+                            },
                             onClick = viewModel::placeOrder,
-                            enabled = uiState.selectedSlot != null && uiState.cart != null,
+                            enabled = isReadyForPayment,
                             isLoading = uiState.orderState is UiState.Loading || uiState.paymentVerificationState is UiState.Loading,
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -333,18 +386,77 @@ fun CheckoutScreen(
                     }
                 }
 
-                // Outlet info
+                // Delivery / Pickup destination summary
                 item {
+                    val isDelivery = uiState.orderingMode == OrderingMode.DELIVERY
                     Surface(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
-                        shape = RoundedCornerShape(16.dp), 
+                        shape = RoundedCornerShape(16.dp),
                         color = GagPinkContainer
                     ) {
-                        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("Pickup from", style = MaterialTheme.typography.bodyMedium, color = GagOnPinkContainer)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(cart.outletName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = GagPink)
+                        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                            // Mode label
+                            Text(
+                                text = if (isDelivery) "DELIVERY" else "PICKUP",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = GagPink,
+                                letterSpacing = androidx.compose.ui.unit.TextUnit(1.5f, androidx.compose.ui.unit.TextUnitType.Sp)
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            if (isDelivery) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            "Deliver to hostel",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = GagOnPinkContainer
+                                        )
+                                        if (uiState.hostelAddress.isComplete) {
+                                            Text(
+                                                uiState.hostelAddress.displaySummary,
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = GagPink
+                                            )
+                                        } else {
+                                            Text(
+                                                "Add hostel address",
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = GagError
+                                            )
+                                        }
+                                    }
+                                    TextButton(onClick = { showAddressDialog = true }) {
+                                        Text(
+                                            if (uiState.hostelAddress.isComplete) "Change" else "Add",
+                                            color = GagPink,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            } else {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("Pickup from ", style = MaterialTheme.typography.bodyMedium, color = GagOnPinkContainer)
+                                    Text(cart.outletName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = GagPink)
+                                }
+                            }
                         }
+                    }
+
+                    if (showAddressDialog) {
+                        HostelAddressDialog(
+                            currentAddress = uiState.hostelAddress,
+                            onSave = { address ->
+                                viewModel.saveHostelAddress(address)
+                                showAddressDialog = false
+                            },
+                            onDismiss = { showAddressDialog = false }
+                        )
                     }
                 }
 

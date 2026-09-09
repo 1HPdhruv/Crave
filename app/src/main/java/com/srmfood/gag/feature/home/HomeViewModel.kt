@@ -9,6 +9,9 @@ import com.srmfood.gag.domain.model.FoodItem
 import com.srmfood.gag.domain.model.Order
 import com.srmfood.gag.domain.model.Outlet
 import com.srmfood.gag.domain.model.User
+import com.srmfood.gag.domain.repository.HostelAddress
+import com.srmfood.gag.domain.repository.OrderingMode
+import com.srmfood.gag.domain.repository.OrderingModeRepository
 import com.srmfood.gag.domain.usecase.auth.GetCurrentUserUseCase
 import com.srmfood.gag.domain.usecase.food.GetAllFoodUseCase
 import com.srmfood.gag.domain.usecase.food.GetCategoriesUseCase
@@ -43,7 +46,10 @@ data class HomeUiState(
     val recommendedFood: UiState<List<FoodItem>> = UiState.Loading,
     val categories: UiState<List<FoodCategory>> = UiState.Loading,
     val activeOrder: Order? = null,
-    val cartItemCount: Int = 0
+    val cartItemCount: Int = 0,
+    // ─── Ordering mode ───────────────────────────────────────────
+    val orderingMode: OrderingMode = OrderingMode.PICKUP,
+    val hostelAddress: HostelAddress = HostelAddress()
 )
 
 @HiltViewModel
@@ -58,7 +64,8 @@ class HomeViewModel @Inject constructor(
     private val getOrdersUseCase: GetOrdersUseCase,
     private val getCartUseCase: GetCartUseCase,
     private val addToCartUseCase: AddToCartUseCase,
-    private val syncCartUseCase: com.srmfood.gag.domain.usecase.cart.SyncCartUseCase
+    private val syncCartUseCase: com.srmfood.gag.domain.usecase.cart.SyncCartUseCase,
+    private val orderingModeRepository: OrderingModeRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -72,7 +79,29 @@ class HomeViewModel @Inject constructor(
         observeOutlets()   // Observe Room cache as a Flow
         observeActiveOrders()
         observeCart()
+        observeOrderingMode()
         loadData()         // Trigger network fetch
+    }
+
+    private fun observeOrderingMode() {
+        viewModelScope.launch {
+            orderingModeRepository.orderingMode.collectLatest { mode ->
+                _uiState.value = _uiState.value.copy(orderingMode = mode)
+            }
+        }
+        viewModelScope.launch {
+            orderingModeRepository.hostelAddress.collectLatest { address ->
+                _uiState.value = _uiState.value.copy(hostelAddress = address)
+            }
+        }
+    }
+
+    fun setOrderingMode(mode: OrderingMode) {
+        viewModelScope.launch { orderingModeRepository.setOrderingMode(mode) }
+    }
+
+    fun saveHostelAddress(address: HostelAddress) {
+        viewModelScope.launch { orderingModeRepository.setHostelAddress(address) }
     }
 
     private fun observeCart() {

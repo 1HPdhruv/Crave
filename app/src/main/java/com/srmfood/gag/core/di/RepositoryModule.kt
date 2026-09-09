@@ -102,4 +102,10 @@ class RepositoryModule {
     fun provideUserPreferencesRepository(
         impl: com.srmfood.gag.data.repository.preferences.UserPreferencesRepositoryImpl
     ): com.srmfood.gag.domain.repository.UserPreferencesRepository = impl
+
+    @Provides
+    @Singleton
+    fun provideOrderingModeRepository(
+        impl: com.srmfood.gag.data.repository.preferences.OrderingModeRepositoryImpl
+    ): com.srmfood.gag.domain.repository.OrderingModeRepository = impl
 }
