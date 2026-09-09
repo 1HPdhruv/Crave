@@ -124,7 +124,7 @@ fun CartScreen(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "Your cart is hungry 👀", 
+                    text = "Your cart is empty",
                     style = MaterialTheme.typography.headlineMedium, 
                     fontWeight = FontWeight.ExtraBold, 
                     color = MaterialTheme.colorScheme.onBackground

@@ -148,7 +148,7 @@ fun VendorDashboardScreen(
                     if (activeOrders.isEmpty()) {
                         item {
                             Box(modifier = Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                                Text("No active orders right now 🎉", style = MaterialTheme.typography.bodyMedium, color = GagOnSurfaceVariant)
+                                Text("No active orders right now", style = MaterialTheme.typography.bodyMedium, color = GagOnSurfaceVariant)
                             }
                         }
                     }

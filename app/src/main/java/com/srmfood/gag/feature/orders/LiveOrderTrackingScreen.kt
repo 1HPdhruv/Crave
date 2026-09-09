@@ -184,7 +184,7 @@ fun LiveOrderTrackingScreen(
                         Spacer(modifier = Modifier.height(32.dp))
                         
                         Text(
-                            text = if (isReady) "Your order is ready! 🎉" else "Preparing your order…",
+                            text = if (isReady) "Your order is ready" else "Preparing your order…",
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.ExtraBold,
                             textAlign = TextAlign.Center,

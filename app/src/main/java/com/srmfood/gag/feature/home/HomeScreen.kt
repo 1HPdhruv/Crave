@@ -147,7 +147,7 @@ fun HomeScreen(
                                     label = "All",
                                     isSelected = true,
                                     onClick = { /* Already on All */ },
-                                    emoji = "🏠"
+                                    emoji = null
                                 )
                             }
                             items(catState.data) { category ->
@@ -184,7 +184,7 @@ fun HomeScreen(
             // ─── Popular Foods ────────────────────────────────────
             item {
                 GagSectionHeader(
-                    title = "🔥 Popular Right Now",
+                    title = "Popular right now",
                     modifier = Modifier.padding(horizontal = GagSpacing.Large)
                 )
                 Spacer(modifier = Modifier.height(GagSpacing.Medium))
@@ -293,7 +293,7 @@ fun HomeScreen(
             // ─── Recommended Foods ─────────────────────────────────────
             item {
                 GagSectionHeader(
-                    title = "⭐ Recommended for You",
+                    title = "Recommended for you",
                     modifier = Modifier.padding(horizontal = GagSpacing.Large)
                 )
                 Spacer(modifier = Modifier.height(GagSpacing.Medium))
@@ -445,7 +445,7 @@ private fun PromoBanner(modifier: Modifier = Modifier) {
                 modifier = Modifier.clickable { /* decorative */ }
             ) {
                 Text(
-                    text = "ORDER NOW 🍕",
+                    text = "ORDER NOW",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
                     color = GagPink,

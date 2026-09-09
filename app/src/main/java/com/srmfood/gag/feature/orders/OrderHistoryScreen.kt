@@ -77,7 +77,7 @@ fun OrderHistoryScreen(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = "No orders yet 🍽️", 
+                        text = "No orders yet",
                         style = MaterialTheme.typography.headlineMedium, 
                         fontWeight = FontWeight.ExtraBold, 
                         color = MaterialTheme.colorScheme.onBackground

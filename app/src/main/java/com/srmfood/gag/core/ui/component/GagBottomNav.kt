@@ -74,16 +74,16 @@ fun GagBottomNavBar(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(BottomNavBackground)
+            .background(MaterialTheme.colorScheme.surface)
             .border(
                 width = 1.dp,
-                color = BottomNavBorder,
+                color = MaterialTheme.colorScheme.outlineVariant,
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp)
             )
     ) {
         NavigationBar(
             containerColor = Color.Transparent,
-            contentColor = GagOnSurfaceVariant,
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             tonalElevation = 0.dp,
             modifier = Modifier
                 .selectableGroup()
