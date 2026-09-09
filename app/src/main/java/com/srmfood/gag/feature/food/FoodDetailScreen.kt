@@ -425,7 +425,7 @@ fun FoodDetailScreen(
 
                                 if (food.calories != null) {
                                     Spacer(modifier = Modifier.height(12.dp))
-                                    Text("🔥 ~${food.calories} cal", style = MaterialTheme.typography.labelLarge, color = GagOrange)
+                                    Text("~${food.calories} cal", style = MaterialTheme.typography.labelLarge, color = GagOrange)
                                 }
 
                                 if (!food.isAvailable) {
