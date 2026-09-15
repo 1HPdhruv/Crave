@@ -13,7 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
@@ -32,6 +32,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.srmfood.gag.core.common.UiState
+import com.srmfood.gag.core.ui.component.CraveFilterChip
 import com.srmfood.gag.core.ui.component.FoodItemCard
 import com.srmfood.gag.core.ui.component.GagEmptyScreen
 import com.srmfood.gag.core.ui.component.GagErrorScreen
@@ -75,29 +76,29 @@ fun SearchScreen(
     if (uiState.showMixedOutletDialog) {
         AlertDialog(
             onDismissRequest = viewModel::dismissMixedOutletDialog,
-            containerColor = GagSurface,
+            containerColor = MaterialTheme.colorScheme.surface,
             title = { Text("Different Outlet", fontWeight = FontWeight.Bold) },
             text = { Text("Your cart contains items from a different outlet. Clear cart and add from this outlet?") },
             confirmButton = {
                 Button(
                     onClick = { viewModel.onClearAndAddCart() },
-                    colors = ButtonDefaults.buttonColors(containerColor = GagOrange)
+                    colors = ButtonDefaults.buttonColors(containerColor = GagPink)
                 ) { Text("Clear & Add") }
             },
             dismissButton = {
-                TextButton(onClick = viewModel::dismissMixedOutletDialog) { Text("Keep Cart", color = GagOnSurfaceVariant) }
+                TextButton(onClick = viewModel::dismissMixedOutletDialog) { Text("Keep Cart", color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
         )
     }
 
     Scaffold(
-        containerColor = GagBackground,
+        containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(GagBackground)
+                    .background(MaterialTheme.colorScheme.background)
                     .statusBarsPadding()
             ) {
                 // Header & Search
@@ -108,7 +109,7 @@ fun SearchScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, "Back", tint = MaterialTheme.colorScheme.onBackground)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = MaterialTheme.colorScheme.onBackground)
                     }
                     
                     Surface(
@@ -162,9 +163,9 @@ fun SearchScreen(
                     // Clear all
                     val hasFilters = uiState.filterVegOnly != null || uiState.filterMaxPrice != null || uiState.selectedCategory != null || uiState.sortBy != SortOption.RELEVANCE
                     if (hasFilters) {
-                        GagFilterChip(
+                        CraveFilterChip(
                             label = "Clear",
-                            isActive = false,
+                            isSelected = false,
                             onClick = {
                                 viewModel.onVegFilterChanged(null)
                                 viewModel.onMaxPriceChanged(null)
@@ -172,39 +173,39 @@ fun SearchScreen(
                                 viewModel.onSortChanged(SortOption.RELEVANCE)
                                 viewModel.search()
                             },
-                            icon = Icons.Default.Close
+                            leadingIcon = Icons.Default.Close
                         )
                     }
 
                     // Veg
-                    GagFilterChip(
+                    CraveFilterChip(
                         label = when(uiState.filterVegOnly) {
                             true -> "Veg"
                             false -> "Non-Veg"
                             null -> "Food Type"
                         },
-                        isActive = uiState.filterVegOnly != null,
+                        isSelected = uiState.filterVegOnly != null,
                         onClick = { showVegSheet = true }
                     )
 
                     // Price
-                    GagFilterChip(
+                    CraveFilterChip(
                         label = if (uiState.filterMaxPrice != null) "Under ₹${uiState.filterMaxPrice!!.toInt()}" else "Price",
-                        isActive = uiState.filterMaxPrice != null,
+                        isSelected = uiState.filterMaxPrice != null,
                         onClick = { showPriceSheet = true }
                     )
 
                     // Category
-                    GagFilterChip(
+                    CraveFilterChip(
                         label = uiState.selectedCategory ?: "Category",
-                        isActive = uiState.selectedCategory != null,
+                        isSelected = uiState.selectedCategory != null,
                         onClick = { showCategorySheet = true }
                     )
 
                     // Sort
-                    GagFilterChip(
+                    CraveFilterChip(
                         label = if (uiState.sortBy != SortOption.RELEVANCE) uiState.sortBy.displayName else "Sort",
-                        isActive = uiState.sortBy != SortOption.RELEVANCE,
+                        isSelected = uiState.sortBy != SortOption.RELEVANCE,
                         onClick = { showSortSheet = true }
                     )
                 }
@@ -242,7 +243,6 @@ fun SearchScreen(
                     }
                 }
                 is UiState.Loading -> {
-                    // Custom skeleton loading mapping to FoodItemCard layout
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(16.dp),
@@ -422,36 +422,6 @@ fun SearchScreen(
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun GagFilterChip(
-    label: String,
-    isActive: Boolean,
-    onClick: () -> Unit,
-    icon: androidx.compose.ui.graphics.vector.ImageVector? = null
-) {
-    val bgColor = if (isActive) GagPink else MaterialTheme.colorScheme.surface
-    val contentColor = if (isActive) Color.White else MaterialTheme.colorScheme.onSurface
-    
-    Surface(
-        shape = CircleShape,
-        color = bgColor,
-        contentColor = contentColor,
-        border = if (!isActive) androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant) else null,
-        onClick = onClick,
-        modifier = Modifier.height(36.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        ) {
-            if (icon != null) {
-                Icon(icon, null, modifier = Modifier.size(16.dp).padding(end = 4.dp))
-            }
-            Text(text = label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
         }
     }
 }

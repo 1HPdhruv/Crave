@@ -32,14 +32,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
 import com.srmfood.gag.core.common.UiState
+import com.srmfood.gag.core.ui.component.DeliveryModeSelector
 import com.srmfood.gag.core.ui.component.FoodItemCard
 import com.srmfood.gag.core.ui.component.GagErrorScreen
 import com.srmfood.gag.core.ui.component.GagLoadingScreen
 import com.srmfood.gag.core.ui.component.GagTopBar
+import com.srmfood.gag.core.ui.component.HostelAddressBanner
+import com.srmfood.gag.core.ui.component.HostelAddressDialog
 import com.srmfood.gag.core.ui.theme.*
 import com.srmfood.gag.domain.model.FoodItem
 import com.srmfood.gag.domain.model.Outlet
 import com.srmfood.gag.domain.model.QueueLevel
+import com.srmfood.gag.domain.repository.HostelAddress
+import com.srmfood.gag.domain.repository.OrderingMode
+import com.srmfood.gag.domain.repository.OrderingModeRepository
 import com.srmfood.gag.domain.usecase.cart.AddToCartUseCase
 import com.srmfood.gag.domain.usecase.food.GetMenuByOutletUseCase
 import com.srmfood.gag.domain.usecase.outlet.GetOutletDetailsUseCase
@@ -51,6 +57,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -58,7 +65,10 @@ import javax.inject.Inject
 data class OutletDetailUiState(
     val outlet: UiState<Outlet> = UiState.Loading,
     val menu: UiState<List<FoodItem>> = UiState.Loading,
-    val selectedCategory: String? = null
+    val selectedCategory: String? = null,
+    // ─── Ordering mode ───────────────────────────────────────────
+    val orderingMode: OrderingMode = OrderingMode.PICKUP,
+    val hostelAddress: HostelAddress = HostelAddress()
 )
 
 sealed class OutletDetailUiEvent {
@@ -71,7 +81,8 @@ class OutletDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val getOutletDetailsUseCase: GetOutletDetailsUseCase,
     private val getMenuByOutletUseCase: GetMenuByOutletUseCase,
-    private val addToCartUseCase: AddToCartUseCase
+    private val addToCartUseCase: AddToCartUseCase,
+    private val orderingModeRepository: OrderingModeRepository
 ) : ViewModel() {
 
     private val outletId: String = savedStateHandle[Screen.OutletDetail.ARG_OUTLET_ID] ?: ""
@@ -81,7 +92,27 @@ class OutletDetailViewModel @Inject constructor(
     private val _events = MutableSharedFlow<OutletDetailUiEvent>()
     val events: SharedFlow<OutletDetailUiEvent> = _events.asSharedFlow()
 
-    init { loadOutletData() }
+    init {
+        loadOutletData()
+        viewModelScope.launch {
+            orderingModeRepository.orderingMode.collectLatest { mode ->
+                _uiState.value = _uiState.value.copy(orderingMode = mode)
+            }
+        }
+        viewModelScope.launch {
+            orderingModeRepository.hostelAddress.collectLatest { address ->
+                _uiState.value = _uiState.value.copy(hostelAddress = address)
+            }
+        }
+    }
+
+    fun setOrderingMode(mode: OrderingMode) {
+        viewModelScope.launch { orderingModeRepository.setOrderingMode(mode) }
+    }
+
+    fun saveHostelAddress(address: HostelAddress) {
+        viewModelScope.launch { orderingModeRepository.setHostelAddress(address) }
+    }
 
     private fun loadOutletData() {
         viewModelScope.launch {
@@ -255,6 +286,39 @@ fun OutletDetailScreen(
                                     text = outlet.description,
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        // 2.5 Delivery / Pickup Selector
+                        item {
+                            var showAddressDialog by remember { mutableStateOf(false) }
+                            Column(
+                                modifier = Modifier
+                                    .padding(horizontal = 16.dp)
+                                    .padding(bottom = 8.dp)
+                                    .offset(y = (-24).dp)
+                            ) {
+                                DeliveryModeSelector(
+                                    selectedMode = uiState.orderingMode,
+                                    onModeSelected = { viewModel.setOrderingMode(it) }
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                HostelAddressBanner(
+                                    address = uiState.hostelAddress,
+                                    outletName = if (uiState.outlet is UiState.Success) (uiState.outlet as UiState.Success).data.name else null,
+                                    isDelivery = uiState.orderingMode == OrderingMode.DELIVERY,
+                                    onChangeAddress = { showAddressDialog = true }
+                                )
+                            }
+                            if (showAddressDialog) {
+                                HostelAddressDialog(
+                                    currentAddress = uiState.hostelAddress,
+                                    onSave = { address ->
+                                        viewModel.saveHostelAddress(address)
+                                        showAddressDialog = false
+                                    },
+                                    onDismiss = { showAddressDialog = false }
                                 )
                             }
                         }

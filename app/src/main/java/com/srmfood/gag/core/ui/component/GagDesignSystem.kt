@@ -15,7 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.clip
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -26,67 +26,392 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.srmfood.gag.core.ui.theme.GagPink
+import com.srmfood.gag.core.ui.theme.GagPink
 import com.srmfood.gag.core.ui.theme.GagSpacing
 
+// ─── Search Bar ───────────────────────────────────────────────────
+
+/**
+ * Large, prominent search bar.
+ * Styled as a flat rounded-rectangle input — no border, gray surface.
+ * In read-only mode (onClick != null) it acts as a tap target to open a search screen.
+ */
 @Composable
-fun GagSearchBar(query: String, onQueryChange: (String) -> Unit, modifier: Modifier = Modifier, placeholder: String = "Search food, restaurants, cuisines...") {
-    Row(modifier = modifier.fillMaxWidth().height(52.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(Icons.Default.Search, contentDescription = "Search", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.width(12.dp))
-        Text(if (query.isEmpty()) placeholder else query, style = MaterialTheme.typography.bodyLarge, color = if (query.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onBackground, maxLines = 1, overflow = TextOverflow.Ellipsis)
+fun GagSearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String = "Search for food, dishes or outlets",
+    readOnly: Boolean = true,
+    onClick: (() -> Unit)? = null
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(52.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Default.Search,
+            contentDescription = "Search",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = if (query.isEmpty()) placeholder else query,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
+// ─── Category Chip (outlet/menu category tabs) ───────────────────
+
 @Composable
-fun GagCategoryChip(label: String, isSelected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, iconUrl: String? = null, emoji: String? = null) {
-    Column(modifier = modifier.width(76.dp).clickable { onClick() }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Box(modifier = Modifier.size(56.dp).clip(CircleShape).background(if (isSelected) GagPink else MaterialTheme.colorScheme.surface).border(1.dp, if (isSelected) GagPink else MaterialTheme.colorScheme.outlineVariant, CircleShape), contentAlignment = Alignment.Center) {
-            if (iconUrl != null) AsyncImage(model = iconUrl, contentDescription = label, modifier = Modifier.fillMaxSize().clip(CircleShape), contentScale = ContentScale.Crop)
-            else Icon(Icons.Default.Search, contentDescription = null, tint = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
+fun GagCategoryChip(
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    iconUrl: String? = null,
+    emoji: String? = null
+) {
+    // Compact tab-style chip — no large circle
+    Box(
+        modifier = modifier
+            .clip(CircleShape)
+            .background(
+                if (isSelected) GagPink else MaterialTheme.colorScheme.surfaceVariant
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+// ─── Section Header ───────────────────────────────────────────────
+
+@Composable
+fun GagSectionHeader(
+    title: String,
+    modifier: Modifier = Modifier,
+    actionText: String? = null,
+    onActionClick: (() -> Unit)? = null
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        if (actionText != null && onActionClick != null) {
+            Text(
+                text = actionText,
+                style = MaterialTheme.typography.labelLarge,
+                color = GagPink,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clickable(onClick = onActionClick)
+            )
         }
-        Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium, color = if (isSelected) GagPink else MaterialTheme.colorScheme.onBackground, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
+// ─── Badge ────────────────────────────────────────────────────────
+
 @Composable
-fun GagSectionHeader(title: String, modifier: Modifier = Modifier, actionText: String? = null, onActionClick: (() -> Unit)? = null) {
-    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        if (actionText != null && onActionClick != null) Text(actionText, style = MaterialTheme.typography.labelLarge, color = GagPink, fontWeight = FontWeight.Bold, modifier = Modifier.clickable { onActionClick() })
+fun GagBadge(
+    text: String,
+    color: Color,
+    containerColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(4.dp))
+            .background(containerColor)
+            .padding(horizontal = GagSpacing.Small, vertical = 2.dp)
+    ) {
+        Text(
+            text = text.uppercase(),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
     }
 }
 
-@Composable
-fun GagBadge(text: String, color: Color, containerColor: Color, modifier: Modifier = Modifier) = Box(modifier.clip(RoundedCornerShape(6.dp)).background(containerColor).padding(horizontal = 8.dp, vertical = 4.dp)) { Text(text.uppercase(), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = color) }
+// ─── Price Display ────────────────────────────────────────────────
 
 @Composable
-fun GagPrice(price: Double, modifier: Modifier = Modifier, originalPrice: Double? = null) = Row(modifier, verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-    Text("₹${price.toInt()}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold)
-    if (originalPrice != null && originalPrice > price) Text("₹${originalPrice.toInt()}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textDecoration = TextDecoration.LineThrough)
+fun GagPrice(
+    price: Double,
+    modifier: Modifier = Modifier,
+    originalPrice: Double? = null
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text(
+            text = "₹${price.toInt()}",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        if (originalPrice != null && originalPrice > price) {
+            Text(
+                text = "₹${originalPrice.toInt()}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textDecoration = TextDecoration.LineThrough
+            )
+        }
+    }
 }
 
-@Composable
-fun GagIconButton(icon: ImageVector, onClick: () -> Unit, modifier: Modifier = Modifier, containerColor: Color = MaterialTheme.colorScheme.surfaceVariant, contentColor: Color = MaterialTheme.colorScheme.onSurface) = Box(modifier.size(40.dp).clip(CircleShape).background(containerColor).clickable { onClick() }, contentAlignment = Alignment.Center) { Icon(icon, contentDescription = null, tint = contentColor, modifier = Modifier.size(20.dp)) }
+// ─── Icon Button (circular) ───────────────────────────────────────
 
 @Composable
-fun GagQuantitySelector(quantity: Int, onIncrease: () -> Unit, onDecrease: () -> Unit, modifier: Modifier = Modifier) = Row(modifier.height(36.dp).clip(RoundedCornerShape(8.dp)).background(GagPink.copy(alpha = .08f)).border(1.dp, GagPink, RoundedCornerShape(8.dp)), verticalAlignment = Alignment.CenterVertically) {
-    Box(Modifier.size(36.dp).clickable { onDecrease() }, contentAlignment = Alignment.Center) { Icon(Icons.Default.Remove, "Decrease", tint = GagPink, modifier = Modifier.size(18.dp)) }
-    Text(quantity.toString(), style = MaterialTheme.typography.titleSmall, color = GagPink, modifier = Modifier.padding(horizontal = 8.dp))
-    Box(Modifier.size(36.dp).clickable { onIncrease() }, contentAlignment = Alignment.Center) { Icon(Icons.Default.Add, "Increase", tint = GagPink, modifier = Modifier.size(18.dp)) }
+fun GagIconButton(
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceVariant,
+    contentColor: Color = MaterialTheme.colorScheme.onSurface
+) {
+    Box(
+        modifier = modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(containerColor)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = contentColor,
+            modifier = Modifier.size(20.dp)
+        )
+    }
 }
 
-@Composable
-fun GagCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) = Card(modifier, shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), elevation = CardDefaults.cardElevation(0.dp)) { content() }
+// ─── Quantity Selector ────────────────────────────────────────────
 
 @Composable
-fun GagEmptyState(title: String, description: String, modifier: Modifier = Modifier, icon: ImageVector = Icons.Default.Search, actionButton: @Composable (() -> Unit)? = null) = Column(modifier.fillMaxWidth().padding(GagSpacing.Huge), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-    Box(Modifier.size(88.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) { Icon(icon, null, modifier = Modifier.size(36.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
-    Spacer(Modifier.height(20.dp)); Text(title, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center); Spacer(Modifier.height(8.dp)); Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
-    if (actionButton != null) { Spacer(Modifier.height(20.dp)); actionButton() }
+fun GagQuantitySelector(
+    quantity: Int,
+    onIncrease: () -> Unit,
+    onDecrease: () -> Unit,
+    modifier: Modifier = Modifier,
+    minQuantity: Int = 1
+) {
+    Row(
+        modifier = modifier
+            .height(38.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp)),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .clickable(onClick = onDecrease),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Default.Remove,
+                contentDescription = "Decrease quantity",
+                tint = if (quantity <= 1) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        Text(
+            text = quantity.toString(),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(horizontal = GagSpacing.Medium)
+        )
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .background(GagPink.copy(alpha = 0.08f))
+                .clickable(onClick = onIncrease),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Default.Add,
+                contentDescription = "Increase quantity",
+                tint = GagPink,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+    }
 }
 
-@Composable
-fun GagErrorState(message: String, onRetry: () -> Unit, modifier: Modifier = Modifier) = GagEmptyState("Something went wrong", message, modifier, Icons.Rounded.ErrorOutline) { GagPrimaryButton("Retry", onRetry, Modifier.width(160.dp)) }
+// ─── Card Container ───────────────────────────────────────────────
 
 @Composable
-fun GagLoadingSkeleton(modifier: Modifier = Modifier) = Box(modifier.background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(10.dp)))
+fun GagCard(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    Card(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        content()
+    }
+}
+
+// ─── Food Image ───────────────────────────────────────────────────
+
+@Composable
+fun GagFoodImage(
+    imageUrl: String?,
+    modifier: Modifier = Modifier
+) {
+    AsyncImage(
+        model = imageUrl,
+        contentDescription = "Food image",
+        modifier = modifier
+            .fillMaxWidth()
+            .height(170.dp)
+            .clip(MaterialTheme.shapes.large),
+        contentScale = ContentScale.Crop
+    )
+}
+
+// ─── Empty State ─────────────────────────────────────────────────
+
+@Composable
+fun GagEmptyState(
+    title: String,
+    description: String,
+    modifier: Modifier = Modifier,
+    icon: ImageVector = Icons.Default.Search,
+    actionButton: @Composable (() -> Unit)? = null
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(GagSpacing.Huge),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(100.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(44.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Spacer(modifier = Modifier.height(GagSpacing.ExtraLarge))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(modifier = Modifier.height(GagSpacing.Small))
+        Text(
+            text = description,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+        if (actionButton != null) {
+            Spacer(modifier = Modifier.height(GagSpacing.Large))
+            actionButton()
+        }
+    }
+}
+
+// ─── Error State ─────────────────────────────────────────────────
+
+@Composable
+fun GagErrorState(
+    message: String,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    GagEmptyState(
+        title = "Something went wrong",
+        description = message,
+        modifier = modifier,
+        icon = Icons.Rounded.ErrorOutline,
+        actionButton = {
+            GagPrimaryButton(
+                text = "Try Again",
+                onClick = onRetry,
+                modifier = Modifier.width(200.dp)
+            )
+        }
+    )
+}
+
+// ─── Loading Skeleton ────────────────────────────────────────────
+
+@Composable
+fun GagLoadingSkeleton(
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier.background(
+            MaterialTheme.colorScheme.surfaceVariant,
+            RoundedCornerShape(8.dp)
+        )
+    )
+}
+
+// ─── Empty Screen / Error Screen aliases ─────────────────────────
+
+@Composable
+fun GagEmptyScreen(
+    title: String = "Nothing here yet",
+    description: String = "",
+    modifier: Modifier = Modifier,
+    icon: ImageVector = Icons.Default.Search,
+    action: @Composable (() -> Unit)? = null
+) {
+    GagEmptyState(
+        title = title,
+        description = description,
+        modifier = modifier,
+        icon = icon,
+        actionButton = action
+    )
+}

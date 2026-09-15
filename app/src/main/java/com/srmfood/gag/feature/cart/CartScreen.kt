@@ -8,7 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.outlined.DeleteOutline
@@ -92,12 +92,12 @@ fun CartScreen(
     val fmt = NumberFormat.getInstance(Locale("en", "IN"))
 
     Scaffold(
-        containerColor = GagBackground,
+        containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             if (cart != null && !cart!!.isEmpty) {
                 Surface(
-                    color = GagBackground, 
+                    color = MaterialTheme.colorScheme.background, 
                     shadowElevation = 16.dp,
                     shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
                 ) {
@@ -155,7 +155,7 @@ fun CartScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             IconButton(onClick = onBack, modifier = Modifier.offset(x = (-12).dp)) {
-                                Icon(Icons.Default.ArrowBack, contentDescription = "Go back")
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Go back")
                             }
                             TextButton(onClick = viewModel::clearCart, modifier = Modifier.offset(x = 12.dp)) {
                                 Text("Clear Cart", color = GagError, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
@@ -227,12 +227,12 @@ fun CartScreen(
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Surface(
                                     shape = RoundedCornerShape(8.dp),
-                                    color = GagYellow.copy(alpha = 0.2f)
+                                    color = GagWarningContainer
                                 ) {
                                     Text(
                                         text = "Estimated prep time: ~${cart!!.estimatedPrepMinutes} mins",
                                         style = MaterialTheme.typography.labelMedium,
-                                        color = GagYellow,
+                                        color = GagWarning,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp).fillMaxWidth(),
                                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -262,7 +262,7 @@ private fun CartItemRow(
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.Top) {
                 // Image
-                Box(modifier = Modifier.size(72.dp).clip(RoundedCornerShape(12.dp)).background(GagSurfaceVariant)) {
+                Box(modifier = Modifier.size(72.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant)) {
                     GagFoodImage(
                         model = item.foodImageUrl,
                         contentDescription = item.foodName,

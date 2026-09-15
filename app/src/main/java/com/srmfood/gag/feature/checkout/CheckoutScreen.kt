@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -25,6 +27,8 @@ import com.srmfood.gag.core.common.UiState
 import com.srmfood.gag.core.ui.component.GagLoadingScreen
 import com.srmfood.gag.core.ui.component.GagPrimaryButton
 import com.srmfood.gag.core.ui.component.GagTopBar
+import com.srmfood.gag.core.ui.component.HostelAddressBanner
+import com.srmfood.gag.core.ui.component.HostelAddressDialog
 import com.srmfood.gag.core.ui.theme.*
 import com.srmfood.gag.domain.model.Cart
 import com.srmfood.gag.domain.model.Order
@@ -34,6 +38,9 @@ import com.srmfood.gag.domain.model.PickupSlot
 import com.srmfood.gag.domain.model.RazorpayOrderDetails
 import com.srmfood.gag.core.payment.RazorpayManager
 import com.srmfood.gag.core.payment.RazorpayResult
+import com.srmfood.gag.domain.repository.HostelAddress
+import com.srmfood.gag.domain.repository.OrderingMode
+import com.srmfood.gag.domain.repository.OrderingModeRepository
 import com.srmfood.gag.domain.repository.PaymentRepository
 import com.srmfood.gag.domain.usecase.cart.GetCartUseCase
 import com.srmfood.gag.domain.usecase.order.PlaceOrderUseCase
@@ -45,6 +52,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.razorpay.Checkout
@@ -56,13 +64,20 @@ import androidx.compose.ui.platform.LocalContext
 
 data class CheckoutUiState(
     val cart: Cart? = null,
+    val selectedPickupDate: java.time.LocalDate = java.time.ZonedDateTime.now(java.time.ZoneId.of("Asia/Kolkata")).toLocalDate(),
+    val availablePickupDates: List<java.time.LocalDate> = (0..3).map { 
+        java.time.ZonedDateTime.now(java.time.ZoneId.of("Asia/Kolkata")).toLocalDate().plusDays(it.toLong()) 
+    },
     val availableSlots: UiState<List<PickupSlot>> = UiState.Loading,
     val selectedSlot: PickupSlot? = null,
     val selectedPaymentMethod: PaymentMethod = PaymentMethod.ONLINE,
     val specialInstructions: String = "",
     val orderState: UiState<Order> = UiState.Idle,
     val razorpayOrderDetails: RazorpayOrderDetails? = null,
-    val paymentVerificationState: UiState<Unit> = UiState.Idle
+    val paymentVerificationState: UiState<Unit> = UiState.Idle,
+    // ─── Ordering mode ───────────────────────────────────────────
+    val orderingMode: OrderingMode = OrderingMode.PICKUP,
+    val hostelAddress: HostelAddress = HostelAddress()
 )
 
 sealed class CheckoutUiEvent {
@@ -79,7 +94,8 @@ class CheckoutViewModel @Inject constructor(
     private val getPickupSlotsUseCase: com.srmfood.gag.domain.usecase.order.GetPickupSlotsUseCase,
     private val cartRepository: com.srmfood.gag.domain.repository.CartRepository,
     private val paymentRepository: PaymentRepository,
-    private val razorpayManager: RazorpayManager
+    private val razorpayManager: RazorpayManager,
+    private val orderingModeRepository: OrderingModeRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CheckoutUiState())
@@ -95,12 +111,24 @@ class CheckoutViewModel @Inject constructor(
         viewModelScope.launch {
             getCartUseCase().collectLatest { cart ->
                 _uiState.value = _uiState.value.copy(cart = cart)
-                
+
                 // Fetch slots if we have an outlet and haven't fetched yet
                 if (cart != null && !hasLoadedSlots) {
                     hasLoadedSlots = true
-                    loadPickupSlots(cart.outletId)
+                    loadPickupSlots(cart.outletId, _uiState.value.selectedPickupDate)
                 }
+            }
+        }
+
+        // Observe ordering mode + hostel address from DataStore
+        viewModelScope.launch {
+            orderingModeRepository.orderingMode.collectLatest { mode ->
+                _uiState.value = _uiState.value.copy(orderingMode = mode)
+            }
+        }
+        viewModelScope.launch {
+            orderingModeRepository.hostelAddress.collectLatest { address ->
+                _uiState.value = _uiState.value.copy(hostelAddress = address)
             }
         }
 
@@ -126,18 +154,78 @@ class CheckoutViewModel @Inject constructor(
         }
     }
 
-    fun loadPickupSlots(outletId: String) {
+    fun saveHostelAddress(address: HostelAddress) {
+        viewModelScope.launch { orderingModeRepository.setHostelAddress(address) }
+    }
+
+    fun onPickupDateSelected(date: java.time.LocalDate) {
+        _uiState.value = _uiState.value.copy(
+            selectedPickupDate = date,
+            selectedSlot = null // Clear selected slot when date changes
+        )
+        val cart = _uiState.value.cart
+        if (cart != null) {
+            loadPickupSlots(cart.outletId, date)
+        }
+    }
+
+    fun loadPickupSlots(outletId: String, requestedDate: java.time.LocalDate) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(availableSlots = UiState.Loading)
-            val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
-            val result = getPickupSlotsUseCase(outletId, today)
-            
+
+            // Use Asia/Kolkata explicitly for both the query date and the filter —
+            // never rely on the JVM/emulator default timezone.
+            val ist = java.time.ZoneId.of("Asia/Kolkata")
+            val nowDateTime = java.time.ZonedDateTime.now(ist)
+            val todayIST: java.time.LocalDate = nowDateTime.toLocalDate()
+            val nowIST: java.time.LocalTime = nowDateTime.toLocalTime()
+            val queryString = requestedDate.toString() // "YYYY-MM-DD" — always correct for PostgREST DATE filter
+
+            android.util.Log.d("SlotFilter", "=== loadPickupSlots ===")
+            android.util.Log.d("SlotFilter", "timezone=Asia/Kolkata requestedDate=$requestedDate today=$todayIST currentTime=${nowIST.withNano(0)}")
+
+            val result = getPickupSlotsUseCase(outletId, queryString)
+
             _uiState.value = _uiState.value.copy(
                 availableSlots = result.fold(
-                    onSuccess = { slots -> 
-                        if (slots.isEmpty()) UiState.Empty else UiState.Success(slots) 
+                    onSuccess = { slots ->
+                        android.util.Log.d("SlotFilter", "received=${slots.size} slots from Supabase")
+
+                        val validSlots = slots.filter { slot ->
+                            try {
+                                // Parse Postgres DATE "YYYY-MM-DD" — take(10) defensive against any suffix
+                                val dp = slot.date.take(10).split("-")
+                                val slotDate = java.time.LocalDate.of(dp[0].toInt(), dp[1].toInt(), dp[2].toInt())
+
+                                // Parse Postgres TIME "HH:MM:SS" — strip timezone suffix defensively
+                                val sp = slot.startTime.substringBefore("+").substringBefore("Z").trim().split(":")
+                                val slotStart = java.time.LocalTime.of(sp[0].toInt(), sp.getOrNull(1)?.toInt() ?: 0)
+
+                                val keep = if (slotDate == todayIST) {
+                                    slotStart.isAfter(nowIST)     // today — keep only if start is strictly after now
+                                } else {
+                                    true                          // future date — show all
+                                }
+
+                                if (!keep) {
+                                    android.util.Log.d("SlotFilter", "EXCLUDED date=$slotDate start=$slotStart (now=${ nowIST.withNano(0)})")
+                                } else {
+                                    android.util.Log.d("SlotFilter", "INCLUDED date=$slotDate start=$slotStart")
+                                }
+                                keep
+                            } catch (e: Exception) {
+                                android.util.Log.e("SlotFilter", "Parse error for slot date='${slot.date}' startTime='${slot.startTime}'", e)
+                                false // exclude unparseable slots — never silently pass them through
+                            }
+                        }
+
+                        android.util.Log.d("SlotFilter", "filtered=${validSlots.size} slots after applying IST filter")
+                        if (validSlots.isEmpty()) UiState.Empty else UiState.Success(validSlots)
                     },
-                    onFailure = { UiState.Error(it.message ?: "Failed to load slots") }
+                    onFailure = { e ->
+                        android.util.Log.e("SlotFilter", "Failed to fetch slots: ${e.message}", e)
+                        UiState.Error(e.message ?: "Failed to load slots")
+                    }
                 )
             )
         }
@@ -160,6 +248,24 @@ class CheckoutViewModel @Inject constructor(
         val cart = state.cart ?: return
         val slot = state.selectedSlot ?: return
 
+        // DELIVERY validation: hostel address must be complete
+        if (state.orderingMode == OrderingMode.DELIVERY && !state.hostelAddress.isComplete) {
+            _uiState.value = _uiState.value.copy(
+                orderState = UiState.Error("Please add your hostel delivery address before placing the order.")
+            )
+            return
+        }
+
+        // Build special instructions: hostel prefix for delivery, user text for both
+        val combinedInstructions = when {
+            state.orderingMode == OrderingMode.DELIVERY -> {
+                val base = state.hostelAddress.toDeliveryInstructions()
+                if (state.specialInstructions.isNotBlank()) "$base | ${state.specialInstructions}" else base
+            }
+            state.specialInstructions.isNotBlank() -> state.specialInstructions
+            else -> null
+        }
+
         viewModelScope.launch {
             // Prevent duplicate order lock by cancelling any previous incomplete order
             if (currentOrderId != null) {
@@ -168,11 +274,18 @@ class CheckoutViewModel @Inject constructor(
             }
 
             _uiState.value = _uiState.value.copy(orderState = UiState.Loading)
+            
+            android.util.Log.d("PlaceOrderDiag", "=== CHECKOUT VIEWMODEL placeOrder ===")
+            android.util.Log.d("PlaceOrderDiag", "Checkout Cart Item Count: ${cart.items.size}")
+            android.util.Log.d("PlaceOrderDiag", "Checkout Cart Outlet ID: ${cart.outletId}")
+            android.util.Log.d("PlaceOrderDiag", "Checkout Selected Slot ID: ${slot.id}")
+            android.util.Log.d("PlaceOrderDiag", "=======================================")
+
             val result = placeOrderUseCase(
                 outletId = cart.outletId,
                 pickupSlotId = slot.id,
                 paymentMethod = state.selectedPaymentMethod,
-                specialInstructions = state.specialInstructions.ifBlank { null }
+                specialInstructions = combinedInstructions
             )
 
             result.onSuccess { order ->
@@ -245,6 +358,7 @@ fun CheckoutScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val fmt = NumberFormat.getInstance(Locale("en", "IN"))
+    var showAddressDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -289,8 +403,12 @@ fun CheckoutScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             if (uiState.cart != null) {
+                val isDelivery = uiState.orderingMode == OrderingMode.DELIVERY
+                val isReadyForPayment = uiState.selectedSlot != null &&
+                    (!isDelivery || uiState.hostelAddress.isComplete)
+
                 Surface(
-                    color = GagBackground, 
+                    color = MaterialTheme.colorScheme.surface,
                     shadowElevation = 16.dp,
                     shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
                 ) {
@@ -301,9 +419,13 @@ fun CheckoutScreen(
                             .navigationBarsPadding()
                     ) {
                         GagPrimaryButton(
-                            text = if (uiState.selectedSlot == null) "Select Pickup Slot First" else "Proceed to Payment   ₹${fmt.format(uiState.cart!!.total)}",
+                            text = when {
+                                uiState.selectedSlot == null -> "Select Slot First"
+                                isDelivery && !uiState.hostelAddress.isComplete -> "Add Hostel Address"
+                                else -> "Proceed to Payment   \u20b9${fmt.format(uiState.cart!!.total)}"
+                            },
                             onClick = viewModel::placeOrder,
-                            enabled = uiState.selectedSlot != null && uiState.cart != null,
+                            enabled = isReadyForPayment,
                             isLoading = uiState.orderState is UiState.Loading || uiState.paymentVerificationState is UiState.Loading,
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -333,18 +455,77 @@ fun CheckoutScreen(
                     }
                 }
 
-                // Outlet info
+                // Delivery / Pickup destination summary
                 item {
+                    val isDelivery = uiState.orderingMode == OrderingMode.DELIVERY
                     Surface(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
-                        shape = RoundedCornerShape(16.dp), 
+                        shape = RoundedCornerShape(16.dp),
                         color = GagPinkContainer
                     ) {
-                        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("Pickup from", style = MaterialTheme.typography.bodyMedium, color = GagOnPinkContainer)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(cart.outletName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = GagPink)
+                        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                            // Mode label
+                            Text(
+                                text = if (isDelivery) "DELIVERY" else "PICKUP",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = GagPink,
+                                letterSpacing = androidx.compose.ui.unit.TextUnit(1.5f, androidx.compose.ui.unit.TextUnitType.Sp)
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            if (isDelivery) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            "Deliver to hostel",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = GagOnPinkContainer
+                                        )
+                                        if (uiState.hostelAddress.isComplete) {
+                                            Text(
+                                                uiState.hostelAddress.displaySummary,
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = GagPink
+                                            )
+                                        } else {
+                                            Text(
+                                                "Add hostel address",
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = GagError
+                                            )
+                                        }
+                                    }
+                                    TextButton(onClick = { showAddressDialog = true }) {
+                                        Text(
+                                            if (uiState.hostelAddress.isComplete) "Change" else "Add",
+                                            color = GagPink,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            } else {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("Pickup from ", style = MaterialTheme.typography.bodyMedium, color = GagOnPinkContainer)
+                                    Text(cart.outletName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = GagPink)
+                                }
+                            }
                         }
+                    }
+
+                    if (showAddressDialog) {
+                        HostelAddressDialog(
+                            currentAddress = uiState.hostelAddress,
+                            onSave = { address ->
+                                viewModel.saveHostelAddress(address)
+                                showAddressDialog = false
+                            },
+                            onDismiss = { showAddressDialog = false }
+                        )
                     }
                 }
 
@@ -387,8 +568,42 @@ fun CheckoutScreen(
                     }
                 }
 
-                // Pickup slot
+                // Pickup date and slot
                 item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    CheckoutSection(title = "Pickup Date") {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            items(uiState.availablePickupDates) { date ->
+                                val isSelected = uiState.selectedPickupDate == date
+                                val today = java.time.ZonedDateTime.now(java.time.ZoneId.of("Asia/Kolkata")).toLocalDate()
+                                
+                                val label = when (date) {
+                                    today -> "Today"
+                                    today.plusDays(1) -> "Tomorrow"
+                                    else -> date.format(java.time.format.DateTimeFormatter.ofPattern("EEE, MMM d"))
+                                }
+
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = if (isSelected) GagPink else MaterialTheme.colorScheme.surfaceVariant,
+                                    contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier
+                                        .clickable { viewModel.onPickupDateSelected(date) }
+                                ) {
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(16.dp))
                     CheckoutSection(title = "Pickup Slot") {
                         when (val slotsState = uiState.availableSlots) {
@@ -403,8 +618,14 @@ fun CheckoutScreen(
                                     shape = RoundedCornerShape(12.dp),
                                     color = GagErrorContainer
                                 ) {
+                                    val isToday = uiState.selectedPickupDate == java.time.ZonedDateTime.now(java.time.ZoneId.of("Asia/Kolkata")).toLocalDate()
+                                    val emptyMessage = if (isToday) {
+                                        "No more pickup slots available today. Please select another date."
+                                    } else {
+                                        "No pickup slots available for this date."
+                                    }
                                     Text(
-                                        "No pickup slots available for this outlet today.", 
+                                        emptyMessage, 
                                         color = GagError, 
                                         style = MaterialTheme.typography.bodyMedium,
                                         modifier = Modifier.padding(16.dp),
@@ -416,7 +637,7 @@ fun CheckoutScreen(
                                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                                     Text("Couldn't load pickup slots. Try again.", color = GagError, style = MaterialTheme.typography.bodyMedium)
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    TextButton(onClick = { viewModel.loadPickupSlots(cart.outletId) }) {
+                                    TextButton(onClick = { viewModel.loadPickupSlots(cart.outletId, uiState.selectedPickupDate) }) {
                                         Text("Retry", color = GagPink, fontWeight = FontWeight.Bold)
                                     }
                                 }
