@@ -82,7 +82,7 @@ fun SearchScreen(
             confirmButton = {
                 Button(
                     onClick = { viewModel.onClearAndAddCart() },
-                    colors = ButtonDefaults.buttonColors(containerColor = CraveRed)
+                    colors = ButtonDefaults.buttonColors(containerColor = GagPink)
                 ) { Text("Clear & Add") }
             },
             dismissButton = {
@@ -145,7 +145,7 @@ fun SearchScreen(
                                 unfocusedBorderColor = Color.Transparent,
                                 focusedContainerColor = Color.Transparent,
                                 unfocusedContainerColor = Color.Transparent,
-                                cursorColor = CraveRed
+                                cursorColor = GagPink
                             ),
                             modifier = Modifier.focusRequester(focusRequester)
                         )
@@ -444,10 +444,10 @@ private fun FilterOptionRow(
             text = label, 
             style = MaterialTheme.typography.bodyLarge, 
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-            color = if (isSelected) CraveRed else MaterialTheme.colorScheme.onSurface
+            color = if (isSelected) GagPink else MaterialTheme.colorScheme.onSurface
         )
         if (isSelected) {
-            Icon(Icons.Default.Check, "Selected", tint = CraveRed, modifier = Modifier.size(20.dp))
+            Icon(Icons.Default.Check, "Selected", tint = GagPink, modifier = Modifier.size(20.dp))
         }
     }
 }

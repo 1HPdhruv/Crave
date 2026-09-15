@@ -53,7 +53,10 @@ object SupabaseModule {
             supabaseUrl = url,
             supabaseKey = key
         ) {
-            defaultSerializer = KotlinXSerializer(Json { ignoreUnknownKeys = true })
+            defaultSerializer = KotlinXSerializer(Json { 
+                ignoreUnknownKeys = true 
+                encodeDefaults = true
+            })
             install(Auth)
             install(Postgrest)
             install(Realtime)

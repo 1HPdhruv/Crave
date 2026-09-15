@@ -58,7 +58,7 @@ fun CraveSectionHeader(
                     text = "See all",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
-                    color = CraveRed
+                    color = GagPink
                 )
             }
         }
@@ -253,7 +253,7 @@ fun CraveAddButton(
         modifier = modifier
             .size(size.dp)
             .clip(CircleShape)
-            .background(CraveRed)
+            .background(GagPink)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
@@ -276,7 +276,7 @@ fun CravePromoBanner(
     onCtaClick: () -> Unit,
     modifier: Modifier = Modifier,
     imageUrl: String? = null,
-    backgroundColor: Color = CraveRed
+    backgroundColor: Color = GagPink
 ) {
     Box(
         modifier = modifier
@@ -406,12 +406,12 @@ fun CraveCategoryChip(
                 .size(56.dp)
                 .clip(RoundedCornerShape(14.dp))
                 .background(
-                    if (isSelected) CraveRed.copy(alpha = 0.12f)
+                    if (isSelected) GagPink.copy(alpha = 0.12f)
                     else MaterialTheme.colorScheme.surfaceVariant
                 )
                 .border(
                     if (isSelected) 1.5.dp else 0.dp,
-                    if (isSelected) CraveRed else Color.Transparent,
+                    if (isSelected) GagPink else Color.Transparent,
                     RoundedCornerShape(14.dp)
                 ),
             contentAlignment = Alignment.Center
@@ -431,7 +431,7 @@ fun CraveCategoryChip(
                     text = label.take(1).uppercase(),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (isSelected) CraveRed else MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (isSelected) GagPink else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -440,7 +440,7 @@ fun CraveCategoryChip(
             text = label,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (isSelected) CraveRed else MaterialTheme.colorScheme.onSurfaceVariant,
+            color = if (isSelected) GagPink else MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1
         )
     }

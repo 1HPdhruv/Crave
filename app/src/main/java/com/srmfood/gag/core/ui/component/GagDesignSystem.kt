@@ -25,7 +25,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.srmfood.gag.core.ui.theme.CraveRed
+import com.srmfood.gag.core.ui.theme.GagPink
 import com.srmfood.gag.core.ui.theme.GagPink
 import com.srmfood.gag.core.ui.theme.GagSpacing
 
@@ -88,7 +88,7 @@ fun GagCategoryChip(
         modifier = modifier
             .clip(CircleShape)
             .background(
-                if (isSelected) CraveRed else MaterialTheme.colorScheme.surfaceVariant
+                if (isSelected) GagPink else MaterialTheme.colorScheme.surfaceVariant
             )
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -129,7 +129,7 @@ fun GagSectionHeader(
             Text(
                 text = actionText,
                 style = MaterialTheme.typography.labelLarge,
-                color = CraveRed,
+                color = GagPink,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.clickable(onClick = onActionClick)
             )
@@ -258,14 +258,14 @@ fun GagQuantitySelector(
         Box(
             modifier = Modifier
                 .size(38.dp)
-                .background(CraveRed.copy(alpha = 0.08f))
+                .background(GagPink.copy(alpha = 0.08f))
                 .clickable(onClick = onIncrease),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 Icons.Default.Add,
                 contentDescription = "Increase quantity",
-                tint = CraveRed,
+                tint = GagPink,
                 modifier = Modifier.size(18.dp)
             )
         }

@@ -428,12 +428,12 @@ private fun HomeTopHeader(
     ) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.LocationOn, contentDescription = null, tint = CraveRed, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.LocationOn, contentDescription = null, tint = GagPink, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = "SRM KTR Campus",
                     style = MaterialTheme.typography.labelLarge,
-                    color = CraveRed,
+                    color = GagPink,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -464,10 +464,10 @@ private fun HomeTopHeader(
 @Composable
 private fun ActiveOrderCard(order: Order, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val statusColor = when (order.status) {
-        OrderStatus.PREPARING -> CraveInfo
-        OrderStatus.READY -> CraveSuccess
-        OrderStatus.ACCEPTED -> CraveInfo
-        else -> CraveRed
+        OrderStatus.PREPARING -> GagInfo
+        OrderStatus.READY -> GagSuccess
+        OrderStatus.ACCEPTED -> GagInfo
+        else -> GagPink
     }
 
     GagCard(modifier = modifier.clickable(onClick = onClick)) {
@@ -502,8 +502,8 @@ private fun ActiveOrderCard(order: Order, onClick: () -> Unit, modifier: Modifie
             GagIconButton(
                 icon = Icons.AutoMirrored.Filled.ArrowForward,
                 onClick = onClick,
-                containerColor = CraveRedContainer,
-                contentColor = CraveRed
+                containerColor = GagPinkContainer,
+                contentColor = GagPink
             )
         }
     }

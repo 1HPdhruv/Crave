@@ -461,7 +461,7 @@ private fun GagCategoryChip(
     onClick: () -> Unit,
     label: String
 ) {
-    val backgroundColor = if (selected) CraveRed else MaterialTheme.colorScheme.surface
+    val backgroundColor = if (selected) GagPink else MaterialTheme.colorScheme.surface
     val contentColor = if (selected) Color.White else MaterialTheme.colorScheme.onSurface
     
     Box(

@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -62,6 +64,10 @@ import androidx.compose.ui.platform.LocalContext
 
 data class CheckoutUiState(
     val cart: Cart? = null,
+    val selectedPickupDate: java.time.LocalDate = java.time.ZonedDateTime.now(java.time.ZoneId.of("Asia/Kolkata")).toLocalDate(),
+    val availablePickupDates: List<java.time.LocalDate> = (0..3).map { 
+        java.time.ZonedDateTime.now(java.time.ZoneId.of("Asia/Kolkata")).toLocalDate().plusDays(it.toLong()) 
+    },
     val availableSlots: UiState<List<PickupSlot>> = UiState.Loading,
     val selectedSlot: PickupSlot? = null,
     val selectedPaymentMethod: PaymentMethod = PaymentMethod.ONLINE,
@@ -109,7 +115,7 @@ class CheckoutViewModel @Inject constructor(
                 // Fetch slots if we have an outlet and haven't fetched yet
                 if (cart != null && !hasLoadedSlots) {
                     hasLoadedSlots = true
-                    loadPickupSlots(cart.outletId)
+                    loadPickupSlots(cart.outletId, _uiState.value.selectedPickupDate)
                 }
             }
         }
@@ -152,18 +158,74 @@ class CheckoutViewModel @Inject constructor(
         viewModelScope.launch { orderingModeRepository.setHostelAddress(address) }
     }
 
-    fun loadPickupSlots(outletId: String) {
+    fun onPickupDateSelected(date: java.time.LocalDate) {
+        _uiState.value = _uiState.value.copy(
+            selectedPickupDate = date,
+            selectedSlot = null // Clear selected slot when date changes
+        )
+        val cart = _uiState.value.cart
+        if (cart != null) {
+            loadPickupSlots(cart.outletId, date)
+        }
+    }
+
+    fun loadPickupSlots(outletId: String, requestedDate: java.time.LocalDate) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(availableSlots = UiState.Loading)
-            val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
-            val result = getPickupSlotsUseCase(outletId, today)
-            
+
+            // Use Asia/Kolkata explicitly for both the query date and the filter —
+            // never rely on the JVM/emulator default timezone.
+            val ist = java.time.ZoneId.of("Asia/Kolkata")
+            val nowDateTime = java.time.ZonedDateTime.now(ist)
+            val todayIST: java.time.LocalDate = nowDateTime.toLocalDate()
+            val nowIST: java.time.LocalTime = nowDateTime.toLocalTime()
+            val queryString = requestedDate.toString() // "YYYY-MM-DD" — always correct for PostgREST DATE filter
+
+            android.util.Log.d("SlotFilter", "=== loadPickupSlots ===")
+            android.util.Log.d("SlotFilter", "timezone=Asia/Kolkata requestedDate=$requestedDate today=$todayIST currentTime=${nowIST.withNano(0)}")
+
+            val result = getPickupSlotsUseCase(outletId, queryString)
+
             _uiState.value = _uiState.value.copy(
                 availableSlots = result.fold(
-                    onSuccess = { slots -> 
-                        if (slots.isEmpty()) UiState.Empty else UiState.Success(slots) 
+                    onSuccess = { slots ->
+                        android.util.Log.d("SlotFilter", "received=${slots.size} slots from Supabase")
+
+                        val validSlots = slots.filter { slot ->
+                            try {
+                                // Parse Postgres DATE "YYYY-MM-DD" — take(10) defensive against any suffix
+                                val dp = slot.date.take(10).split("-")
+                                val slotDate = java.time.LocalDate.of(dp[0].toInt(), dp[1].toInt(), dp[2].toInt())
+
+                                // Parse Postgres TIME "HH:MM:SS" — strip timezone suffix defensively
+                                val sp = slot.startTime.substringBefore("+").substringBefore("Z").trim().split(":")
+                                val slotStart = java.time.LocalTime.of(sp[0].toInt(), sp.getOrNull(1)?.toInt() ?: 0)
+
+                                val keep = if (slotDate == todayIST) {
+                                    slotStart.isAfter(nowIST)     // today — keep only if start is strictly after now
+                                } else {
+                                    true                          // future date — show all
+                                }
+
+                                if (!keep) {
+                                    android.util.Log.d("SlotFilter", "EXCLUDED date=$slotDate start=$slotStart (now=${ nowIST.withNano(0)})")
+                                } else {
+                                    android.util.Log.d("SlotFilter", "INCLUDED date=$slotDate start=$slotStart")
+                                }
+                                keep
+                            } catch (e: Exception) {
+                                android.util.Log.e("SlotFilter", "Parse error for slot date='${slot.date}' startTime='${slot.startTime}'", e)
+                                false // exclude unparseable slots — never silently pass them through
+                            }
+                        }
+
+                        android.util.Log.d("SlotFilter", "filtered=${validSlots.size} slots after applying IST filter")
+                        if (validSlots.isEmpty()) UiState.Empty else UiState.Success(validSlots)
                     },
-                    onFailure = { UiState.Error(it.message ?: "Failed to load slots") }
+                    onFailure = { e ->
+                        android.util.Log.e("SlotFilter", "Failed to fetch slots: ${e.message}", e)
+                        UiState.Error(e.message ?: "Failed to load slots")
+                    }
                 )
             )
         }
@@ -212,6 +274,13 @@ class CheckoutViewModel @Inject constructor(
             }
 
             _uiState.value = _uiState.value.copy(orderState = UiState.Loading)
+            
+            android.util.Log.d("PlaceOrderDiag", "=== CHECKOUT VIEWMODEL placeOrder ===")
+            android.util.Log.d("PlaceOrderDiag", "Checkout Cart Item Count: ${cart.items.size}")
+            android.util.Log.d("PlaceOrderDiag", "Checkout Cart Outlet ID: ${cart.outletId}")
+            android.util.Log.d("PlaceOrderDiag", "Checkout Selected Slot ID: ${slot.id}")
+            android.util.Log.d("PlaceOrderDiag", "=======================================")
+
             val result = placeOrderUseCase(
                 outletId = cart.outletId,
                 pickupSlotId = slot.id,
@@ -499,8 +568,42 @@ fun CheckoutScreen(
                     }
                 }
 
-                // Pickup slot
+                // Pickup date and slot
                 item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    CheckoutSection(title = "Pickup Date") {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            items(uiState.availablePickupDates) { date ->
+                                val isSelected = uiState.selectedPickupDate == date
+                                val today = java.time.ZonedDateTime.now(java.time.ZoneId.of("Asia/Kolkata")).toLocalDate()
+                                
+                                val label = when (date) {
+                                    today -> "Today"
+                                    today.plusDays(1) -> "Tomorrow"
+                                    else -> date.format(java.time.format.DateTimeFormatter.ofPattern("EEE, MMM d"))
+                                }
+
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = if (isSelected) GagPink else MaterialTheme.colorScheme.surfaceVariant,
+                                    contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier
+                                        .clickable { viewModel.onPickupDateSelected(date) }
+                                ) {
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(16.dp))
                     CheckoutSection(title = "Pickup Slot") {
                         when (val slotsState = uiState.availableSlots) {
@@ -515,8 +618,14 @@ fun CheckoutScreen(
                                     shape = RoundedCornerShape(12.dp),
                                     color = GagErrorContainer
                                 ) {
+                                    val isToday = uiState.selectedPickupDate == java.time.ZonedDateTime.now(java.time.ZoneId.of("Asia/Kolkata")).toLocalDate()
+                                    val emptyMessage = if (isToday) {
+                                        "No more pickup slots available today. Please select another date."
+                                    } else {
+                                        "No pickup slots available for this date."
+                                    }
                                     Text(
-                                        "No pickup slots available for this outlet today.", 
+                                        emptyMessage, 
                                         color = GagError, 
                                         style = MaterialTheme.typography.bodyMedium,
                                         modifier = Modifier.padding(16.dp),
@@ -528,7 +637,7 @@ fun CheckoutScreen(
                                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                                     Text("Couldn't load pickup slots. Try again.", color = GagError, style = MaterialTheme.typography.bodyMedium)
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    TextButton(onClick = { viewModel.loadPickupSlots(cart.outletId) }) {
+                                    TextButton(onClick = { viewModel.loadPickupSlots(cart.outletId, uiState.selectedPickupDate) }) {
                                         Text("Retry", color = GagPink, fontWeight = FontWeight.Bold)
                                     }
                                 }

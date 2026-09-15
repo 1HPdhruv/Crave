@@ -44,7 +44,7 @@ fun DeliveryModeSelector(
     onModeSelected: (OrderingMode) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isDark = MaterialTheme.colorScheme.background == CraveDarkBackground
+    val isDark = MaterialTheme.colorScheme.background == GagDarkBackground
 
     Row(
         modifier = modifier
@@ -153,7 +153,7 @@ fun HostelAddressBanner(
             Icon(
                 imageVector = Icons.Outlined.Home,
                 contentDescription = null,
-                tint = CraveRed,
+                tint = GagPink,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(10.dp))
@@ -176,7 +176,7 @@ fun HostelAddressBanner(
                         text = "Add hostel address",
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold,
-                        color = CraveRed
+                        color = GagPink
                     )
                 }
             }
@@ -188,7 +188,7 @@ fun HostelAddressBanner(
                     text = if (address.isComplete) "Change" else "Add",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = CraveRed
+                    color = GagPink
                 )
             }
         }
@@ -263,7 +263,7 @@ fun HostelAddressDialog(
                 onClick = { onSave(HostelAddress(hostel.trim(), block.trim(), room.trim(), notes.trim())) },
                 enabled = isValid,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = CraveRed,
+                    containerColor = GagPink,
                     contentColor = Color.White,
                     disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
                 ),
@@ -289,7 +289,7 @@ fun HostelAddressDialog(
                 Text(
                     text = "SRM KTR Campus",
                     style = MaterialTheme.typography.labelMedium,
-                    color = CraveRed,
+                    color = GagPink,
                     fontWeight = FontWeight.SemiBold
                 )
                 AddressField(
@@ -370,9 +370,9 @@ private fun AddressField(
             imeAction = imeAction
         ),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = CraveRed,
+            focusedBorderColor = GagPink,
             unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-            cursorColor = CraveRed
+            cursorColor = GagPink
         )
     )
 }

@@ -108,7 +108,7 @@ fun FoodItemCard(
                     Icon(
                         imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                         contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
-                        tint = if (isFavorite) CraveRed else Color.Gray,
+                        tint = if (isFavorite) GagPink else Color.Gray,
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -127,7 +127,7 @@ fun FoodItemCard(
                     .size(32.dp)
                     .scale(addScale)
                     .clip(CircleShape)
-                    .background(CraveRed)
+                    .background(GagPink)
                     .clickable {
                         isAdding = true
                         onAddToCart()
@@ -258,7 +258,7 @@ fun FoodItemListRow(
                     .padding(4.dp)
                     .size(28.dp)
                     .clip(CircleShape)
-                    .background(CraveRed)
+                    .background(GagPink)
                     .clickable(onClick = onAddToCart),
                 contentAlignment = Alignment.Center
             ) {

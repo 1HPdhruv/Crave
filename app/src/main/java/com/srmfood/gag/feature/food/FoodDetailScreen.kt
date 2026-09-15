@@ -318,7 +318,7 @@ fun FoodDetailScreen(
                                             Text(
                                                 text = "From ${food.outletName}", 
                                                 style = MaterialTheme.typography.bodyMedium, 
-                                                color = CraveRed,
+                                                color = GagPink,
                                                 fontWeight = FontWeight.SemiBold
                                             )
                                         }
@@ -327,7 +327,7 @@ fun FoodDetailScreen(
                                         text = "₹${food.price.toInt()}", 
                                         style = MaterialTheme.typography.headlineMedium, 
                                         fontWeight = FontWeight.ExtraBold, 
-                                        color = CraveRed
+                                        color = GagPink
                                     )
                                 }
 
@@ -522,7 +522,7 @@ fun FoodDetailScreen(
                                                         selected = isSelected,
                                                         onClick = { viewModel.toggleOption(customization.id, option.id, customization.maxSelections) },
                                                         colors = RadioButtonDefaults.colors(
-                                                            selectedColor = CraveRed,
+                                                            selectedColor = GagPink,
                                                             unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
                                                         )
                                                     )
@@ -531,7 +531,7 @@ fun FoodDetailScreen(
                                                         checked = isSelected,
                                                         onCheckedChange = { viewModel.toggleOption(customization.id, option.id, customization.maxSelections) },
                                                         colors = CheckboxDefaults.colors(
-                                                            checkedColor = CraveRed,
+                                                            checkedColor = GagPink,
                                                             uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                                             checkmarkColor = Color.White
                                                         )
@@ -551,7 +551,7 @@ fun FoodDetailScreen(
                                                     text = "+₹${option.extraPrice.toInt()}",
                                                     style = MaterialTheme.typography.bodyLarge,
                                                     fontWeight = FontWeight.SemiBold,
-                                                    color = CraveRed
+                                                    color = GagPink
                                                 )
                                             }
                                         }
@@ -579,7 +579,7 @@ fun FoodDetailScreen(
                                 icon = if (uiState.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                                 onClick = viewModel::toggleFavorite,
                                 contentDescription = "Favorite",
-                                tint = if (uiState.isFavorite) CraveRed else Color.Black
+                                tint = if (uiState.isFavorite) GagPink else Color.Black
                             )
                             TopControlButton(
                                 icon = Icons.Outlined.ShoppingCart,

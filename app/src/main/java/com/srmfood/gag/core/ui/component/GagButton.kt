@@ -13,8 +13,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.srmfood.gag.core.ui.theme.CraveRed
-import com.srmfood.gag.core.ui.theme.CraveRedContainer
+import com.srmfood.gag.core.ui.theme.GagPink
+import com.srmfood.gag.core.ui.theme.GagPinkContainer
 import com.srmfood.gag.core.ui.theme.GagPink
 import com.srmfood.gag.core.ui.theme.GagPinkContainer
 
@@ -38,7 +38,7 @@ fun GagPrimaryButton(
             .scale(scale),
         enabled = enabled && !isLoading,
         colors = ButtonDefaults.buttonColors(
-            containerColor = CraveRed,
+            containerColor = GagPink,
             contentColor = Color.White,
             disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
             disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
@@ -113,7 +113,7 @@ fun GagTextButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    color: Color = CraveRed
+    color: Color = GagPink
 ) {
     TextButton(
         onClick = onClick,
@@ -146,8 +146,8 @@ fun GagTonalButton(
             .height(50.dp),
         enabled = enabled && !isLoading,
         colors = ButtonDefaults.filledTonalButtonColors(
-            containerColor = CraveRedContainer,
-            contentColor = CraveRed
+            containerColor = GagPinkContainer,
+            contentColor = GagPink
         ),
         shape = CircleShape
     ) {

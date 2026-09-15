@@ -141,6 +141,20 @@ class SupabaseOrderRepository @Inject constructor(
             .decodeList<CartIdResponse>()
             .firstOrNull() ?: throw Exception("No remote cart found. Sync cart before placing order.")
 
+        android.util.Log.d("PlaceOrderDiag", "=== PLACE_ORDER_RPC_INVOCATION ===")
+        android.util.Log.d("PlaceOrderDiag", "Authenticated User ID (auth.uid()): $userId")
+        android.util.Log.d("PlaceOrderDiag", "Outlet ID from UI: $outletId")
+        android.util.Log.d("PlaceOrderDiag", "Selected Pickup Slot ID: $pickupSlotId")
+        android.util.Log.d("PlaceOrderDiag", "Resolved Remote Cart ID: ${remoteCart.id}")
+
+        // Check how many items this remote cart actually has in the database before calling the RPC
+        val remoteItemsCount = postgrest["cart_items"].select(Columns.raw("id")) {
+            filter { eq("cart_id", remoteCart.id) }
+        }.decodeList<CartIdResponse>().size
+        
+        android.util.Log.d("PlaceOrderDiag", "Remote Cart Item Count in Supabase: $remoteItemsCount")
+        android.util.Log.d("PlaceOrderDiag", "====================================")
+
         // 2. Call the place_order() RPC — all validation and price calculation is server-side
         val orderId = postgrest.rpc(
             function = "place_order",
