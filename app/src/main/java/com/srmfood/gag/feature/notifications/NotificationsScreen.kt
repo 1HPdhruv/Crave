@@ -99,13 +99,13 @@ fun NotificationsScreen(
                                         Text(
                                             "Stay up to date",
                                             style = MaterialTheme.typography.titleMedium,
-                                            color = GagPink
+                                            color = MaterialTheme.colorScheme.primary
                                         )
                                     }
                                     if (unreadCount > 0) {
                                         Surface(
                                             shape = RoundedCornerShape(20.dp),
-                                            color = GagPink
+                                            color = MaterialTheme.colorScheme.primary
                                         ) {
                                             Text(
                                                 text = "$unreadCount new",
@@ -223,7 +223,7 @@ private fun NotificationsEmptyState(modifier: Modifier = Modifier) {
         Icon(
             imageVector = Icons.Default.NotificationsNone,
             contentDescription = null,
-            tint = GagPink.copy(alpha = 0.4f),
+            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
             modifier = Modifier.size(80.dp)
         )
         Spacer(modifier = Modifier.height(24.dp))

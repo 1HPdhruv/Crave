@@ -124,9 +124,9 @@ fun LiveOrderTrackingScreen(
                                     animationSpec = infiniteRepeatable(animation = tween(1000), repeatMode = RepeatMode.Reverse),
                                     label = "live_alpha"
                                 )
-                                Icon(Icons.Default.Circle, contentDescription = "Live", tint = GagPink.copy(alpha = alpha), modifier = Modifier.size(10.dp))
+                                Icon(Icons.Default.Circle, contentDescription = "Live", tint = MaterialTheme.colorScheme.primary.copy(alpha = alpha), modifier = Modifier.size(10.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Live updates", style = MaterialTheme.typography.labelMedium, color = GagPink, fontWeight = FontWeight.Bold)
+                                Text("Live updates", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -141,13 +141,13 @@ fun LiveOrderTrackingScreen(
                             Column(modifier = Modifier.padding(20.dp)) {
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                     Text(order.orderNumber, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
-                                    Text("₹${order.total.toInt()}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = GagPink)
+                                    Text("₹${order.total.toInt()}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
                                 }
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(order.outletName, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 order.pickupSlot?.let {
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    Text("Pickup: ${it.displayTime}", style = MaterialTheme.typography.bodySmall, color = GagPink, fontWeight = FontWeight.SemiBold)
+                                    Text("Pickup: ${it.displayTime}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
                                 }
                             }
                         }

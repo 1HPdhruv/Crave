@@ -142,7 +142,7 @@ fun ProfileScreen(
                                     Icon(
                                         Icons.Outlined.Person,
                                         contentDescription = "Profile avatar",
-                                        tint = GagPink,
+                                        tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(44.dp)
                                     )
                                 }
@@ -174,12 +174,12 @@ fun ProfileScreen(
                             Spacer(modifier = Modifier.height(2.dp))
                             Surface(
                                 shape = RoundedCornerShape(20.dp),
-                                color = GagPink.copy(alpha = 0.1f)
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                             ) {
                                 Text(
                                     text = user?.registrationNumber ?: "",
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = GagPink,
+                                    color = MaterialTheme.colorScheme.primary,
                                     fontWeight = FontWeight.SemiBold,
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                                 )
@@ -191,9 +191,9 @@ fun ProfileScreen(
                             shape = RoundedCornerShape(16.dp),
                             border = androidx.compose.foundation.BorderStroke(2.dp, GagPink)
                         ) {
-                            Icon(Icons.Outlined.Edit, contentDescription = "Edit profile", modifier = Modifier.size(18.dp), tint = GagPink)
+                            Icon(Icons.Outlined.Edit, contentDescription = "Edit profile", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Edit Profile", color = GagPink, fontWeight = FontWeight.SemiBold)
+                            Text("Edit Profile", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
@@ -208,14 +208,14 @@ fun ProfileScreen(
                     QuickActionCard(
                         title = "My Orders",
                         icon = Icons.Default.ShoppingBag,
-                        tint = GagPink,
+                        tint = MaterialTheme.colorScheme.primary,
                         onClick = onNavigateToOrders,
                         modifier = Modifier.weight(1f)
                     )
                     QuickActionCard(
                         title = "Favorites",
                         icon = Icons.Outlined.FavoriteBorder,
-                        tint = GagPink,
+                        tint = MaterialTheme.colorScheme.primary,
                         onClick = onNavigateToFavorites,
                         modifier = Modifier.weight(1f)
                     )

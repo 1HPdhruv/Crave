@@ -15,8 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.srmfood.gag.core.ui.theme.GagPink
 import com.srmfood.gag.core.ui.theme.GagPinkContainer
-import com.srmfood.gag.core.ui.theme.GagPink
-import com.srmfood.gag.core.ui.theme.GagPinkContainer
+import com.srmfood.gag.core.ui.theme.GagOnAccent
 
 // ─── Primary CTA Button — CRAVE RED ──────────────────────────────
 
@@ -39,7 +38,7 @@ fun GagPrimaryButton(
         enabled = enabled && !isLoading,
         colors = ButtonDefaults.buttonColors(
             containerColor = GagPink,
-            contentColor = Color.White,
+            contentColor = GagOnAccent,
             disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
             disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
         ),
@@ -49,7 +48,7 @@ fun GagPrimaryButton(
         if (isLoading) {
             CircularProgressIndicator(
                 modifier = Modifier.size(22.dp),
-                color = Color.White,
+                color = GagOnAccent,
                 strokeWidth = 2.dp
             )
         } else {
@@ -146,8 +145,8 @@ fun GagTonalButton(
             .height(50.dp),
         enabled = enabled && !isLoading,
         colors = ButtonDefaults.filledTonalButtonColors(
-            containerColor = GagPinkContainer,
-            contentColor = GagPink
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
         ),
         shape = CircleShape
     ) {

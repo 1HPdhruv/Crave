@@ -51,7 +51,7 @@ fun GagLoadingScreen(
             verticalArrangement = Arrangement.Center
         ) {
             CircularProgressIndicator(
-                color = GagPink,
+                color = MaterialTheme.colorScheme.primary,
                 strokeWidth = 3.dp,
                 modifier = Modifier.size(48.dp)
             )

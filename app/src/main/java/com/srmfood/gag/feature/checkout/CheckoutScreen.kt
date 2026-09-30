@@ -451,7 +451,7 @@ fun CheckoutScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         Text("Checkout", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text("Almost there! Complete your order.", style = MaterialTheme.typography.titleMedium, color = GagPink)
+                        Text("Almost there! Complete your order.", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                     }
                 }
 
@@ -469,7 +469,7 @@ fun CheckoutScreen(
                                 text = if (isDelivery) "DELIVERY" else "PICKUP",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = GagPink,
+                                color = MaterialTheme.colorScheme.primary,
                                 letterSpacing = androidx.compose.ui.unit.TextUnit(1.5f, androidx.compose.ui.unit.TextUnitType.Sp)
                             )
                             Spacer(modifier = Modifier.height(6.dp))
@@ -489,7 +489,7 @@ fun CheckoutScreen(
                                                 uiState.hostelAddress.displaySummary,
                                                 style = MaterialTheme.typography.titleSmall,
                                                 fontWeight = FontWeight.Bold,
-                                                color = GagPink
+                                                color = MaterialTheme.colorScheme.primary
                                             )
                                         } else {
                                             Text(
@@ -503,7 +503,7 @@ fun CheckoutScreen(
                                     TextButton(onClick = { showAddressDialog = true }) {
                                         Text(
                                             if (uiState.hostelAddress.isComplete) "Change" else "Add",
-                                            color = GagPink,
+                                            color = MaterialTheme.colorScheme.primary,
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
@@ -511,7 +511,7 @@ fun CheckoutScreen(
                             } else {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text("Pickup from ", style = MaterialTheme.typography.bodyMedium, color = GagOnPinkContainer)
-                                    Text(cart.outletName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = GagPink)
+                                    Text(cart.outletName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                                 }
                             }
                         }
@@ -536,7 +536,7 @@ fun CheckoutScreen(
                         title = "Order Summary",
                         action = { 
                             TextButton(onClick = onBack) { 
-                                Text("Edit Cart", color = GagPink, fontWeight = FontWeight.Bold) 
+                                Text("Edit Cart", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                             } 
                         }
                     ) {
@@ -609,7 +609,7 @@ fun CheckoutScreen(
                         when (val slotsState = uiState.availableSlots) {
                             is UiState.Loading -> {
                                 Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                                    CircularProgressIndicator(color = GagPink)
+                                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                                 }
                             }
                             is UiState.Empty -> {
@@ -638,7 +638,7 @@ fun CheckoutScreen(
                                     Text("Couldn't load pickup slots. Try again.", color = GagError, style = MaterialTheme.typography.bodyMedium)
                                     Spacer(modifier = Modifier.height(8.dp))
                                     TextButton(onClick = { viewModel.loadPickupSlots(cart.outletId, uiState.selectedPickupDate) }) {
-                                        Text("Retry", color = GagPink, fontWeight = FontWeight.Bold)
+                                        Text("Retry", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -759,7 +759,7 @@ fun CheckoutScreen(
                             
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                 Text("Total", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
-                                Text("₹${fmt.format(cart.total)}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = GagPink)
+                                Text("₹${fmt.format(cart.total)}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
                             }
                         }
                     }

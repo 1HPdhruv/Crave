@@ -318,7 +318,7 @@ fun FoodDetailScreen(
                                             Text(
                                                 text = "From ${food.outletName}", 
                                                 style = MaterialTheme.typography.bodyMedium, 
-                                                color = GagPink,
+                                                color = MaterialTheme.colorScheme.primary,
                                                 fontWeight = FontWeight.SemiBold
                                             )
                                         }
@@ -327,7 +327,7 @@ fun FoodDetailScreen(
                                         text = "₹${food.price.toInt()}", 
                                         style = MaterialTheme.typography.headlineMedium, 
                                         fontWeight = FontWeight.ExtraBold, 
-                                        color = GagPink
+                                        color = MaterialTheme.colorScheme.primary
                                     )
                                 }
 
@@ -551,7 +551,7 @@ fun FoodDetailScreen(
                                                     text = "+₹${option.extraPrice.toInt()}",
                                                     style = MaterialTheme.typography.bodyLarge,
                                                     fontWeight = FontWeight.SemiBold,
-                                                    color = GagPink
+                                                    color = MaterialTheme.colorScheme.primary
                                                 )
                                             }
                                         }

@@ -138,7 +138,7 @@ fun FoodItemCard(
                 Icon(
                     imageVector = Icons.Filled.Add,
                     contentDescription = "Add ${foodItem.name} to cart",
-                    tint = Color.White,
+                    tint = GagOnAccent,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -265,7 +265,7 @@ fun FoodItemListRow(
                 Icon(
                     imageVector = Icons.Filled.Add,
                     contentDescription = "Add to cart",
-                    tint = Color.White,
+                    tint = GagOnAccent,
                     modifier = Modifier.size(16.dp)
                 )
             }

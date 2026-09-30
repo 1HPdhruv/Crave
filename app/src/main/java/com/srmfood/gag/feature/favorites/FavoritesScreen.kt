@@ -113,7 +113,7 @@ fun FavoritesScreen(
                             Text(
                                 "Your all-time cravings",
                                 style = MaterialTheme.typography.titleMedium,
-                                color = GagPink
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
 
@@ -151,7 +151,7 @@ private fun FavoritesEmptyState(modifier: Modifier = Modifier, onExplore: () -> 
         Icon(
             imageVector = Icons.Default.FavoriteBorder,
             contentDescription = null,
-            tint = GagPink.copy(alpha = 0.4f),
+            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
             modifier = Modifier.size(80.dp)
         )
         Spacer(modifier = Modifier.height(24.dp))
