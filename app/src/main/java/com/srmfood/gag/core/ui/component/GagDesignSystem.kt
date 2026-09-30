@@ -26,7 +26,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.srmfood.gag.core.ui.theme.GagPink
-import com.srmfood.gag.core.ui.theme.GagPink
+import com.srmfood.gag.core.ui.theme.GagOnAccent
 import com.srmfood.gag.core.ui.theme.GagSpacing
 
 // ─── Search Bar ───────────────────────────────────────────────────
@@ -98,7 +98,7 @@ fun GagCategoryChip(
             text = label,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+            color = if (isSelected) GagOnAccent else MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -129,7 +129,7 @@ fun GagSectionHeader(
             Text(
                 text = actionText,
                 style = MaterialTheme.typography.labelLarge,
-                color = GagPink,
+                color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.clickable(onClick = onActionClick)
             )
@@ -265,7 +265,7 @@ fun GagQuantitySelector(
             Icon(
                 Icons.Default.Add,
                 contentDescription = "Increase quantity",
-                tint = GagPink,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(18.dp)
             )
         }

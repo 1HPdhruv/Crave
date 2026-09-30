@@ -447,7 +447,7 @@ private fun FilterOptionRow(
             color = if (isSelected) GagPink else MaterialTheme.colorScheme.onSurface
         )
         if (isSelected) {
-            Icon(Icons.Default.Check, "Selected", tint = GagPink, modifier = Modifier.size(20.dp))
+            Icon(Icons.Default.Check, "Selected", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
         }
     }
 }

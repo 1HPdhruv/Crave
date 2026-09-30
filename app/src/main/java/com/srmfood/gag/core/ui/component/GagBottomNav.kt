@@ -46,7 +46,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.srmfood.gag.core.ui.theme.BottomNavBackground
 import com.srmfood.gag.core.ui.theme.BottomNavBorder
-import com.srmfood.gag.core.ui.theme.GagOnSurfaceVariant
 import com.srmfood.gag.core.ui.theme.GagPink
 import androidx.compose.foundation.shape.RoundedCornerShape
 
@@ -92,7 +91,7 @@ fun GagBottomNavBar(
             items.forEach { item ->
                 val selected = currentRoute == item.route
                 val iconTint by animateColorAsState(
-                    targetValue = if (selected) GagPink else GagOnSurfaceVariant,
+                    targetValue = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     animationSpec = tween(200),
                     label = "icon_tint"
                 )

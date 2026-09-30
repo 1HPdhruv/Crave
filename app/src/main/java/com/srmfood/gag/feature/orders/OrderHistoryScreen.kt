@@ -108,7 +108,7 @@ fun OrderHistoryScreen(
                         Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp).statusBarsPadding()) {
                             Text("Your Orders", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold)
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text("Track your cravings", style = MaterialTheme.typography.titleMedium, color = GagPink)
+                            Text("Track your cravings", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                         }
                     }
 
@@ -212,7 +212,7 @@ private fun OrderHistoryCard(order: Order, isActive: Boolean, onClick: () -> Uni
                     )
                 } else {
                     TextButton(onClick = onClick, modifier = Modifier.padding(0.dp)) {
-                        Text("View Details", color = GagPink, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
+                        Text("View Details", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
                     }
                 }
             }

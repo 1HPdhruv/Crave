@@ -12,28 +12,28 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-// ─── CRAVE Dark Color Scheme ─────────────────────────────────────
-// Deliberately designed: 0F0F0F → 171717 → 202020 → 242424 surface stack
+// ─── CRAVE / ORBIT Dark Color Scheme ──────────────────────────────
+// Deep charcoal surfaces keep the citron accent legible without relying on neon glow.
 private val GagDarkColorScheme = darkColorScheme(
     primary             = GagPink,
-    onPrimary           = GagDarkOnBackground,
-    primaryContainer    = Color(0xFF3D0A08),
-    onPrimaryContainer  = GagPinkContainer,
+    onPrimary           = Color(0xFF182120),
+    primaryContainer    = Color(0xFF2B351D),
+    onPrimaryContainer  = Color(0xFFDDF29A),
     secondary           = GagInfo,
     onSecondary         = GagDarkOnBackground,
-    secondaryContainer  = Color(0xFF1A2E5E),
-    onSecondaryContainer = GagInfo,
+    secondaryContainer  = Color(0xFF183B35),
+    onSecondaryContainer = Color(0xFFA5D8CE),
     tertiary            = GagWarning,
     onTertiary          = GagDarkOnBackground,
-    // Surfaces — deliberate tonal separation without shadows
-    background          = GagDarkBackground,      // #0F0F0F
-    onBackground        = GagDarkOnBackground,    // #FFFFFF
-    surface             = GagDarkSurface,         // #171717
-    onSurface           = GagDarkOnSurface,       // #FFFFFF
-    surfaceVariant      = GagDarkSurfaceVariant,  // #202020
-    onSurfaceVariant    = GagDarkOnSurfaceVariant,// #B8B8B8
-    outline             = GagDarkOutline,          // #303030
-    outlineVariant      = GagDarkOutlineVariant,    // #272727
+    // Surfaces — calm charcoal stack with visible but subtle component separation.
+    background          = GagDarkBackground,
+    onBackground        = GagDarkOnBackground,
+    surface             = GagDarkSurface,
+    onSurface           = GagDarkOnSurface,
+    surfaceVariant      = GagDarkSurfaceVariant,
+    onSurfaceVariant    = GagDarkOnSurfaceVariant,
+    outline             = GagDarkOutline,
+    outlineVariant      = GagDarkOutlineVariant,
     // Error
     error               = GagError,
     onError             = GagDarkOnBackground,
@@ -41,27 +41,27 @@ private val GagDarkColorScheme = darkColorScheme(
     onErrorContainer    = GagError
 )
 
-// ─── CRAVE Light Color Scheme ────────────────────────────────────
+// ─── CRAVE / ORBIT Light Color Scheme ─────────────────────────────
 private val GagLightColorScheme = lightColorScheme(
-    primary             = GagPink,
-    onPrimary           = GagLightBackground,
+    primary             = Color(0xFF4B6426),
+    onPrimary           = Color.White,
     primaryContainer    = GagPinkContainer,
     onPrimaryContainer  = GagOnPinkContainer,
     secondary           = GagInfo,
     onSecondary         = GagLightBackground,
-    secondaryContainer  = Color(0xFFDBEAFE),
-    onSecondaryContainer = Color(0xFF1E3A8A),
+    secondaryContainer  = Color(0xFFD6ECE6),
+    onSecondaryContainer = Color(0xFF123E38),
     tertiary            = GagWarning,
     onTertiary          = GagLightBackground,
-    // Surfaces — clean white with subtle gray steps
-    background          = GagLightBackground,         // #FFFFFF
-    onBackground        = GagLightOnBackground,       // #191919
-    surface             = GagLightSurface,            // #FFFFFF
-    onSurface           = GagLightOnSurface,          // #191919
-    surfaceVariant      = GagLightSurfaceVariant,     // #F5F5F5
-    onSurfaceVariant    = GagLightOnSurfaceVariant,   // #666666
-    outline             = GagLightOutline,             // #E5E5E5
-    outlineVariant      = GagLightOutlineVariant,       // #F0F0F0
+    // Surfaces — ivory instead of stark white, with warm quiet separators.
+    background          = GagLightBackground,
+    onBackground        = GagLightOnBackground,
+    surface             = GagLightSurface,
+    onSurface           = GagLightOnSurface,
+    surfaceVariant      = GagLightSurfaceVariant,
+    onSurfaceVariant    = GagLightOnSurfaceVariant,
+    outline             = GagLightOutline,
+    outlineVariant      = GagLightOutlineVariant,
     // Error
     error               = GagError,
     onError             = GagLightBackground,

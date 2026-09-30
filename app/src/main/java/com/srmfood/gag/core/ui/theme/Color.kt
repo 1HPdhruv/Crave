@@ -2,52 +2,54 @@ package com.srmfood.gag.core.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// CRAVE brand palette: restrained red, warm neutrals, and quiet semantic accents.
-val GagPink = Color(0xFFE21B12)
-val GagPinkContainer = Color(0xFFFFE4E1)
-val GagOnPinkContainer = Color(0xFF5F0A06)
+// CRAVE / ORBIT brand palette: warm ivory, deep green-black and a restrained citron signal.
+// Legacy token names remain stable so existing screens continue to compile.
+val GagPink = Color(0xFFC9EF52)
+val GagOnAccent = Color(0xFF182120)
+val GagPinkContainer = Color(0xFFEAF4CF)
+val GagOnPinkContainer = Color(0xFF26320D)
 
-val GagBlue = Color(0xFF315A7D)
-val GagBlueContainer = Color(0xFFDCEAF5)
-val GagOnBlueContainer = Color(0xFF17344B)
+val GagBlue = Color(0xFF3B8278)
+val GagBlueContainer = Color(0xFFD6ECE6)
+val GagOnBlueContainer = Color(0xFF123E38)
 
 val GagYellow = Color(0xFFD28A00)
 val GagYellowContainer = Color(0xFFFFF1CC)
 val GagOnYellowContainer = Color(0xFF4D3500)
 
-val GagGreen = Color(0xFF168A45)
-val GagGreenContainer = Color(0xFFDDF4E7)
-val GagOrangeBrand = Color(0xFFB85C18)
-val GagOrangeBrandContainer = Color(0xFFFFE7D2)
+val GagGreen = Color(0xFF39855B)
+val GagGreenContainer = Color(0xFFDDEDE1)
+val GagOrangeBrand = Color(0xFFC26942)
+val GagOrangeBrandContainer = Color(0xFFF5E2D8)
 
-val GagDarkBackground = Color(0xFF191919)
-val GagDarkSurface = Color(0xFF242424)
-val GagDarkSurfaceVariant = Color(0xFF303030)
-val GagDarkSurfaceHighest = Color(0xFF3A3A3A)
-val GagDarkOutline = Color(0xFF555555)
-val GagDarkOutlineVariant = Color(0xFF3A3A3A)
+val GagDarkBackground = Color(0xFF101413)
+val GagDarkSurface = Color(0xFF171D1B)
+val GagDarkSurfaceVariant = Color(0xFF202825)
+val GagDarkSurfaceHighest = Color(0xFF2A3430)
+val GagDarkOutline = Color(0xFF46524C)
+val GagDarkOutlineVariant = Color(0xFF303B36)
 
-val GagLightBackground = Color(0xFFF5F5F5)
-val GagLightSurface = Color(0xFFFFFFFF)
-val GagLightSurfaceVariant = Color(0xFFF0F0F0)
-val GagLightSurfaceHighest = Color(0xFFE7E7E7)
-val GagLightOutline = Color(0xFFD2D2D2)
-val GagLightOutlineVariant = Color(0xFFE5E5E5)
+val GagLightBackground = Color(0xFFF7F5EF)
+val GagLightSurface = Color(0xFFFFFEFA)
+val GagLightSurfaceVariant = Color(0xFFEEEFE8)
+val GagLightSurfaceHighest = Color(0xFFE4E6DD)
+val GagLightOutline = Color(0xFFD4D7CD)
+val GagLightOutlineVariant = Color(0xFFE3E5DC)
 
-val GagDarkOnBackground = Color(0xFFF7F7F7)
-val GagDarkOnSurface = Color(0xFFF3F3F3)
-val GagDarkOnSurfaceVariant = Color(0xFFB7B7B7)
-val GagDarkOnSurfaceDim = Color(0xFF888888)
+val GagDarkOnBackground = Color(0xFFF2F1E9)
+val GagDarkOnSurface = Color(0xFFF2F1E9)
+val GagDarkOnSurfaceVariant = Color(0xFFB3BDB7)
+val GagDarkOnSurfaceDim = Color(0xFF89958E)
 
-val GagLightOnBackground = Color(0xFF191919)
-val GagLightOnSurface = Color(0xFF222222)
-val GagLightOnSurfaceVariant = Color(0xFF666666)
-val GagLightOnSurfaceDim = Color(0xFF8A8A8A)
+val GagLightOnBackground = Color(0xFF182120)
+val GagLightOnSurface = Color(0xFF1C2521)
+val GagLightOnSurfaceVariant = Color(0xFF59645D)
+val GagLightOnSurfaceDim = Color(0xFF7B857D)
 
 val GagSuccess = GagGreen
 val GagSuccessContainer = GagGreenContainer
-val GagError = Color(0xFFB3261E)
-val GagErrorContainer = Color(0xFFFFDAD6)
+val GagError = Color(0xFFB8483D)
+val GagErrorContainer = Color(0xFFFFE0D9)
 val GagWarning = GagOrangeBrand
 val GagWarningContainer = GagOrangeBrandContainer
 val GagInfo = GagBlue
@@ -79,9 +81,9 @@ val VegGreen = GagGreen
 val NonVegRed = GagError
 
 val GradientStart = GagPink
-val GradientEnd = Color(0xFFB3120A)
+val GradientEnd = Color(0xFF91BC31)
 val GradientDarkStart = GagDarkBackground
-val GradientDarkEnd = Color(0xFF2A0C0A)
+val GradientDarkEnd = Color(0xFF1C2B25)
 
 val CardOverlayDark = Color(0xCC000000)
 val CardOverlayLight = Color(0x1A000000)

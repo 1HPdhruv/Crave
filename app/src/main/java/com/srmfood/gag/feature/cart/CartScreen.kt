@@ -164,7 +164,7 @@ fun CartScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         Text("Your Cart", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text("${cart!!.items.size} items", style = MaterialTheme.typography.titleMedium, color = GagPink)
+                        Text("${cart!!.items.size} items", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                     }
                 }
 
@@ -178,7 +178,7 @@ fun CartScreen(
                         Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                             Text("Ordering from", style = MaterialTheme.typography.bodyMedium, color = GagOnPinkContainer)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(cart!!.outletName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = GagPink)
+                            Text(cart!!.outletName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                         }
                     }
                 }
@@ -220,7 +220,7 @@ fun CartScreen(
                             
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                 Text("Total", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
-                                Text("₹${fmt.format(cart!!.total)}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = GagPink)
+                                Text("₹${fmt.format(cart!!.total)}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
                             }
 
                             if (cart!!.estimatedPrepMinutes > 0) {
@@ -277,7 +277,7 @@ private fun CartItemRow(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(item.foodName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text("₹${item.price.toInt()}", style = MaterialTheme.typography.titleSmall, color = GagPink, fontWeight = FontWeight.SemiBold)
+                    Text("₹${item.price.toInt()}", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
                     
                     if (item.selectedCustomizations.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(6.dp))

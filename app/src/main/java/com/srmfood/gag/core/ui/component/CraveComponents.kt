@@ -58,7 +58,7 @@ fun CraveSectionHeader(
                     text = "See all",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
-                    color = GagPink
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         }
@@ -261,7 +261,7 @@ fun CraveAddButton(
             text = "+",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color = Color.White
+            color = GagOnAccent
         )
     }
 }
@@ -325,13 +325,13 @@ fun CravePromoBanner(
                 text = title,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.ExtraBold,
-                color = Color.White,
+                    color = GagOnAccent,
                 maxLines = 2
             )
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.85f),
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.78f),
                 maxLines = 2
             )
             Spacer(modifier = Modifier.height(4.dp))
@@ -346,7 +346,7 @@ fun CravePromoBanner(
                     text = ctaText,
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
-                    color = backgroundColor
+                    color = GagOnAccent
                 )
             }
         }
@@ -431,7 +431,7 @@ fun CraveCategoryChip(
                     text = label.take(1).uppercase(),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (isSelected) GagPink else MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -440,7 +440,7 @@ fun CraveCategoryChip(
             text = label,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (isSelected) GagPink else MaterialTheme.colorScheme.onSurfaceVariant,
+            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1
         )
     }
@@ -520,6 +520,3 @@ private fun BasicSearchTextField(
         }
     )
 }
-
-
-

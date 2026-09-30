@@ -153,7 +153,7 @@ fun HostelAddressBanner(
             Icon(
                 imageVector = Icons.Outlined.Home,
                 contentDescription = null,
-                tint = GagPink,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(10.dp))
@@ -176,7 +176,7 @@ fun HostelAddressBanner(
                         text = "Add hostel address",
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold,
-                        color = GagPink
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -188,7 +188,7 @@ fun HostelAddressBanner(
                     text = if (address.isComplete) "Change" else "Add",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = GagPink
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         }
@@ -261,10 +261,10 @@ fun HostelAddressDialog(
         confirmButton = {
             Button(
                 onClick = { onSave(HostelAddress(hostel.trim(), block.trim(), room.trim(), notes.trim())) },
-                enabled = isValid,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = GagPink,
-                    contentColor = Color.White,
+                    enabled = isValid,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = GagPink,
+                        contentColor = GagOnAccent,
                     disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
                 ),
                 shape = RoundedCornerShape(10.dp)
@@ -289,7 +289,7 @@ fun HostelAddressDialog(
                 Text(
                     text = "SRM KTR Campus",
                     style = MaterialTheme.typography.labelMedium,
-                    color = GagPink,
+                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold
                 )
                 AddressField(
