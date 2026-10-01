@@ -121,13 +121,21 @@ class SupabaseAuthRepository @Inject constructor(
             val nameFromMeta  = userMeta?.get("name").safeString()
             val phoneFromMeta = userMeta?.get("phone").safeString()
             val regNoFromMeta = userMeta?.get("registration_number").safeString()
+            // Read the role intent stored during registration.
+            // Map VENDOR -> PENDING_VENDOR so active vendor privileges
+            // are never granted without explicit admin approval.
+            val roleFromMeta = when (userMeta?.get("requested_role").safeString()?.uppercase()) {
+                "VENDOR" -> "PENDING_VENDOR"
+                "STUDENT" -> "STUDENT"
+                else -> "STUDENT"
+            }
 
             val dto = NewProfileDto(
                 id   = userId,
                 name = nameFromMeta ?: email.substringBefore("@"),
                 email = email,
                 phone = phoneFromMeta,
-                role  = "STUDENT",
+                role  = roleFromMeta,
                 registration_number = regNoFromMeta,
                 is_active = true
             )
@@ -189,16 +197,20 @@ class SupabaseAuthRepository @Inject constructor(
         email: String,
         password: String,
         phone: String?,
-        registrationNumber: String?
+        registrationNumber: String?,
+        requestedRole: String
     ): Result<AuthResult> = runCatching {
-        Log.d(TAG, "Registration started")
+        Log.d(TAG, "Registration started with role: $requestedRole")
         try {
             auth.signUpWith(Email) {
                 this.email = email
                 this.password = password
-                // Store metadata so login() can use it to create the profile later
+                // Store metadata so login() can use it to create the profile later.
+                // requested_role is intentionally stored here; the repository
+                // maps VENDOR -> PENDING_VENDOR during profile creation.
                 this.data = buildJsonObject {
                     put("name", name)
+                    put("requested_role", requestedRole)
                     phone?.let { put("phone", it) }
                     registrationNumber?.let { put("registration_number", it) }
                 }
@@ -323,6 +335,51 @@ class SupabaseAuthRepository @Inject constructor(
             registrationNumber = userEntity.registrationNumber,
             isActive = userEntity.isActive,
             createdAt = userEntity.createdAt
+        )
+    }
+
+    override suspend fun getAdminUsers(
+        roleFilter: String?,
+        searchQuery: String?
+    ): Result<List<User>> = runCatching {
+        val dtos = postgrest["profiles"].select {
+            filter {
+                if (roleFilter != null && roleFilter != "ALL") {
+                    eq("role", roleFilter.uppercase())
+                }
+                if (!searchQuery.isNullOrBlank()) {
+                    val q = searchQuery.trim()
+                    or {
+                        ilike("name", "%$q%")
+                        ilike("email", "%$q%")
+                    }
+                }
+            }
+            order("created_at", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
+        }.decodeList<ProfileDto>()
+        
+        dtos.map { it.toDomainUser() }
+    }
+
+    override suspend fun getAdminUserById(userId: String): Result<User> = runCatching {
+        val dto = postgrest["profiles"].select {
+            filter { eq("id", userId) }
+        }.decodeSingle<ProfileDto>()
+        
+        dto.toDomainUser()
+    }
+
+    private fun ProfileDto.toDomainUser(): User {
+        return User(
+            id = id,
+            name = name,
+            email = email,
+            phone = phone,
+            role = UserRole.fromString(role),
+            profileImageUrl = profile_image_url,
+            registrationNumber = registration_number,
+            isActive = is_active,
+            createdAt = created_at
         )
     }
 }

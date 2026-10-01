@@ -26,7 +26,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.srmfood.gag.core.ui.theme.*
+import com.srmfood.gag.core.ui.theme.GagStarYellow
+import com.srmfood.gag.core.ui.theme.VegGreen
+import com.srmfood.gag.core.ui.theme.NonVegRed
 import com.srmfood.gag.domain.model.FoodItem
 
 // ─── Food Item Card (Vertical — used in grids and lists) ─────────
@@ -50,9 +52,9 @@ fun FoodItemCard(
 
     Column(
         modifier = modifier
-            .width(170.dp)
+            .width(176.dp)                           // Slightly wider: 170 → 176dp
             .scale(scale)
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(MaterialTheme.colorScheme.surface)
             .clickable(
                 interactionSource = interactionSource,
@@ -64,8 +66,8 @@ fun FoodItemCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(140.dp)
-                .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp))
+                .height(148.dp)                      // Taller: 140 → 148dp
+                .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
             AsyncImage(
@@ -79,9 +81,9 @@ fun FoodItemCard(
             Box(
                 modifier = Modifier
                     .padding(8.dp)
-                    .size(18.dp)
-                    .clip(RoundedCornerShape(3.dp))
-                    .background(Color.White)
+                    .size(20.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(Color.White.copy(alpha = 0.92f))
                     .align(Alignment.TopStart),
                 contentAlignment = Alignment.Center
             ) {
@@ -95,39 +97,58 @@ fun FoodItemCard(
 
             // Favorite button — top right
             if (onFavoriteToggle != null) {
+                var heartScale by remember { mutableFloatStateOf(1f) }
+                val animatedHeartScale by animateFloatAsState(
+                    targetValue = heartScale,
+                    animationSpec = spring(dampingRatio = 0.3f),
+                    label = "heart_scale"
+                )
                 Box(
                     modifier = Modifier
                         .padding(8.dp)
-                        .size(28.dp)
+                        .size(30.dp)                 // Slightly larger: 28 → 30dp
+                        .scale(animatedHeartScale)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.9f))
-                        .clickable(onClick = onFavoriteToggle)
+                        .background(Color.White.copy(alpha = 0.95f))
+                        .clickable {
+                            heartScale = 0.75f
+                            onFavoriteToggle()
+                        }
                         .align(Alignment.TopEnd),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                        contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
-                        tint = if (isFavorite) GagPink else Color.Gray,
+                        imageVector = if (isFavorite) Icons.Filled.Favorite
+                                      else Icons.Outlined.FavoriteBorder,
+                        contentDescription = if (isFavorite) "Remove from favorites"
+                                             else "Add to favorites",
+                        tint = if (isFavorite) MaterialTheme.colorScheme.primary
+                               else Color.Gray,
                         modifier = Modifier.size(16.dp)
                     )
+                }
+                LaunchedEffect(heartScale) {
+                    if (heartScale != 1f) {
+                        kotlinx.coroutines.delay(150)
+                        heartScale = 1f
+                    }
                 }
             }
 
             // Add to cart button — bottom right
             var isAdding by remember { mutableStateOf(false) }
             val addScale by animateFloatAsState(
-                targetValue = if (isAdding) 0.85f else 1f,
+                targetValue = if (isAdding) 0.82f else 1f,
                 animationSpec = spring(dampingRatio = 0.4f),
                 label = "add_btn_scale"
             )
             Box(
                 modifier = Modifier
                     .padding(8.dp)
-                    .size(32.dp)
+                    .size(36.dp)                     // Larger: 32 → 36dp
                     .scale(addScale)
                     .clip(CircleShape)
-                    .background(GagPink)
+                    .background(MaterialTheme.colorScheme.primary)
                     .clickable {
                         isAdding = true
                         onAddToCart()
@@ -138,8 +159,8 @@ fun FoodItemCard(
                 Icon(
                     imageVector = Icons.Filled.Add,
                     contentDescription = "Add ${foodItem.name} to cart",
-                    tint = Color.White,
-                    modifier = Modifier.size(18.dp)
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(20.dp)
                 )
             }
             LaunchedEffect(isAdding) {
@@ -165,7 +186,7 @@ fun FoodItemCard(
                 text = "₹${foodItem.price.toInt()}",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.primary   // Price uses primary for hierarchy
             )
         }
     }
@@ -225,7 +246,7 @@ fun FoodItemListRow(
                 text = "₹${foodItem.price.toInt()}",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.primary    // Price uses primary
             )
             if (foodItem.description?.isNotBlank() == true) {
                 Spacer(modifier = Modifier.height(2.dp))
@@ -248,7 +269,7 @@ fun FoodItemListRow(
                 contentDescription = foodItem.name,
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(14.dp))     // 12 → 14dp
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentScale = ContentScale.Crop
             )
@@ -256,16 +277,16 @@ fun FoodItemListRow(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(4.dp)
-                    .size(28.dp)
+                    .size(30.dp)
                     .clip(CircleShape)
-                    .background(GagPink)
+                    .background(MaterialTheme.colorScheme.primary)
                     .clickable(onClick = onAddToCart),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Filled.Add,
                     contentDescription = "Add to cart",
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(16.dp)
                 )
             }

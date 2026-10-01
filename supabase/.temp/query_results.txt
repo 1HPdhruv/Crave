@@ -1,0 +1,1 @@
+{"_tag":"Error","error":{"code":"LegacyDbQueryUnexpectedStatusError","message":"unexpected status 400: {\"message\":\"Failed to run sql query: ERROR:  42P01: relation \\\"supabase_migrations.schema_migrations\\\" does not exist\\nLINE 12: SELECT * FROM supabase_migrations.schema_migrations ORDER BY version DESC LIMIT 5;\\n                       ^\\n\"}"}}

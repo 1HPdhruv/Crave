@@ -142,8 +142,15 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             getOutletsUseCase().collectLatest { outlets ->
                 Log.d(TAG, "Outlets from Room: ${outlets.size}")
+                val targetNames = listOf("Butty", "Evergreen", "Sohana", "Chettinad", "S.R. Chat")
+                val featured = targetNames.mapNotNull { target ->
+                    outlets.find { it.name.contains(target, ignoreCase = true) }
+                }.distinctBy { it.id }
+
                 _uiState.value = _uiState.value.copy(
-                    outlets = if (outlets.isEmpty()) UiState.Loading else UiState.Success(outlets)
+                    outlets = if (featured.isEmpty() && outlets.isEmpty()) UiState.Loading 
+                              else if (featured.isEmpty()) UiState.Empty 
+                              else UiState.Success(featured)
                 )
             }
         }
@@ -171,61 +178,55 @@ class HomeViewModel @Inject constructor(
             }
         }
 
-        // Popular food — with fallback to all food if no items are flagged is_popular
+        // Load all food once and filter for Popular and Recommended
         viewModelScope.launch {
-            Log.d(TAG, "loadData: loading popular food")
-            val popularResult = getPopularFoodUseCase()
-            val popularList = popularResult.getOrElse { emptyList() }
-            if (popularList.isNotEmpty()) {
-                Log.d(TAG, "loadData: ${popularList.size} popular items found")
-                _uiState.value = _uiState.value.copy(popularFood = UiState.Success(popularList))
-            } else {
-                // Fallback: show all available food items
-                Log.d(TAG, "loadData: no is_popular items, falling back to getAllFood()")
-                val allResult = getAllFoodUseCase()
+            Log.d(TAG, "loadData: loading all food for popular & recommended filtering")
+            val allResult = getAllFoodUseCase()
+            allResult.onSuccess { allFood ->
+                // Popular (Campus Picks)
+                val popularTargets = listOf("Chicken Biryani", "Cheese Bread Omelet", "Watermelon")
+                val popularList = popularTargets.mapNotNull { search ->
+                    allFood.find { it.name.equals(search, ignoreCase = true) }
+                        ?: allFood.find { it.name.contains(search, ignoreCase = true) }
+                }.distinctBy { it.id }.take(5)
+
+                // Categories dynamically built from real active food
+                val activeCategories = allFood
+                    .map { it.category }
+                    .filter { it.isNotBlank() }
+                    .distinct()
+                    .map { catName -> 
+                        FoodCategory(id = catName, name = catName, emoji = "", imageUrl = null)
+                    }
+
                 _uiState.value = _uiState.value.copy(
-                    popularFood = allResult.fold(
-                        onSuccess = { if (it.isEmpty()) UiState.Empty else UiState.Success(it) },
-                        onFailure = { UiState.Error(it.message ?: "Failed to load food") }
-                    )
+                    popularFood = if (popularList.isEmpty()) UiState.Empty else UiState.Success(popularList),
+                    categories = if (activeCategories.isEmpty()) UiState.Empty else UiState.Success(activeCategories)
+                )
+
+                // Recommended
+                val recTargets = listOf(
+                    "Chicken Biryani",
+                    "Schezwan Chicken",
+                    "Chicken Rice/Noodles",
+                    "Panner Rice/Noodles",
+                    "Masala Dosa",
+                    "Bread Omelet"
+                )
+                val recList = recTargets.mapNotNull { search ->
+                    allFood.find { it.name.equals(search, ignoreCase = true) }
+                        ?: allFood.find { it.name.contains(search, ignoreCase = true) }
+                }.distinctBy { it.id }.take(6)
+
+                _uiState.value = _uiState.value.copy(
+                    recommendedFood = if (recList.isEmpty()) UiState.Empty else UiState.Success(recList)
+                )
+            }.onFailure { e ->
+                _uiState.value = _uiState.value.copy(
+                    popularFood = UiState.Error(e.message ?: "Failed to load food"),
+                    recommendedFood = UiState.Error(e.message ?: "Failed to load food")
                 )
             }
-        }
-
-        // Recommended food — with fallback to popular/all food if no items are flagged is_recommended
-        viewModelScope.launch {
-            Log.d(TAG, "loadData: loading recommended food")
-            val recResult = getRecommendedFoodUseCase()
-            val recList = recResult.getOrElse { emptyList() }
-            if (recList.isNotEmpty()) {
-                Log.d(TAG, "loadData: ${recList.size} recommended items found")
-                _uiState.value = _uiState.value.copy(recommendedFood = UiState.Success(recList))
-            } else {
-                // Fallback: show all available food items (same source as popular if no flags set)
-                Log.d(TAG, "loadData: no is_recommended items, falling back to getAllFood()")
-                val allResult = getAllFoodUseCase()
-                _uiState.value = _uiState.value.copy(
-                    recommendedFood = allResult.fold(
-                        onSuccess = { if (it.isEmpty()) UiState.Empty else UiState.Success(it) },
-                        onFailure = { UiState.Error(it.message ?: "Failed to load food") }
-                    )
-                )
-            }
-        }
-
-        // Categories — direct Supabase query, no cache layer needed
-        viewModelScope.launch {
-            Log.d(TAG, "loadData: loading categories")
-            val catResult = getCategoriesUseCase()
-            _uiState.value = _uiState.value.copy(
-                categories = catResult.fold(
-                    onSuccess = { cats ->
-                        Log.d(TAG, "loadData: ${cats.size} categories loaded")
-                        if (cats.isEmpty()) UiState.Empty else UiState.Success(cats)
-                    },
-                    onFailure = { UiState.Error(it.message ?: "Failed to load categories") }
-                )
-            )
         }
     }
 }

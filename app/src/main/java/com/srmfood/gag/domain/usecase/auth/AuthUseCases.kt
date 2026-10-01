@@ -36,7 +36,8 @@ class RegisterUseCase @Inject constructor(
         email: String,
         password: String,
         phone: String?,
-        registrationNumber: String?
+        registrationNumber: String?,
+        requestedRole: String = "STUDENT"
     ): Result<com.srmfood.gag.domain.repository.AuthResult> {
         if (name.isBlank()) return Result.failure(IllegalArgumentException("Name cannot be empty"))
         if (email.isBlank()) return Result.failure(IllegalArgumentException("Email cannot be empty"))
@@ -46,6 +47,12 @@ class RegisterUseCase @Inject constructor(
         if (password.length < 8) {
             return Result.failure(IllegalArgumentException("Password must be at least 8 characters"))
         }
-        return authRepository.register(name.trim(), email.trim(), password, phone, registrationNumber)
+        // Sanitise role on the use-case boundary: only STUDENT or VENDOR are valid
+        // registration choices. ADMIN is never permitted from the client.
+        val safeRole = when (requestedRole.uppercase()) {
+            "VENDOR" -> "VENDOR"
+            else -> "STUDENT"
+        }
+        return authRepository.register(name.trim(), email.trim(), password, phone, registrationNumber, safeRole)
     }
 }

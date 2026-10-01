@@ -25,14 +25,16 @@ class PlaceOrderUseCase @Inject constructor(
     private val orderRepository: OrderRepository
 ) {
     suspend operator fun invoke(
+        cartId: String,
         outletId: String,
         pickupSlotId: String,
         paymentMethod: PaymentMethod,
         specialInstructions: String?
     ): Result<Order> {
+        if (cartId.isBlank()) return Result.failure(IllegalArgumentException("Cart ID required"))
         if (outletId.isBlank()) return Result.failure(IllegalArgumentException("Outlet required"))
         if (pickupSlotId.isBlank()) return Result.failure(IllegalArgumentException("Pickup slot required"))
-        return orderRepository.placeOrder(outletId, pickupSlotId, paymentMethod, specialInstructions)
+        return orderRepository.placeOrder(cartId, outletId, pickupSlotId, paymentMethod, specialInstructions)
     }
 }
 

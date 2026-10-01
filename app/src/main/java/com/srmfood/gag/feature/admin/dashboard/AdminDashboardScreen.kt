@@ -19,7 +19,6 @@ import com.srmfood.gag.core.common.UiState
 import com.srmfood.gag.core.ui.component.GagLoadingScreen
 import com.srmfood.gag.core.ui.theme.*
 import com.srmfood.gag.domain.model.Outlet
-import com.srmfood.gag.domain.usecase.admin.GetSystemStatsUseCase
 import com.srmfood.gag.domain.usecase.admin.SystemStats
 import com.srmfood.gag.domain.usecase.admin.ToggleOutletStatusUseCase
 import com.srmfood.gag.domain.usecase.outlet.GetOutletsUseCase
@@ -33,7 +32,6 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AdminDashboardViewModel @Inject constructor(
-    private val getSystemStatsUseCase: GetSystemStatsUseCase,
     private val getOutletsUseCase: GetOutletsUseCase,
     private val toggleOutletStatusUseCase: ToggleOutletStatusUseCase
 ) : ViewModel() {
@@ -48,10 +46,7 @@ class AdminDashboardViewModel @Inject constructor(
     }
 
     private fun loadData() {
-        viewModelScope.launch {
-            val res = getSystemStatsUseCase()
-            _stats.value = res.fold(onSuccess = { UiState.Success(it) }, onFailure = { UiState.Error(it.message ?: "Error") })
-        }
+        _stats.value = UiState.Error("Legacy Admin Dashboard is disabled.")
         viewModelScope.launch {
             getOutletsUseCase().collectLatest {
                 _outlets.value = UiState.Success(it)
@@ -81,10 +76,10 @@ fun AdminDashboardScreen(
             TopAppBar(
                 title = { Text("Admin Console", fontWeight = FontWeight.Bold) },
                 actions = { IconButton(onClick = onLogout) { Icon(Icons.Outlined.Logout, "Logout", tint = GagError) } },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = GagBackground)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
-        containerColor = GagBackground
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         LazyColumn(modifier = Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             item {

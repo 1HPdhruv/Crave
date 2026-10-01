@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.ExitToApp
@@ -24,9 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.srmfood.gag.core.ui.component.GagBottomNavBar
 import com.srmfood.gag.core.ui.component.GagTopBar
-import com.srmfood.gag.core.ui.component.studentBottomNavItems
 import com.srmfood.gag.core.ui.theme.*
 import com.srmfood.gag.domain.model.User
 import com.srmfood.gag.domain.usecase.auth.GetCurrentUserUseCase
@@ -87,12 +86,12 @@ sealed class UpdateState {
 
 @Composable
 fun ProfileScreen(
-    onNavigateBottom: (String) -> Unit,
     onLogoutSuccess: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToHelp: () -> Unit,
     onNavigateToOrders: () -> Unit,
     onNavigateToFavorites: () -> Unit,
+    onNavigateToNotifications: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val user by viewModel.user.collectAsState()
@@ -101,8 +100,7 @@ fun ProfileScreen(
     var showLogoutDialog by remember { mutableStateOf(false) }
 
     Scaffold(
-        bottomBar = { GagBottomNavBar(items = studentBottomNavItems, currentRoute = "profile", onItemSelected = onNavigateBottom) },
-        containerColor = GagBackground,
+        containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         LazyColumn(
@@ -130,19 +128,19 @@ fun ProfileScreen(
                             Box(
                                 modifier = Modifier
                                     .size(104.dp)
-                                    .background(GagPink.copy(alpha = 0.15f), CircleShape),
+                                    .background(OrbitLime.copy(alpha = 0.12f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Box(
                                     modifier = Modifier
                                         .size(88.dp)
-                                        .background(GagPink.copy(alpha = 0.25f), CircleShape),
+                                        .background(OrbitLime.copy(alpha = 0.2f), CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         Icons.Outlined.Person,
                                         contentDescription = "Profile avatar",
-                                        tint = GagPink,
+                                        tint = OrbitLime,
                                         modifier = Modifier.size(44.dp)
                                     )
                                 }
@@ -174,7 +172,7 @@ fun ProfileScreen(
                             Spacer(modifier = Modifier.height(2.dp))
                             Surface(
                                 shape = RoundedCornerShape(20.dp),
-                                color = GagPink.copy(alpha = 0.1f)
+                                color = OrbitLime.copy(alpha = 0.08f)
                             ) {
                                 Text(
                                     text = user?.registrationNumber ?: "",
@@ -189,9 +187,9 @@ fun ProfileScreen(
                         OutlinedButton(
                             onClick = { showEditDialog = true },
                             shape = RoundedCornerShape(16.dp),
-                            border = androidx.compose.foundation.BorderStroke(2.dp, GagPink)
+                            border = androidx.compose.foundation.BorderStroke(1.5.dp, OrbitLime)
                         ) {
-                            Icon(Icons.Outlined.Edit, contentDescription = "Edit profile", modifier = Modifier.size(18.dp), tint = GagPink)
+                            Icon(Icons.Outlined.Edit, contentDescription = "Edit profile", modifier = Modifier.size(18.dp), tint = OrbitLime)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Edit Profile", color = GagPink, fontWeight = FontWeight.SemiBold)
                         }
@@ -208,14 +206,14 @@ fun ProfileScreen(
                     QuickActionCard(
                         title = "My Orders",
                         icon = Icons.Default.ShoppingBag,
-                        tint = GagPink,
+                        tint = OrbitLime,
                         onClick = onNavigateToOrders,
                         modifier = Modifier.weight(1f)
                     )
                     QuickActionCard(
                         title = "Favorites",
                         icon = Icons.Outlined.FavoriteBorder,
-                        tint = GagPink,
+                        tint = OrbitLime,
                         onClick = onNavigateToFavorites,
                         modifier = Modifier.weight(1f)
                     )
@@ -236,6 +234,13 @@ fun ProfileScreen(
                             title = "Settings",
                             subtitle = "Theme, notifications",
                             onClick = onNavigateToSettings
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        ProfileMenuItem(
+                            icon = Icons.Filled.Notifications,
+                            title = "Notifications",
+                            subtitle = "Order updates & alerts",
+                            onClick = onNavigateToNotifications
                         )
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         ProfileMenuItem(

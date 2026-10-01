@@ -13,15 +13,20 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/** The role the user has selected on the registration screen. */
+enum class RegistrationRole { STUDENT, VENDOR }
+
 data class RegisterFormState(
     val name: String = "",
     val email: String = "",
     val password: String = "",
     val phone: String? = null,
     val registrationNumber: String? = null,
+    val selectedRole: RegistrationRole = RegistrationRole.STUDENT,
     val nameError: String? = null,
     val emailError: String? = null,
-    val passwordError: String? = null
+    val passwordError: String? = null,
+    val roleError: String? = null
 )
 
 @HiltViewModel
@@ -40,6 +45,7 @@ class RegisterViewModel @Inject constructor(
     fun onPasswordChanged(password: String) = _formState.update { it.copy(password = password, passwordError = null) }
     fun onPhoneChanged(phone: String) = _formState.update { it.copy(phone = phone.ifBlank { null }) }
     fun onRegNoChanged(regNo: String) = _formState.update { it.copy(registrationNumber = regNo.ifBlank { null }) }
+    fun onRoleSelected(role: RegistrationRole) = _formState.update { it.copy(selectedRole = role, roleError = null) }
 
     fun register() {
         val form = _formState.value
@@ -49,9 +55,21 @@ class RegisterViewModel @Inject constructor(
         if (form.password.length < 8) { _formState.update { it.copy(passwordError = "Password must be at least 8 characters") }; hasError = true }
         if (hasError) return
 
+        val roleString = when (form.selectedRole) {
+            RegistrationRole.VENDOR -> "VENDOR"
+            RegistrationRole.STUDENT -> "STUDENT"
+        }
+
         viewModelScope.launch {
             _registerState.value = UiState.Loading
-            val result = registerUseCase(form.name, form.email, form.password, form.phone, form.registrationNumber)
+            val result = registerUseCase(
+                name = form.name,
+                email = form.email,
+                password = form.password,
+                phone = form.phone,
+                registrationNumber = form.registrationNumber,
+                requestedRole = roleString
+            )
             _registerState.value = result.fold(
                 onSuccess = { UiState.Success(it) },
                 onFailure = { UiState.Error(it.message ?: "Registration failed") }

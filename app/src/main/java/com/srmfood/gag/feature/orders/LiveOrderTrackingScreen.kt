@@ -92,7 +92,7 @@ fun LiveOrderTrackingScreen(
     LaunchedEffect(orderId) { viewModel.observeOrder(orderId) }
 
     Scaffold(
-        containerColor = GagBackground,
+        containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         when (val state = orderState) {

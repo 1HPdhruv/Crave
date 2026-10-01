@@ -51,7 +51,7 @@ fun VendorAnalyticsScreen(
 ) {
     val ordersState by viewModel.orders.collectAsState()
 
-    Scaffold(topBar = { GagTopBar("Analytics", onBack = onBack) }, containerColor = GagBackground) { padding ->
+    Scaffold(topBar = { GagTopBar("Analytics", onBack = onBack) }, containerColor = MaterialTheme.colorScheme.background) { padding ->
         when (val state = ordersState) {
             is UiState.Loading -> GagLoadingScreen(modifier = Modifier.padding(padding))
             is UiState.Success -> {

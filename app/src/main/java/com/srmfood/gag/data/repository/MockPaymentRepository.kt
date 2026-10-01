@@ -19,4 +19,16 @@ class MockPaymentRepository @Inject constructor() : PaymentRepository {
     override suspend fun verifyRazorpayPayment(request: PaymentVerificationRequest): Result<Unit> {
         return Result.success(Unit)
     }
+
+    override suspend fun getAdminPayments(
+        statusFilter: String?,
+        providerFilter: String?,
+        searchQuery: String?
+    ): Result<List<com.srmfood.gag.domain.model.PaymentRecord>> {
+        return Result.success(emptyList())
+    }
+
+    override suspend fun getPaymentById(id: String): Result<com.srmfood.gag.domain.model.PaymentRecord> {
+        return Result.failure(Exception("Not implemented"))
+    }
 }

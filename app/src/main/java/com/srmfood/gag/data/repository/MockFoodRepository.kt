@@ -99,4 +99,8 @@ class MockFoodRepository @Inject constructor(
     override suspend fun updateFoodPrice(foodId: String, price: Double): Result<Unit> {
         return Result.success(Unit)
     }
+
+    override suspend fun getAdminFoodItems(searchQuery: String?, outletId: String?, category: String?, availability: String?, isVeg: Boolean?): Result<List<FoodItem>> = runCatching {
+        emptyList()
+    }
 }

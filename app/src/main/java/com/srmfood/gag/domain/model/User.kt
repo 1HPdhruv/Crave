@@ -17,13 +17,14 @@ data class User(
 )
 
 enum class UserRole {
-    STUDENT, VENDOR, ADMIN;
+    STUDENT, VENDOR, ADMIN, PENDING_VENDOR;
 
     companion object {
         fun fromString(role: String): UserRole = when (role.uppercase()) {
             "STUDENT" -> STUDENT
             "VENDOR" -> VENDOR
             "ADMIN" -> ADMIN
+            "PENDING_VENDOR" -> PENDING_VENDOR
             else -> STUDENT
         }
     }

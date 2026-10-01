@@ -111,6 +111,34 @@ class SupabaseOrderRepository @Inject constructor(
         }
     }
 
+    override suspend fun getAdminOrders(statusFilter: String?, searchQuery: String?): Result<List<Order>> = runCatching {
+        val dtos = postgrest["orders"].select(Columns.raw("*, pickup_slots(*), items:order_items(*, order_item_customizations(*))")) {
+            filter {
+                if (statusFilter != null) {
+                    when (statusFilter.uppercase()) {
+                        "ACTIVE" -> isIn("status", listOf("PLACED", "ACCEPTED", "PREPARING", "READY"))
+                        "COMPLETED" -> eq("status", "PICKED_UP")
+                        "CANCELLED" -> isIn("status", listOf("CANCELLED", "REJECTED", "REFUNDED"))
+                        else -> eq("status", statusFilter.uppercase())
+                    }
+                }
+                if (!searchQuery.isNullOrBlank()) {
+                    // Search by order_number (e.g. #CRV-10283 -> drop # if present)
+                    val q = searchQuery.replace("#", "").trim()
+                    // Supabase PostgREST allows basic OR logic if needed, but for simplicity we'll just ilike order_number or outlet_name
+                    or {
+                        ilike("order_number", "%$q%")
+                        ilike("outlet_name", "%$q%")
+                    }
+                }
+            }
+            order("created_at", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
+            limit(100) // Simple initial limit as requested
+        }.decodeList<OrderDto>()
+        
+        dtos.map { it.toDomain() }
+    }
+
     override suspend fun getOrderById(orderId: String): Result<Order> = runCatching {
         val dto = postgrest["orders"].select(Columns.raw("*, pickup_slots(*), items:order_items(*, order_item_customizations(*))")) {
             filter { eq("id", orderId) }
@@ -121,45 +149,20 @@ class SupabaseOrderRepository @Inject constructor(
     }
 
     override suspend fun placeOrder(
+        cartId: String,
         outletId: String,
         pickupSlotId: String,
         paymentMethod: PaymentMethod,
         specialInstructions: String?
     ): Result<Order> = runCatching {
-        // Resolve the cart_id from the remote carts table for the current user.
-        // The place_order() RPC takes a cart_id (server-side), validates everything,
-        // calculates prices from DB, deducts inventory, and returns the new order_id.
         val session = auth.currentSessionOrNull() ?: throw Exception("User not logged in")
         val userId = session.user?.id ?: throw Exception("Invalid user")
-
-        // 1. Fetch the server-side cart id for this user
-        val remoteCart = postgrest["carts"]
-            .select(Columns.raw("id")) {
-                filter { eq("user_id", userId) }
-                order("updated_at", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
-            }
-            .decodeList<CartIdResponse>()
-            .firstOrNull() ?: throw Exception("No remote cart found. Sync cart before placing order.")
-
-        android.util.Log.d("PlaceOrderDiag", "=== PLACE_ORDER_RPC_INVOCATION ===")
-        android.util.Log.d("PlaceOrderDiag", "Authenticated User ID (auth.uid()): $userId")
-        android.util.Log.d("PlaceOrderDiag", "Outlet ID from UI: $outletId")
-        android.util.Log.d("PlaceOrderDiag", "Selected Pickup Slot ID: $pickupSlotId")
-        android.util.Log.d("PlaceOrderDiag", "Resolved Remote Cart ID: ${remoteCart.id}")
-
-        // Check how many items this remote cart actually has in the database before calling the RPC
-        val remoteItemsCount = postgrest["cart_items"].select(Columns.raw("id")) {
-            filter { eq("cart_id", remoteCart.id) }
-        }.decodeList<CartIdResponse>().size
-        
-        android.util.Log.d("PlaceOrderDiag", "Remote Cart Item Count in Supabase: $remoteItemsCount")
-        android.util.Log.d("PlaceOrderDiag", "====================================")
 
         // 2. Call the place_order() RPC — all validation and price calculation is server-side
         val orderId = postgrest.rpc(
             function = "place_order",
             parameters = PlaceOrderRpcParams(
-                cartId        = remoteCart.id,
+                cartId        = cartId,
                 pickupSlotId  = pickupSlotId,
                 paymentMethod = paymentMethod.name
             )
@@ -195,21 +198,22 @@ class SupabaseOrderRepository @Inject constructor(
             }
         }.decodeList<PickupSlotDto>()
         
-        dtos.map {
-            PickupSlot(
-                id = it.id,
-                outletId = it.outletId,
-                startTime = it.startTime,
-                endTime = it.endTime,
-                date = it.date,
-                capacity = it.capacity,
-                bookedCount = it.bookedCount,
-                status = com.srmfood.gag.domain.model.SlotStatus.valueOf(it.status.uppercase())
-            )
-        }
+        dtos.map { it.toDomain() }
     }.onFailure { e ->
         android.util.Log.e("PickupSlotDebug", "Failed to fetch pickup slots for outlet $outletId", e)
     }
+
+    override suspend fun getAdminPickupSlots(date: String): Result<List<PickupSlot>> = runCatching {
+        if (auth.currentSessionOrNull() == null) throw Exception("User not logged in")
+        val dtos = postgrest["pickup_slots"].select(Columns.raw("*, outlets(name)")) {
+            filter { 
+                eq("slot_date", date)
+            }
+        }.decodeList<PickupSlotDto>()
+        
+        dtos.map { it.toDomain() }
+    }
+
 
     override suspend fun getQrToken(orderId: String): Result<String> = runCatching {
         // Fetch the real token generated by place_order() RPC from pickup_tokens table.

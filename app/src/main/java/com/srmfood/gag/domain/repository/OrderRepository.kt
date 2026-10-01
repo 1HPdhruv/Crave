@@ -8,8 +8,13 @@ import kotlinx.coroutines.flow.Flow
 
 interface OrderRepository {
     fun getOrders(): Flow<List<Order>>
+    suspend fun getAdminOrders(
+        statusFilter: String? = null,
+        searchQuery: String? = null
+    ): Result<List<Order>>
     suspend fun getOrderById(orderId: String): Result<Order>
     suspend fun placeOrder(
+        cartId: String,
         outletId: String,
         pickupSlotId: String,
         paymentMethod: PaymentMethod,
@@ -17,6 +22,7 @@ interface OrderRepository {
     ): Result<Order>
     suspend fun cancelOrder(orderId: String, reason: String): Result<Order>
     suspend fun getPickupSlots(outletId: String, date: String): Result<List<PickupSlot>>
+    suspend fun getAdminPickupSlots(date: String): Result<List<PickupSlot>>
     suspend fun getQrToken(orderId: String): Result<String>
     fun observeOrderStatus(orderId: String): Flow<OrderStatus>
 

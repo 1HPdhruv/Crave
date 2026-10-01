@@ -108,4 +108,10 @@ class RepositoryModule {
     fun provideOrderingModeRepository(
         impl: com.srmfood.gag.data.repository.preferences.OrderingModeRepositoryImpl
     ): com.srmfood.gag.domain.repository.OrderingModeRepository = impl
+
+    @Provides
+    @Singleton
+    fun provideManagementVendorRepository(
+        impl: com.srmfood.gag.data.repository.supabase.SupabaseManagementVendorRepository
+    ): com.srmfood.gag.domain.repository.ManagementVendorRepository = impl
 }

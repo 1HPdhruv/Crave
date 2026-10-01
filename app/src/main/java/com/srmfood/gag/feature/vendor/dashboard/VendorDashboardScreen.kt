@@ -89,7 +89,7 @@ fun VendorDashboardScreen(
     val ordersState by viewModel.orders.collectAsState()
 
     Scaffold(
-        containerColor = GagBackground,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = {
@@ -99,11 +99,11 @@ fun VendorDashboardScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onMenu) { Icon(Icons.Outlined.MenuBook, "Menu", tint = GagOnBackground) }
-                    IconButton(onClick = onAllOrders) { Icon(Icons.Outlined.Assignment, "Orders", tint = GagOnBackground) }
+                    IconButton(onClick = onMenu) { Icon(Icons.Outlined.MenuBook, "Menu", tint = MaterialTheme.colorScheme.onBackground) }
+                    IconButton(onClick = onAllOrders) { Icon(Icons.Outlined.Assignment, "Orders", tint = MaterialTheme.colorScheme.onBackground) }
                     IconButton(onClick = onLogout) { Icon(Icons.Outlined.Logout, "Logout", tint = GagError) }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = GagBackground)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
         floatingActionButton = {
@@ -154,14 +154,53 @@ fun VendorDashboardScreen(
                     }
                 }
             }
-            else -> {}
+            is UiState.Empty -> {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(padding),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    item {
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            StatCard("Pending", "0", GagInfo, modifier = Modifier.weight(1f))
+                            StatCard("Preparing", "0", GagAmber, modifier = Modifier.weight(1f))
+                            StatCard("Ready", "0", GagSuccess, modifier = Modifier.weight(1f))
+                        }
+                        Spacer(modifier = Modifier.height(32.dp))
+                    }
+                    item {
+                        Box(modifier = Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+                            Text("No active orders right now", style = MaterialTheme.typography.bodyMedium, color = GagOnSurfaceVariant)
+                        }
+                    }
+                }
+            }
+            is UiState.Error -> {
+                Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Unable to load your dashboard.", style = MaterialTheme.typography.titleMedium, color = GagError)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = { viewModel.loadOrders() },
+                            colors = ButtonDefaults.buttonColors(containerColor = GagOrange)
+                        ) {
+                            Text("Retry")
+                        }
+                    }
+                }
+            }
+            else -> {
+                Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                    Text("Loading dashboard...", style = MaterialTheme.typography.bodyMedium, color = GagOnSurfaceVariant)
+                }
+            }
         }
     }
 }
 
 @Composable
 private fun StatCard(label: String, value: String, color: androidx.compose.ui.graphics.Color, modifier: Modifier = Modifier) {
-    Surface(shape = RoundedCornerShape(12.dp), color = color.copy(alpha = 0.12f), modifier = modifier) {
+    Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceVariant, modifier = modifier) {
         Column(modifier = Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(value, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = color)
             Text(label, style = MaterialTheme.typography.labelSmall, color = GagOnSurfaceVariant)

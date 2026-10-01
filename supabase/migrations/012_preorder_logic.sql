@@ -40,7 +40,7 @@ BEGIN
     IF NOT FOUND                        THEN RAISE EXCEPTION 'Pickup slot not found for this outlet.'; END IF;
     
     -- TIMEZONE VALIDATION (Asia/Kolkata)
-    v_ist_now := NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata';
+    v_ist_now := NOW() AT TIME ZONE 'Asia/Kolkata';
     v_ist_date := v_ist_now::DATE;
     v_ist_time := v_ist_now::TIME;
     v_open_time := COALESCE((v_outlet.operating_hours->>'openTime')::TIME, '08:00'::TIME);

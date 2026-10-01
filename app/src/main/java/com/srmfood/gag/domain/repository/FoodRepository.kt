@@ -22,4 +22,7 @@ interface FoodRepository {
     suspend fun getVendorFoodItems(): Result<List<FoodItem>>
     suspend fun updateFoodAvailability(foodId: String, isAvailable: Boolean): Result<Unit>
     suspend fun updateFoodPrice(foodId: String, price: Double): Result<Unit>
+
+    // Management
+    suspend fun getAdminFoodItems(searchQuery: String? = null, outletId: String? = null, category: String? = null, availability: String? = null, isVeg: Boolean? = null): Result<List<FoodItem>>
 }

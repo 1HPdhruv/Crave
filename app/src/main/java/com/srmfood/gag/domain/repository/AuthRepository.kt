@@ -13,13 +13,14 @@ interface AuthRepository {
     /** Login with email and password. Returns the authenticated User on success. */
     suspend fun login(email: String, password: String): Result<User>
 
-    /** Register a new student account. */
+    /** Register a new account. requestedRole may be "STUDENT" or "VENDOR" only. */
     suspend fun register(
         name: String,
         email: String,
         password: String,
         phone: String?,
-        registrationNumber: String?
+        registrationNumber: String?,
+        requestedRole: String = "STUDENT"
     ): Result<AuthResult>
 
     /** Logout — clears tokens and local user data. */
@@ -39,4 +40,12 @@ interface AuthRepository {
 
     /** Update user profile fields. */
     suspend fun updateProfile(name: String, phone: String?, registrationNumber: String?): Result<User>
+
+    // Management
+    suspend fun getAdminUsers(
+        roleFilter: String? = null,
+        searchQuery: String? = null
+    ): Result<List<User>>
+
+    suspend fun getAdminUserById(userId: String): Result<User>
 }

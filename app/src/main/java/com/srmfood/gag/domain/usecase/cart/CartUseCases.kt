@@ -16,7 +16,7 @@ class GetCartUseCase @Inject constructor(
 class SyncCartUseCase @Inject constructor(
     private val cartRepository: CartRepository
 ) {
-    suspend operator fun invoke(): Result<Unit> = cartRepository.syncCart()
+    suspend operator fun invoke(): Result<String> = cartRepository.syncCart()
 }
 
 class AddToCartUseCase @Inject constructor(

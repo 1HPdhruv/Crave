@@ -42,7 +42,7 @@ class MockCartRepository @Inject constructor(
             )
         }
     }
-    override suspend fun syncCart(): Result<Unit> = Result.success(Unit)
+    override suspend fun syncCart(): Result<String> = Result.success("mock-cart-id")
 
 
     override suspend fun addToCart(

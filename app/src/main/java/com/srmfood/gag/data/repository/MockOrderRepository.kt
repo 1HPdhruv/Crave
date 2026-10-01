@@ -34,6 +34,11 @@ class MockOrderRepository @Inject constructor(
         }
     }
 
+    override suspend fun getAdminOrders(statusFilter: String?, searchQuery: String?): Result<List<Order>> = runCatching {
+        // Just return a mock empty list or something for now to satisfy compiler
+        emptyList()
+    }
+
     override suspend fun getOrderById(orderId: String): Result<Order> = runCatching {
         val response = orderApi.getOrderById(orderId)
         orderDao.insertOrder(response.toEntity())
@@ -41,6 +46,7 @@ class MockOrderRepository @Inject constructor(
     }
 
     override suspend fun placeOrder(
+        cartId: String,
         outletId: String,
         pickupSlotId: String,
         paymentMethod: PaymentMethod,
@@ -66,6 +72,11 @@ class MockOrderRepository @Inject constructor(
     override suspend fun getPickupSlots(outletId: String, date: String): Result<List<PickupSlot>> = runCatching {
         val response = orderApi.getPickupSlots(outletId, date)
         response.map { it.toDomain() }
+    }
+
+    override suspend fun getAdminPickupSlots(date: String): Result<List<PickupSlot>> = runCatching {
+        // Just return a mock empty list or something for now to satisfy compiler
+        emptyList()
     }
 
     override suspend fun getQrToken(orderId: String): Result<String> = runCatching {

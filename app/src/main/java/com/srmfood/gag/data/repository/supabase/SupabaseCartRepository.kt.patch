@@ -1,0 +1,172 @@
+--- SupabaseCartRepository.kt
++++ SupabaseCartRepository.kt
+@@ -109,7 +109,7 @@
+         }
+     }
+ 
+-    override suspend fun syncCart(): Result<String> = runCatching {
++    override suspend fun syncCart(): Result<String> = try {
+         val userId = auth.currentSessionOrNull()?.user?.id ?: throw Exception("User not logged in")
+         
+         val existingCarts = postgrest["carts"].select {
+@@ -118,10 +118,11 @@
+         
+         val localItems = cartDao.getCartItems()
+ 
+         if (existingCarts.isEmpty()) {
+             hasSyncedFromBackend = true
+             if (localItems.isNotEmpty()) {
+-                return@runCatching trySyncCartToBackend()
++                val id = trySyncCartToBackend()
++                return Result.success(id)
+             }
+             throw Exception("Local cart is empty")
+         }
+         
+@@ -136,10 +137,11 @@
+         if (remoteItems.isEmpty()) {
+             hasSyncedFromBackend = true
+             if (localItems.isNotEmpty()) {
+-                return@runCatching trySyncCartToBackend()
++                val id = trySyncCartToBackend()
++                return Result.success(id)
+             } else {
+                 cartDao.clearCart()
+             }
+             throw Exception("Cart is empty")
+         }
+         
+@@ -153,8 +155,9 @@
+         val remoteFoodItemIds = remoteItems.map { it.foodItemId }
+         val pendingLocalItems = localItems.filter { it.foodItemId !in remoteFoodItemIds }
+ 
+         if (pendingLocalItems.isNotEmpty() && pendingLocalItems.first().outletId != cartOutletId) {
+             hasSyncedFromBackend = true
+-            return@runCatching trySyncCartToBackend()
++            val id = trySyncCartToBackend()
++            return Result.success(id)
+         }
+ 
+@@ -198,11 +201,15 @@
+         hasSyncedFromBackend = true
+ 
+         if (pendingLocalItems.isNotEmpty()) {
+-            return@runCatching trySyncCartToBackend()
++            val id = trySyncCartToBackend()
++            return Result.success(id)
+         }
+         
+-        return@runCatching cartId
++        Result.success(cartId)
++    } catch (e: Exception) {
++        android.util.Log.e("SupabaseCartRepository", "syncCart error", e)
++        Result.failure(e)
+     }
+ 
+     override suspend fun addToCart(
+@@ -311,7 +318,7 @@
+         return cartDao.getCartOutletId()
+     }
+     
+     private suspend fun trySyncCartToBackend(): String {
+         val session = auth.currentSessionOrNull()
+         val userId = session?.user?.id ?: throw Exception("User not logged in")
+         
+@@ -348,51 +355,50 @@
+         }
+         
+         // 2. Update cart totals
+-        try {
+-            postgrest["carts"].update(
+-                {
+-                    set("subtotal", snapshot.subtotal)
+-                    set("tax", snapshot.tax)
+-                    set("total", snapshot.total)
+-                }
+-            ) {
+-                filter { eq("id", cartId) }
+-            }
+-        } catch (e: Exception) {
+-            android.util.Log.e("SyncDiag", "Failed to update carts table. cartId=$cartId", e)
+-            throw Exception("Failed to update cart totals: ${e.message}", e)
+-        }
++        postgrest["carts"].update(
++            {
++                set("subtotal", snapshot.subtotal)
++                set("tax", snapshot.tax)
++                set("total", snapshot.total)
++            }
++        ) {
++            filter { eq("id", cartId) }
++        }
+         
+-        // 3. Sync cart items
+-        try {
+-            postgrest["cart_items"].delete {
+-                filter { eq("cart_id", cartId) }
+-            }
+-        } catch (e: Exception) {
+-            android.util.Log.e("SyncDiag", "Failed to delete cart_items for cartId=$cartId", e)
+-        }
++        // 3. Upsert cart items
+         
+         val remoteItems = snapshot.items.map { item ->
+             SupabaseCartItem(
+                 id         = item.id,
+                 cartId     = cartId,
+                 foodItemId = item.foodItemId,
+                 quantity   = item.quantity,
+                 price      = item.price,
+-                isVeg      = item.isVeg
++                isVeg      = item.isVeg,
++                specialInstructions = item.specialInstructions
+             )
+         }
+         
+         if (remoteItems.isNotEmpty()) {
+-            try {
+-                postgrest["cart_items"].insert(remoteItems)
+-            } catch (e: Exception) {
+-                android.util.Log.e("SyncDiag", "Failed to insert cart_items. Items: $remoteItems", e)
+-                throw Exception("Failed to insert cart_items: ${e.message}", e)
+-            }
++            // Upsert all local items to remote database safely
++            postgrest["cart_items"].upsert(remoteItems) {
++                onConflict = "id"
++            }
++            
++            // Delete items that exist remotely but were removed locally
++            val currentIds = remoteItems.map { it.id }
++            postgrest["cart_items"].delete {
++                filter { 
++                    eq("cart_id", cartId)
++                    notIn("id", currentIds)
++                }
++            }
+             
+             val remoteCustomizations = snapshot.items.flatMap { item ->
+                 item.selectedCustomizations.map { custom ->
+                     SupabaseCartItemCustomization(
+                         cartItemId = item.id,
+                         variantId  = custom.customizationId,
+                         optionId   = custom.optionId,
+                         extraPrice = custom.extraPrice
+                     )
+                 }
+             }
+             
+             if (remoteCustomizations.isNotEmpty()) {
+-                try {
+-                    postgrest["cart_item_customizations"].insert(remoteCustomizations)
+-                } catch (e: Exception) {
+-                    android.util.Log.e("SyncDiag", "Failed to insert customizations", e)
+-                    throw Exception("Failed to insert customizations: ${e.message}", e)
+-                }
++                postgrest["cart_item_customizations"].upsert(remoteCustomizations) {
++                    onConflict = "cart_item_id, variant_id, option_id"
++                }
+             }
+         }
+         
+         return cartId
+     }

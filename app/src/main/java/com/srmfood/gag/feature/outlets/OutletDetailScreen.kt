@@ -6,13 +6,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.AccessTime
-import androidx.compose.material.icons.outlined.Groups
-import androidx.compose.material.icons.outlined.Phone
+import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material.icons.outlined.RestaurantMenu
 import androidx.compose.foundation.border
@@ -36,13 +36,11 @@ import com.srmfood.gag.core.ui.component.DeliveryModeSelector
 import com.srmfood.gag.core.ui.component.FoodItemCard
 import com.srmfood.gag.core.ui.component.GagErrorScreen
 import com.srmfood.gag.core.ui.component.GagLoadingScreen
-import com.srmfood.gag.core.ui.component.GagTopBar
 import com.srmfood.gag.core.ui.component.HostelAddressBanner
 import com.srmfood.gag.core.ui.component.HostelAddressDialog
 import com.srmfood.gag.core.ui.theme.*
 import com.srmfood.gag.domain.model.FoodItem
 import com.srmfood.gag.domain.model.Outlet
-import com.srmfood.gag.domain.model.QueueLevel
 import com.srmfood.gag.domain.repository.HostelAddress
 import com.srmfood.gag.domain.repository.OrderingMode
 import com.srmfood.gag.domain.repository.OrderingModeRepository
@@ -66,7 +64,6 @@ data class OutletDetailUiState(
     val outlet: UiState<Outlet> = UiState.Loading,
     val menu: UiState<List<FoodItem>> = UiState.Loading,
     val selectedCategory: String? = null,
-    // ─── Ordering mode ───────────────────────────────────────────
     val orderingMode: OrderingMode = OrderingMode.PICKUP,
     val hostelAddress: HostelAddress = HostelAddress()
 )
@@ -176,12 +173,16 @@ fun OutletDetailScreen(
             val outlet = outletState.data
             val menuItems = (uiState.menu as? UiState.Success)?.data ?: emptyList()
             val categories = menuItems.map { it.category }.distinct()
+            
+            // Create Popular section if requested (only when All is selected)
+            val popularItems = menuItems.filter { it.isPopular }
+            
             val filteredMenu = if (uiState.selectedCategory != null)
                 menuItems.filter { it.category == uiState.selectedCategory }
             else menuItems
 
             Scaffold(
-                containerColor = GagBackground,
+                containerColor = MaterialTheme.colorScheme.background,
                 snackbarHost = { SnackbarHost(snackbarHostState) },
                 contentWindowInsets = WindowInsets(0, 0, 0, 0)
             ) { padding ->
@@ -196,26 +197,41 @@ fun OutletDetailScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(280.dp)
+                                    .height(380.dp)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
                             ) {
                                 AsyncImage(
                                     model = outlet.imageUrl,
                                     contentDescription = outlet.name,
                                     contentScale = ContentScale.Crop,
-                                    modifier = Modifier.matchParentSize()
+                                    modifier = Modifier.fillMaxSize()
                                 )
-                                // Gradient Overlay
+                                // Top gradient for controls
                                 Box(
                                     modifier = Modifier
-                                        .matchParentSize()
+                                        .fillMaxWidth()
+                                        .height(120.dp)
+                                        .background(
+                                            Brush.verticalGradient(
+                                                colors = listOf(
+                                                    Color.Black.copy(alpha = 0.5f),
+                                                    Color.Transparent
+                                                )
+                                            )
+                                        )
+                                )
+                                // Bottom gradient to blend into content
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(100.dp)
+                                        .align(Alignment.BottomCenter)
                                         .background(
                                             Brush.verticalGradient(
                                                 colors = listOf(
                                                     Color.Transparent,
-                                                    Color.Black.copy(alpha = 0.3f),
-                                                    GagBackground
-                                                ),
-                                                startY = 200f
+                                                    MaterialTheme.colorScheme.background
+                                                )
                                             )
                                         )
                                 )
@@ -227,44 +243,55 @@ fun OutletDetailScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp)
-                                    .offset(y = (-32).dp)
+                                    .offset(y = (-40).dp)
+                                    .background(
+                                        color = MaterialTheme.colorScheme.background,
+                                        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+                                    )
+                                    .padding(horizontal = 24.dp, vertical = 24.dp)
                             ) {
                                 Text(
                                     text = outlet.name,
-                                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold),
+                                    style = MaterialTheme.typography.headlineLarge,
+                                    fontWeight = FontWeight.Black,
                                     color = MaterialTheme.colorScheme.onBackground,
-                                    maxLines = 2
+                                    maxLines = 2,
+                                    lineHeight = MaterialTheme.typography.headlineLarge.lineHeight
                                 )
-                                Spacer(modifier = Modifier.height(12.dp))
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                // Location Context
+                                val locationText = buildString {
+                                    append(outlet.location.building)
+                                    if (outlet.location.floor.isNotEmpty()) append(", ${outlet.location.floor}")
+                                }
+                                
+                                if (locationText.isNotEmpty()) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            Icons.Outlined.LocationOn, 
+                                            contentDescription = null, 
+                                            tint = GagPink, 
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = locationText,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = GagPink,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(20.dp))
                                 
                                 // Metadata row
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    // Rating
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Filled.Star, null, tint = GagYellow, modifier = Modifier.size(18.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = "${outlet.rating} (${outlet.totalReviews})",
-                                            style = MaterialTheme.typography.labelLarge,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onBackground
-                                        )
-                                    }
-                                    // Wait Time
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Outlined.AccessTime, null, tint = GagInfo, modifier = Modifier.size(16.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = "${outlet.estimatedWaitMinutes} min",
-                                            style = MaterialTheme.typography.labelLarge,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onBackground
-                                        )
-                                    }
                                     // Open/Closed Status
                                     Surface(
                                         shape = RoundedCornerShape(12.dp),
@@ -273,20 +300,64 @@ fun OutletDetailScreen(
                                         Text(
                                             text = if (outlet.isOpen) "Open" else "Closed",
                                             color = if (outlet.isOpen) GagSuccess else GagError,
-                                            style = MaterialTheme.typography.labelMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                                         )
+                                    }
+                                    
+                                    // Rating
+                                    if (outlet.rating > 0) {
+                                        Surface(
+                                            shape = RoundedCornerShape(12.dp),
+                                            color = GagYellow.copy(alpha = 0.15f)
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                            ) {
+                                                Icon(Icons.Filled.Star, null, tint = GagYellow, modifier = Modifier.size(16.dp))
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    text = "${outlet.rating} (${outlet.totalReviews})",
+                                                    style = MaterialTheme.typography.labelLarge,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    color = GagYellow
+                                                )
+                                            }
+                                        }
+                                    }
+                                    
+                                    // Wait Time
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = MaterialTheme.colorScheme.surfaceVariant
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                        ) {
+                                            Icon(Icons.Outlined.AccessTime, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = "${outlet.estimatedWaitMinutes} min wait",
+                                                style = MaterialTheme.typography.labelLarge,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.height(16.dp))
-                                
-                                Text(
-                                    text = outlet.description,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                if (outlet.description.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.height(20.dp))
+                                    Text(
+                                        text = outlet.description,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        lineHeight = MaterialTheme.typography.bodyLarge.lineHeight
+                                    )
+                                }
                             }
                         }
 
@@ -296,17 +367,17 @@ fun OutletDetailScreen(
                             Column(
                                 modifier = Modifier
                                     .padding(horizontal = 16.dp)
-                                    .padding(bottom = 8.dp)
-                                    .offset(y = (-24).dp)
+                                    .padding(bottom = 16.dp)
+                                    .offset(y = (-32).dp)
                             ) {
                                 DeliveryModeSelector(
                                     selectedMode = uiState.orderingMode,
                                     onModeSelected = { viewModel.setOrderingMode(it) }
                                 )
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(modifier = Modifier.height(12.dp))
                                 HostelAddressBanner(
                                     address = uiState.hostelAddress,
-                                    outletName = if (uiState.outlet is UiState.Success) (uiState.outlet as UiState.Success).data.name else null,
+                                    outletName = outlet.name,
                                     isDelivery = uiState.orderingMode == OrderingMode.DELIVERY,
                                     onChangeAddress = { showAddressDialog = true }
                                 )
@@ -327,12 +398,12 @@ fun OutletDetailScreen(
                         if (categories.isNotEmpty()) {
                             stickyHeader {
                                 Surface(
-                                    color = GagBackground,
-                                    modifier = Modifier.fillMaxWidth()
+                                    color = MaterialTheme.colorScheme.background,
+                                    modifier = Modifier.fillMaxWidth().offset(y = (-32).dp)
                                 ) {
                                     LazyRow(
-                                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                                     ) {
                                         item {
                                             GagCategoryChip(
@@ -361,8 +432,9 @@ fun OutletDetailScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .height(120.dp)
-                                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                                            .clip(RoundedCornerShape(16.dp))
+                                            .padding(horizontal = 24.dp, vertical = 8.dp)
+                                            .offset(y = (-32).dp)
+                                            .clip(RoundedCornerShape(20.dp))
                                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                                     )
                                 }
@@ -373,40 +445,73 @@ fun OutletDetailScreen(
                                         Column(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .padding(vertical = 48.dp),
+                                                .padding(vertical = 48.dp)
+                                                .offset(y = (-32).dp),
                                             horizontalAlignment = Alignment.CenterHorizontally
                                         ) {
                                             Icon(
-                                                imageVector = androidx.compose.material.icons.Icons.Outlined.RestaurantMenu,
+                                                imageVector = Icons.Outlined.RestaurantMenu,
                                                 contentDescription = null,
-                                                modifier = Modifier.size(48.dp),
+                                                modifier = Modifier.size(56.dp),
                                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
-                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Spacer(modifier = Modifier.height(16.dp))
                                             Text(
                                                 text = "No dishes available",
-                                                style = MaterialTheme.typography.titleMedium,
+                                                style = MaterialTheme.typography.titleLarge,
+                                                fontWeight = FontWeight.Bold,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                     }
                                 } else {
+                                    // Optional: Popular Section if viewing "All"
+                                    if (uiState.selectedCategory == null && popularItems.isNotEmpty()) {
+                                        item {
+                                            Text(
+                                                text = "Popular Choices",
+                                                style = MaterialTheme.typography.titleLarge,
+                                                fontWeight = FontWeight.Black,
+                                                color = MaterialTheme.colorScheme.onBackground,
+                                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp).offset(y = (-32).dp)
+                                            )
+                                        }
+                                        items(popularItems, key = { "pop_${it.id}" }) { food ->
+                                            FoodItemCard(
+                                                foodItem = food,
+                                                onClick = { onFoodClick(food.id) },
+                                                onAddToCart = { viewModel.addToCart(food) },
+                                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp).offset(y = (-32).dp)
+                                            )
+                                        }
+                                        item {
+                                            Spacer(modifier = Modifier.height(16.dp))
+                                            Text(
+                                                text = "All Menu",
+                                                style = MaterialTheme.typography.titleLarge,
+                                                fontWeight = FontWeight.Black,
+                                                color = MaterialTheme.colorScheme.onBackground,
+                                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp).offset(y = (-32).dp)
+                                            )
+                                        }
+                                    }
+                                    
                                     items(filteredMenu, key = { it.id }) { food ->
                                         FoodItemCard(
                                             foodItem = food,
                                             onClick = { onFoodClick(food.id) },
                                             onAddToCart = { viewModel.addToCart(food) },
-                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp).offset(y = (-32).dp)
                                         )
                                     }
-                                    item { Spacer(modifier = Modifier.height(32.dp)) }
+                                    item { Spacer(modifier = Modifier.height(48.dp)) }
                                 }
                             }
                             else -> {}
                         }
                     }
                     
-                    // 5. Top Controls (Back and Cart)
+                    // 5. Floating Top Controls (Back and Cart)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -415,12 +520,12 @@ fun OutletDetailScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         TopControlButton(
-                            icon = androidx.compose.material.icons.Icons.Default.ArrowBack,
+                            icon = Icons.AutoMirrored.Filled.ArrowBack,
                             onClick = onBack,
                             contentDescription = "Go back"
                         )
                         TopControlButton(
-                            icon = androidx.compose.material.icons.Icons.Outlined.ShoppingCart,
+                            icon = Icons.Outlined.ShoppingCart,
                             onClick = onCartClick,
                             contentDescription = "Cart"
                         )
@@ -440,17 +545,17 @@ private fun TopControlButton(
 ) {
     Box(
         modifier = Modifier
-            .size(40.dp)
-            .clip(androidx.compose.foundation.shape.CircleShape)
-            .background(Color.White.copy(alpha = 0.9f))
+            .size(44.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = Color.Black,
-            modifier = Modifier.size(22.dp)
+            tint = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.size(24.dp)
         )
     }
 }
@@ -466,11 +571,11 @@ private fun GagCategoryChip(
     
     Box(
         modifier = Modifier
-            .clip(androidx.compose.foundation.shape.CircleShape)
+            .clip(CircleShape)
             .background(backgroundColor)
             .clickable(onClick = onClick)
             .then(
-                if (!selected) Modifier.border(1.dp, MaterialTheme.colorScheme.surfaceVariant, androidx.compose.foundation.shape.CircleShape)
+                if (!selected) Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
                 else Modifier
             )
             .padding(horizontal = 20.dp, vertical = 10.dp),

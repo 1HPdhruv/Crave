@@ -39,7 +39,8 @@ class MockAuthRepository @Inject constructor(
         email: String,
         password: String,
         phone: String?,
-        registrationNumber: String?
+        registrationNumber: String?,
+        requestedRole: String
     ): Result<com.srmfood.gag.domain.repository.AuthResult> = runCatching {
         val response = api.register(RegisterRequestDto(name, email, password, phone, registrationNumber))
         tokenManager.saveTokens(response.accessToken, response.refreshToken)
@@ -84,5 +85,16 @@ class MockAuthRepository @Inject constructor(
         
         userDao.insertUser(updatedEntity)
         updatedEntity.toDomain()
+    }
+
+    override suspend fun getAdminUsers(
+        roleFilter: String?,
+        searchQuery: String?
+    ): Result<List<User>> = runCatching {
+        emptyList()
+    }
+
+    override suspend fun getAdminUserById(userId: String): Result<User> = runCatching {
+        throw Exception("Not implemented")
     }
 }

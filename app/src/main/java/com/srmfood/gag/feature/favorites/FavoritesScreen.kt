@@ -17,18 +17,15 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.srmfood.gag.core.common.UiState
 import com.srmfood.gag.core.ui.component.FoodItemCard
-import com.srmfood.gag.core.ui.component.GagBottomNavBar
 import com.srmfood.gag.core.ui.component.GagErrorScreen
 import com.srmfood.gag.core.ui.component.GagLoadingScreen
 import com.srmfood.gag.core.ui.component.GagPrimaryButton
-import com.srmfood.gag.core.ui.component.studentBottomNavItems
 import com.srmfood.gag.core.ui.theme.*
 
 @Composable
 fun FavoritesScreen(
     onBack: () -> Unit,
     onFoodClick: (String) -> Unit,
-    onNavigateBottom: (String) -> Unit,
     viewModel: FavoritesViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -57,14 +54,7 @@ fun FavoritesScreen(
     }
 
     Scaffold(
-        bottomBar = {
-            GagBottomNavBar(
-                items = studentBottomNavItems,
-                currentRoute = "favorites",
-                onItemSelected = onNavigateBottom
-            )
-        },
-        containerColor = GagBackground,
+        containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         when (val state = uiState.results) {
@@ -79,7 +69,7 @@ fun FavoritesScreen(
             is UiState.Idle,
             is UiState.Empty -> FavoritesEmptyState(
                 modifier = Modifier.padding(padding),
-                onExplore = { onNavigateBottom("home") }
+                onExplore = onBack
             )
 
             is UiState.Success -> {
@@ -87,7 +77,7 @@ fun FavoritesScreen(
                 if (items.isEmpty()) {
                     FavoritesEmptyState(
                         modifier = Modifier.padding(padding),
-                        onExplore = { onNavigateBottom("home") }
+                        onExplore = onBack
                     )
                 } else {
                     Column(

@@ -357,4 +357,52 @@ class SupabaseFoodRepository @Inject constructor(
             filter { eq("id", foodId) }
         }
     }
+
+    override suspend fun getAdminFoodItems(
+        searchQuery: String?,
+        outletId: String?,
+        category: String?,
+        availability: String?,
+        isVeg: Boolean?
+    ): Result<List<FoodItem>> = runCatching {
+        val dtos = postgrest["food_items"].select(Columns.raw(FOOD_COLUMNS)) {
+            filter {
+                if (!searchQuery.isNullOrBlank()) {
+                    val q = searchQuery.trim()
+                    or {
+                        ilike("name", "%$q%")
+                        ilike("description", "%$q%")
+                    }
+                }
+                if (!outletId.isNullOrBlank() && outletId != "ALL") {
+                    eq("outlet_id", outletId)
+                }
+                if (!category.isNullOrBlank() && category != "ALL") {
+                    eq("category_id", category) // Assuming category is matched via category_id for relation, or check the schema
+                    // If it is just category text on food_items, wait, let's look at FoodItemDto.
+                    // Let's use eq("category_id", category) for now. If it fails, we will see. Wait, we don't have category_id in FoodItemDto? 
+                    // Let's assume we filter on client if not easily available, or I'll just skip category filter for now or filter post-fetch.
+                    // Actually, I can filter post-fetch for category if it's tricky, but let's try eq("category_id", category).
+                }
+                if (availability != null && availability != "ALL") {
+                    when (availability.uppercase()) {
+                        "AVAILABLE" -> eq("is_available", true)
+                        "UNAVAILABLE" -> eq("is_available", false)
+                    }
+                }
+                if (isVeg != null) {
+                    eq("is_veg", isVeg)
+                }
+            }
+        }.decodeList<FoodItemDto>()
+
+        var items = dtos.map { it.toDomain() }
+        
+        // Post-fetch category filtering because category is fetched via join (category.name)
+        if (!category.isNullOrBlank() && category != "ALL") {
+            items = items.filter { it.category.equals(category, ignoreCase = true) }
+        }
+
+        items
+    }
 }

@@ -1,11 +1,14 @@
 package com.srmfood.gag.core.ui.component
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -13,12 +16,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.srmfood.gag.core.ui.theme.GagPink
-import com.srmfood.gag.core.ui.theme.GagPinkContainer
-import com.srmfood.gag.core.ui.theme.GagPink
-import com.srmfood.gag.core.ui.theme.GagPinkContainer
 
-// ─── Primary CTA Button — CRAVE RED ──────────────────────────────
+// ─── Primary CTA Button ───────────────────────────────────────────
 
 @Composable
 fun GagPrimaryButton(
@@ -29,7 +28,16 @@ fun GagPrimaryButton(
     isLoading: Boolean = false,
     icon: ImageVector? = null
 ) {
-    val scale by animateFloatAsState(targetValue = if (enabled) 1f else 0.98f, label = "btn_scale")
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = when {
+            !enabled     -> 0.97f
+            isPressed    -> 0.96f
+            else         -> 1f
+        },
+        label = "btn_scale"
+    )
     Button(
         onClick = { if (!isLoading) onClick() },
         modifier = modifier
@@ -37,9 +45,10 @@ fun GagPrimaryButton(
             .height(56.dp)
             .scale(scale),
         enabled = enabled && !isLoading,
+        interactionSource = interactionSource,
         colors = ButtonDefaults.buttonColors(
-            containerColor = GagPink,
-            contentColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
             disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
             disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
         ),
@@ -49,7 +58,7 @@ fun GagPrimaryButton(
         if (isLoading) {
             CircularProgressIndicator(
                 modifier = Modifier.size(22.dp),
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onPrimary,
                 strokeWidth = 2.dp
             )
         } else {
@@ -85,10 +94,10 @@ fun GagSecondaryButton(
             .height(52.dp),
         enabled = enabled,
         colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = MaterialTheme.colorScheme.onBackground
+            contentColor = MaterialTheme.colorScheme.primary
         ),
         border = androidx.compose.foundation.BorderStroke(
-            1.dp, MaterialTheme.colorScheme.outline
+            1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
         ),
         shape = CircleShape
     ) {
@@ -113,7 +122,7 @@ fun GagTextButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    color: Color = GagPink
+    color: Color = MaterialTheme.colorScheme.primary   // Token-based default
 ) {
     TextButton(
         onClick = onClick,
@@ -146,8 +155,8 @@ fun GagTonalButton(
             .height(50.dp),
         enabled = enabled && !isLoading,
         colors = ButtonDefaults.filledTonalButtonColors(
-            containerColor = GagPinkContainer,
-            contentColor = GagPink
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
         ),
         shape = CircleShape
     ) {

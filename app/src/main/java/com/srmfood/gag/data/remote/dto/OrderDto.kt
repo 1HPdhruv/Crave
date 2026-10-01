@@ -64,7 +64,8 @@ data class PickupSlotDto(
     @SerialName("slot_date") val date: String,
     @SerialName("capacity") val capacity: Int,
     @SerialName("booked_count") val bookedCount: Int,
-    @SerialName("status") val status: String
+    @SerialName("status") val status: String,
+    @SerialName("outlets") val outlet: OutletNameDto? = null
 )
 
 @Serializable

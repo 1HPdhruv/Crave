@@ -22,10 +22,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.srmfood.gag.core.common.UiState
-import com.srmfood.gag.core.ui.component.GagBottomNavBar
 import com.srmfood.gag.core.ui.component.GagErrorScreen
 import com.srmfood.gag.core.ui.component.GagLoadingScreen
-import com.srmfood.gag.core.ui.component.studentBottomNavItems
 import com.srmfood.gag.core.ui.theme.*
 import com.srmfood.gag.domain.model.Notification
 import com.srmfood.gag.domain.model.NotificationType
@@ -34,20 +32,12 @@ import com.srmfood.gag.domain.model.NotificationType
 fun NotificationsScreen(
     onBack: () -> Unit,
     onOrderClick: (String) -> Unit,
-    onNavigateBottom: (String) -> Unit,
     viewModel: NotificationsViewModel = hiltViewModel()
 ) {
     val state by viewModel.notifications.collectAsState()
 
     Scaffold(
-        bottomBar = {
-            GagBottomNavBar(
-                items = studentBottomNavItems,
-                currentRoute = "notifications",
-                onItemSelected = onNavigateBottom
-            )
-        },
-        containerColor = GagBackground,
+        containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         when (val uiState = state) {

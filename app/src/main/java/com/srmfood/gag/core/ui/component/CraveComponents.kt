@@ -27,7 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.srmfood.gag.core.ui.theme.*
+import com.srmfood.gag.core.ui.theme.GagStarYellow
 import com.srmfood.gag.domain.model.Outlet
 
 // ─── Section Header ────────────────────────────────────────────────
@@ -58,7 +58,7 @@ fun CraveSectionHeader(
                     text = "See all",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
-                    color = GagPink
+                    color = MaterialTheme.colorScheme.primary    // Token — no raw GagPink
                 )
             }
         }
@@ -76,8 +76,13 @@ fun CraveRestaurantCard(
     Column(
         modifier = modifier
             .width(200.dp)
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(MaterialTheme.colorScheme.surface)
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant,
+                shape = RoundedCornerShape(16.dp)
+            )
             .clickable(onClick = onClick)
     ) {
         // Image — 4:3
@@ -85,7 +90,7 @@ fun CraveRestaurantCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(130.dp)
-                .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp))
+                .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
             AsyncImage(
@@ -94,16 +99,20 @@ fun CraveRestaurantCard(
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
-            // Open/closed badge
+            // Closed overlay — slightly stronger scrim
             if (!outlet.isOpen) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.5f))
+                        .background(Color.Black.copy(alpha = 0.55f))
                 )
+                // Pill-style "Closed" label
                 Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.6f))
+                        .padding(horizontal = 14.dp, vertical = 6.dp)
                 ) {
                     Text(
                         text = "Closed",
@@ -132,7 +141,7 @@ fun CraveRestaurantCard(
                 Icon(
                     imageVector = Icons.Filled.Star,
                     contentDescription = null,
-                    tint = Color(0xFFF59E0B),
+                    tint = GagStarYellow,           // Named token — not hard-coded
                     modifier = Modifier.size(12.dp)
                 )
                 Spacer(modifier = Modifier.width(3.dp))
@@ -175,16 +184,19 @@ fun CraveFilterChip(
     leadingIcon: ImageVector? = null
 ) {
     val bgColor by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.colorScheme.onBackground else Color.Transparent,
+        // Selected: primary; unselected: transparent with border
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
         animationSpec = tween(150),
         label = "chip_bg_$label"
     )
     val textColor by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
+        targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                      else MaterialTheme.colorScheme.onSurface,
         animationSpec = tween(150),
         label = "chip_text_$label"
     )
-    val borderColor = if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outline
+    val borderColor = if (isSelected) Color.Transparent
+                      else MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
 
     Row(
         modifier = modifier
@@ -220,8 +232,8 @@ fun CraveCircularButton(
     icon: ImageVector,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    containerColor: Color = Color.White,
-    contentColor: Color = Color(0xFF191919),
+    containerColor: Color = MaterialTheme.colorScheme.surface,
+    contentColor: Color = MaterialTheme.colorScheme.onSurface,
     size: Int = 40
 ) {
     Box(
@@ -253,7 +265,7 @@ fun CraveAddButton(
         modifier = modifier
             .size(size.dp)
             .clip(CircleShape)
-            .background(GagPink)
+            .background(MaterialTheme.colorScheme.primary)  // Token — no raw GagPink
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
@@ -261,7 +273,7 @@ fun CraveAddButton(
             text = "+",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color = Color.White
+            color = MaterialTheme.colorScheme.onPrimary
         )
     }
 }
@@ -276,7 +288,7 @@ fun CravePromoBanner(
     onCtaClick: () -> Unit,
     modifier: Modifier = Modifier,
     imageUrl: String? = null,
-    backgroundColor: Color = GagPink
+    backgroundColor: Color = MaterialTheme.colorScheme.primary
 ) {
     Box(
         modifier = modifier
@@ -325,20 +337,20 @@ fun CravePromoBanner(
                 text = title,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.ExtraBold,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onPrimary,
                 maxLines = 2
             )
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.85f),
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f),
                 maxLines = 2
             )
             Spacer(modifier = Modifier.height(4.dp))
             Box(
                 modifier = Modifier
                     .clip(CircleShape)
-                    .background(Color.White)
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f))
                     .clickable(onClick = onCtaClick)
                     .padding(horizontal = 14.dp, vertical = 6.dp)
             ) {
@@ -379,7 +391,7 @@ fun CravePriceRow(
             text = value,
             style = if (isTotal) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
             fontWeight = if (isTotal) FontWeight.ExtraBold else FontWeight.Medium,
-            color = if (isTotal) MaterialTheme.colorScheme.onSurface else valueColor
+            color = if (isTotal) MaterialTheme.colorScheme.primary else valueColor  // Total uses primary
         )
     }
 }
@@ -406,12 +418,12 @@ fun CraveCategoryChip(
                 .size(56.dp)
                 .clip(RoundedCornerShape(14.dp))
                 .background(
-                    if (isSelected) GagPink.copy(alpha = 0.12f)
+                    if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
                     else MaterialTheme.colorScheme.surfaceVariant
                 )
                 .border(
                     if (isSelected) 1.5.dp else 0.dp,
-                    if (isSelected) GagPink else Color.Transparent,
+                    if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
                     RoundedCornerShape(14.dp)
                 ),
             contentAlignment = Alignment.Center
@@ -426,12 +438,12 @@ fun CraveCategoryChip(
                     contentScale = ContentScale.Crop
                 )
             } else {
-                // Letter fallback
                 Text(
                     text = label.take(1).uppercase(),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (isSelected) GagPink else MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (isSelected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -440,7 +452,8 @@ fun CraveCategoryChip(
             text = label,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (isSelected) GagPink else MaterialTheme.colorScheme.onSurfaceVariant,
+            color = if (isSelected) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1
         )
     }
@@ -457,13 +470,17 @@ fun CraveSearchBar(
     readOnly: Boolean = false,
     onClick: (() -> Unit)? = null
 ) {
-    val interactionSource = androidx.compose.foundation.interaction.MutableInteractionSource()
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(52.dp)
+            .height(54.dp)
             .clip(RoundedCornerShape(14.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                shape = RoundedCornerShape(14.dp)
+            )
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -471,7 +488,7 @@ fun CraveSearchBar(
         Icon(
             imageVector = Icons.Outlined.Search,
             contentDescription = "Search",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
             modifier = Modifier.size(20.dp)
         )
         Spacer(modifier = Modifier.width(12.dp))
@@ -520,6 +537,3 @@ private fun BasicSearchTextField(
         }
     )
 }
-
-
-

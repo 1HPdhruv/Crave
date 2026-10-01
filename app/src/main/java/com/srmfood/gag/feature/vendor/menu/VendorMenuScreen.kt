@@ -72,7 +72,7 @@ fun VendorMenuScreen(
 ) {
     val state by viewModel.foodItems.collectAsState()
 
-    Scaffold(topBar = { GagTopBar("Manage Menu", onBack = onBack) }, containerColor = GagBackground) { padding ->
+    Scaffold(topBar = { GagTopBar("Manage Menu", onBack = onBack) }, containerColor = MaterialTheme.colorScheme.background) { padding ->
         when (val uiState = state) {
             is UiState.Loading -> GagLoadingScreen(modifier = Modifier.padding(padding))
             is UiState.Empty -> GagEmptyScreen(title = "No menu items found.", modifier = Modifier.padding(padding))

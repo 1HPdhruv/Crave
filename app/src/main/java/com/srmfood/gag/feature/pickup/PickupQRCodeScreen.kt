@@ -68,7 +68,7 @@ fun PickupQRCodeScreen(
 
     Scaffold(
         topBar = { GagTopBar(title = "Pickup QR Code", onBack = onBack) },
-        containerColor = GagBackground
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Column(
             modifier = Modifier.fillMaxSize().padding(padding).padding(24.dp),

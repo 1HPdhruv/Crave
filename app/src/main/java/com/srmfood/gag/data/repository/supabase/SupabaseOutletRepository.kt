@@ -97,6 +97,39 @@ class SupabaseOutletRepository @Inject constructor(
         dtos.map { it.toDomain() }
     }
 
+    override suspend fun getAdminOutlets(statusFilter: String?, searchQuery: String?): Result<List<Outlet>> = runCatching {
+        val dtos = postgrest["outlets"].select {
+            filter {
+                if (statusFilter != null && statusFilter != "ALL") {
+                    when (statusFilter.uppercase()) {
+                        "OPEN" -> {
+                            eq("is_active", true)
+                            eq("is_open", true)
+                        }
+                        "CLOSED" -> {
+                            eq("is_active", true)
+                            eq("is_open", false)
+                        }
+                        "INACTIVE" -> {
+                            eq("is_active", false)
+                        }
+                    }
+                }
+                
+                if (!searchQuery.isNullOrBlank()) {
+                    val q = searchQuery.trim()
+                    or {
+                        ilike("name", "%$q%")
+                        ilike("description", "%$q%")
+                    }
+                }
+            }
+            order("name", io.github.jan.supabase.postgrest.query.Order.ASCENDING)
+        }.decodeList<OutletDto>()
+        
+        dtos.map { it.toDomain() }
+    }
+
     private fun OutletDto.toDomain(): Outlet {
         return Outlet(
             id = id,

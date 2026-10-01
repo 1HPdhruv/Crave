@@ -1,0 +1,1 @@
+{"_tag":"Error","error":{"code":"LegacyDbQueryUnexpectedStatusError","message":"unexpected status 400: {\"message\":\"Failed to run sql query: ERROR:  42809: \\\"array_agg\\\" is an aggregate function\\n\"}"}}

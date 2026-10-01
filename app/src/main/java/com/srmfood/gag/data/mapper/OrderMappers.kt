@@ -116,6 +116,7 @@ fun OrderItemDto.toDomain(): OrderItem = OrderItem(
 fun PickupSlotDto.toDomain(): PickupSlot = PickupSlot(
     id = id,
     outletId = outletId,
+    outletName = outlet?.name ?: "Unknown",
     startTime = startTime,
     endTime = endTime,
     date = date,

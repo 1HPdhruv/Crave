@@ -23,6 +23,10 @@ class MockOutletRepository @Inject constructor(
         }
     }
 
+    override suspend fun getAdminOutlets(statusFilter: String?, searchQuery: String?): Result<List<Outlet>> = runCatching {
+        emptyList()
+    }
+
     override suspend fun refreshOutlets(): Result<List<Outlet>> = runCatching {
         val response = api.getOutlets()
         val entities = response.outlets.map { it.toEntity() }

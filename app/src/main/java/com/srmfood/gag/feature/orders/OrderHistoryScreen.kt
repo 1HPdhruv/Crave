@@ -18,11 +18,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.srmfood.gag.core.common.UiState
-import com.srmfood.gag.core.ui.component.GagBottomNavBar
 import com.srmfood.gag.core.ui.component.GagEmptyScreen
 import com.srmfood.gag.core.ui.component.GagLoadingScreen
 import com.srmfood.gag.core.ui.component.GagTopBar
-import com.srmfood.gag.core.ui.component.studentBottomNavItems
 import com.srmfood.gag.core.ui.theme.*
 import com.srmfood.gag.domain.model.Order
 import com.srmfood.gag.domain.model.OrderStatus
@@ -56,16 +54,14 @@ class OrderHistoryViewModel @Inject constructor(
 // ─── Screen ───────────────────────────────────────────────────────────────────
 @Composable
 fun OrderHistoryScreen(
-    onBack: () -> Unit,
     onOrderClick: (String) -> Unit,
-    onNavigateBottom: (String) -> Unit,
+    onBrowseFood: () -> Unit,
     viewModel: OrderHistoryViewModel = hiltViewModel()
 ) {
     val ordersState by viewModel.orders.collectAsState()
 
     Scaffold(
-        bottomBar = { GagBottomNavBar(items = studentBottomNavItems, currentRoute = "orders", onItemSelected = onNavigateBottom) },
-        containerColor = GagBackground,
+        containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         when (val state = ordersState) {
@@ -91,7 +87,7 @@ fun OrderHistoryScreen(
                     Spacer(modifier = Modifier.height(32.dp))
                     com.srmfood.gag.core.ui.component.GagPrimaryButton(
                         text = "Explore Food",
-                        onClick = { onNavigateBottom("home") }
+                        onClick = onBrowseFood
                     )
                 }
             }
@@ -106,9 +102,9 @@ fun OrderHistoryScreen(
                     // Header
                     item {
                         Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp).statusBarsPadding()) {
-                            Text("Your Orders", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold)
+                            Text("Orders", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onBackground)
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text("Track your cravings", style = MaterialTheme.typography.titleMedium, color = GagPink)
+                            Text("Your campus food history", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
 
@@ -146,15 +142,15 @@ private fun SectionLabel(label: String) {
 @Composable
 private fun OrderHistoryCard(order: Order, isActive: Boolean, onClick: () -> Unit) {
     val statusColor = order.status.color()
-    val bgColor = if (isActive) GagPink.copy(alpha = 0.05f) else MaterialTheme.colorScheme.surface
-    val outlineColor = if (isActive) GagPink.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant
+    val bgColor = if (isActive) OrbitLime.copy(alpha = 0.06f) else MaterialTheme.colorScheme.surface
+    val outlineColor = if (isActive) OrbitLime.copy(alpha = 0.4f) else MaterialTheme.colorScheme.outlineVariant
 
     Surface(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(16.dp),
         color = bgColor,
-        border = androidx.compose.foundation.BorderStroke(1.dp, outlineColor),
-        shadowElevation = if (isActive) 4.dp else 2.dp
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, outlineColor),
+        shadowElevation = 0.dp
     ) {
         Column(modifier = Modifier.clickable(onClick = onClick).padding(16.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
@@ -212,7 +208,7 @@ private fun OrderHistoryCard(order: Order, isActive: Boolean, onClick: () -> Uni
                     )
                 } else {
                     TextButton(onClick = onClick, modifier = Modifier.padding(0.dp)) {
-                        Text("View Details", color = GagPink, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
+                        Text("View Details", color = OrbitLime, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
                     }
                 }
             }
@@ -223,8 +219,8 @@ private fun OrderHistoryCard(order: Order, isActive: Boolean, onClick: () -> Uni
 fun OrderStatus.color() = when (this) {
     OrderStatus.PLACED -> GagInfo
     OrderStatus.ACCEPTED -> StatusAccepted
-    OrderStatus.PREPARING -> GagPink
-    OrderStatus.READY -> GagSuccess
+    OrderStatus.PREPARING -> OrbitLime
+    OrderStatus.READY -> OrbitSuccess
     OrderStatus.PICKED_UP -> GagSuccess
     OrderStatus.CANCELLED, OrderStatus.REJECTED -> GagError
     OrderStatus.EXPIRED -> GagOnSurfaceVariant

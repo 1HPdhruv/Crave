@@ -6,7 +6,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-val GagFontFamily = FontFamily.Default
+// Inter / system sans — resolves to Inter on API 31+, clean Roboto below.
+// Zero dependency — FontFamily.SansSerif is the recommended system neutral.
+val GagFontFamily = FontFamily.SansSerif
 
 val GagTypography = Typography(
     // ─── Display — Hero text, splash screens ─────────────────────
@@ -15,21 +17,21 @@ val GagTypography = Typography(
         fontWeight = FontWeight.ExtraBold,
         fontSize = 32.sp,
         lineHeight = 38.sp,
-        letterSpacing = (-0.5).sp
+        letterSpacing = (-0.8).sp       // Tighter for premium feel
     ),
     displayMedium = TextStyle(
         fontFamily = GagFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 28.sp,
         lineHeight = 34.sp,
-        letterSpacing = (-0.25).sp
+        letterSpacing = (-0.5).sp
     ),
     displaySmall = TextStyle(
         fontFamily = GagFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 24.sp,
         lineHeight = 30.sp,
-        letterSpacing = (-0.25).sp
+        letterSpacing = (-0.35).sp
     ),
 
     // ─── Headline — Screen titles, prominent sections ─────────────
@@ -38,21 +40,21 @@ val GagTypography = Typography(
         fontWeight = FontWeight.Bold,
         fontSize = 24.sp,
         lineHeight = 30.sp,
-        letterSpacing = (-0.25).sp
+        letterSpacing = (-0.35).sp
     ),
     headlineMedium = TextStyle(
         fontFamily = GagFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 22.sp,
         lineHeight = 28.sp,
-        letterSpacing = (-0.15).sp
+        letterSpacing = (-0.25).sp
     ),
     headlineSmall = TextStyle(
         fontFamily = GagFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 20.sp,
         lineHeight = 26.sp,
-        letterSpacing = (-0.1).sp
+        letterSpacing = (-0.15).sp
     ),
 
     // ─── Title — Card titles, section names ──────────────────────
@@ -61,7 +63,7 @@ val GagTypography = Typography(
         fontWeight = FontWeight.SemiBold,
         fontSize = 18.sp,
         lineHeight = 24.sp,
-        letterSpacing = 0.sp
+        letterSpacing = (-0.1).sp
     ),
     titleMedium = TextStyle(
         fontFamily = GagFontFamily,

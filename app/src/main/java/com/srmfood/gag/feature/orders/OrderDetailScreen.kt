@@ -70,6 +70,7 @@ class OrderDetailViewModel @Inject constructor(
 @Composable
 fun OrderDetailScreen(
     orderId: String,
+    fromCheckout: Boolean = false,
     onBack: () -> Unit,
     onTrackOrder: (String) -> Unit,
     onShowQR: (String) -> Unit,
@@ -79,7 +80,7 @@ fun OrderDetailScreen(
     val orderState by viewModel.order.collectAsState()
 
     Scaffold(
-        containerColor = GagBackground,
+        containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         when (val state = orderState) {
@@ -133,7 +134,7 @@ private fun OrderDetailContent(order: Order, onBack: () -> Unit, onTrack: () -> 
                     Text(order.outletName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     order.pickupSlot?.let {
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text("Scheduled: ${it.displayTime}", style = MaterialTheme.typography.bodySmall, color = GagPink, fontWeight = FontWeight.SemiBold)
+                        Text("Scheduled: ${it.displayTime}", style = MaterialTheme.typography.bodySmall, color = OrbitLime, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }

@@ -57,7 +57,7 @@ fun VendorOrdersScreen(
 
     Scaffold(
         topBar = { GagTopBar(title = "All Orders", onBack = onBack) },
-        containerColor = GagBackground
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         when (val state = ordersState) {
             is UiState.Loading -> GagLoadingScreen(modifier = Modifier.padding(padding))

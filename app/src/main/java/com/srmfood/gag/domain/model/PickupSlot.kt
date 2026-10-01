@@ -10,6 +10,7 @@ import kotlinx.serialization.Serializable
 data class PickupSlot(
     val id: String,
     val outletId: String,
+    val outletName: String = "Unknown",
     val startTime: String,      // "12:30"
     val endTime: String,        // "12:40"
     val date: String,           // "2024-01-15"

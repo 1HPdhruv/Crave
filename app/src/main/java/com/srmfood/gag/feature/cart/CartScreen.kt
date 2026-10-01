@@ -1,7 +1,8 @@
 package com.srmfood.gag.feature.cart
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -9,25 +10,24 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.FiberManualRecord
-import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.srmfood.gag.core.common.UiState
-import com.srmfood.gag.core.ui.component.GagEmptyScreen
-import com.srmfood.gag.core.ui.component.GagFoodImage
+import coil.compose.AsyncImage
 import com.srmfood.gag.core.ui.component.GagPrimaryButton
-import com.srmfood.gag.core.ui.component.GagTopBar
 import com.srmfood.gag.core.ui.component.QuantitySelector
 import com.srmfood.gag.core.ui.theme.*
 import com.srmfood.gag.domain.model.Cart
@@ -47,7 +47,7 @@ import java.text.NumberFormat
 import java.util.Locale
 import javax.inject.Inject
 
-// ─── ViewModel ────────────────────────────────────────────────────────────────
+// ─── ViewModel ────────────────────────────────────────────────────
 @HiltViewModel
 class CartViewModel @Inject constructor(
     private val getCartUseCase: GetCartUseCase,
@@ -80,7 +80,7 @@ class CartViewModel @Inject constructor(
     }
 }
 
-// ─── Screen ───────────────────────────────────────────────────────────────────
+// ─── Screen ───────────────────────────────────────────────────────
 @Composable
 fun CartScreen(
     onBack: () -> Unit,
@@ -95,152 +95,229 @@ fun CartScreen(
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
-            if (cart != null && !cart!!.isEmpty) {
+            val safeCart = cart
+            if (safeCart != null && !safeCart.isEmpty) {
                 Surface(
-                    color = MaterialTheme.colorScheme.background, 
-                    shadowElevation = 16.dp,
-                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = 0.dp,
+                    border = androidx.compose.foundation.BorderStroke(
+                        0.5.dp, MaterialTheme.colorScheme.outlineVariant
+                    ),
+                    shape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp)
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp)
+                            .padding(horizontal = GagSpacing.Large, vertical = 16.dp)
                             .navigationBarsPadding()
                     ) {
-                        GagPrimaryButton(
-                            text = "Proceed to Checkout   ₹${fmt.format(cart!!.total)}",
-                            onClick = onCheckout,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
-            }
-        }
-    ) { padding ->
-        if (cart == null || cart!!.isEmpty) {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "Your cart is empty",
-                    style = MaterialTheme.typography.headlineMedium, 
-                    fontWeight = FontWeight.ExtraBold, 
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "Looks like you haven't added anything yet.", 
-                    style = MaterialTheme.typography.bodyLarge, 
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(32.dp))
-                GagPrimaryButton(
-                    text = "Explore Food",
-                    onClick = onBrowseFood
-                )
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = padding.calculateBottomPadding() + 24.dp)
-            ) {
-                // Header
-                item {
-                    Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp).statusBarsPadding()) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            IconButton(onClick = onBack, modifier = Modifier.offset(x = (-12).dp)) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Go back")
-                            }
-                            TextButton(onClick = viewModel::clearCart, modifier = Modifier.offset(x = 12.dp)) {
-                                Text("Clear Cart", color = GagError, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                            }
+                            Text(
+                                text = "Total",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "₹${fmt.format(safeCart.total)}",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Black,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Your Cart", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(
+                            onClick = onCheckout,
+                            modifier = Modifier.fillMaxWidth().height(52.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = OrbitLime,
+                                contentColor = OrbitOnLime
+                            ),
+                            shape = RoundedCornerShape(14.dp)
+                        ) {
+                            Text(
+                                "Proceed to Checkout",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    ) { padding ->
+        val safeCart = cart
+        if (safeCart == null || safeCart.isEmpty) {
+            // Empty state
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "Your cart is empty",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Find something good on campus.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(32.dp))
+                Button(
+                    onClick = onBrowseFood,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = OrbitLime,
+                        contentColor = OrbitOnLime
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.height(48.dp)
+                ) {
+                    Text("Explore food", fontWeight = FontWeight.Bold)
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    top = padding.calculateTopPadding(),
+                    bottom = padding.calculateBottomPadding() + 24.dp
+                )
+            ) {
+                // Header
+                item {
+                    Column(
+                        modifier = Modifier
+                            .padding(horizontal = GagSpacing.Large, vertical = GagSpacing.Medium)
+                            .statusBarsPadding()
+                    ) {
+                        IconButton(
+                            onClick = onBack,
+                            modifier = Modifier.offset(x = (-12).dp)
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Go back",
+                                tint = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text("${cart!!.items.size} items", style = MaterialTheme.typography.titleMedium, color = GagPink)
+                        Text(
+                            text = "Cart",
+                            style = MaterialTheme.typography.displaySmall,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "${safeCart.items.size} item${if (safeCart.items.size != 1) "s" else ""}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
 
-                // Outlet info
+                // Outlet context
                 item {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
-                        shape = RoundedCornerShape(16.dp), 
-                        color = GagPinkContainer
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = GagSpacing.Large, vertical = 4.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("Ordering from", style = MaterialTheme.typography.bodyMedium, color = GagOnPinkContainer)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(cart!!.outletName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = GagPink)
+                        Icon(
+                            Icons.Outlined.Storefront,
+                            contentDescription = null,
+                            tint = OrbitLime,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = safeCart.outletName,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Outlined.LocationOn, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(12.dp))
+                                Spacer(Modifier.width(3.dp))
+                                Text("SRM KTR", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                     }
+                    Spacer(modifier = Modifier.height(GagSpacing.Medium))
+                }
+
+                // Divider
+                item {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = GagSpacing.Large),
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
                 }
 
                 // Cart items
-                items(cart!!.items, key = { it.id }) { item ->
-                    CartItemRow(
+                items(safeCart.items, key = { it.id }) { item ->
+                    OrbitCartItemRow(
                         item = item,
                         onQuantityChanged = { viewModel.updateQuantity(item.id, it) },
                         onRemove = { viewModel.removeItem(item.id) }
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = GagSpacing.Large),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                     )
                 }
 
                 // Bill Summary
                 item {
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Surface(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-                        shape = RoundedCornerShape(20.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant
-                    ) {
-                        Column(modifier = Modifier.padding(20.dp)) {
-                            Text("Bill Summary", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                            Spacer(modifier = Modifier.height(16.dp))
-                            
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Subtotal", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("₹${fmt.format(cart!!.subtotal)}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                            }
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("GST (5%)", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("₹${fmt.format(cart!!.tax)}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                            }
-                            
-                            Spacer(modifier = Modifier.height(16.dp))
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                            Spacer(modifier = Modifier.height(16.dp))
-                            
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Text("Total", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
-                                Text("₹${fmt.format(cart!!.total)}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = GagPink)
-                            }
+                    Spacer(modifier = Modifier.height(GagSpacing.Large))
+                    Text(
+                        text = "Bill Details",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.padding(horizontal = GagSpacing.Large)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                            if (cart!!.estimatedPrepMinutes > 0) {
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = GagWarningContainer
-                                ) {
-                                    Text(
-                                        text = "Estimated prep time: ~${cart!!.estimatedPrepMinutes} mins",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = GagWarning,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp).fillMaxWidth(),
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                    )
-                                }
-                            }
+                    Column(
+                        modifier = Modifier
+                            .padding(horizontal = GagSpacing.Large)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                            .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
+                            .padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
+                            Text("Item total", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("₹${fmt.format(safeCart.subtotal)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                        }
+                        Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
+                            Text("Tax", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("₹${fmt.format(safeCart.tax)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
+                            Text("Total", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Text("₹${fmt.format(safeCart.total)}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onBackground)
                         }
                     }
+                    Spacer(modifier = Modifier.height(GagSpacing.Large))
                 }
             }
         }
@@ -248,77 +325,69 @@ fun CartScreen(
 }
 
 @Composable
-private fun CartItemRow(
+private fun OrbitCartItemRow(
     item: CartItem,
     onQuantityChanged: (Int) -> Unit,
     onRemove: () -> Unit
 ) {
-    Surface(
-        shape = RoundedCornerShape(20.dp), 
-        color = MaterialTheme.colorScheme.surface, 
-        shadowElevation = 2.dp,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = GagSpacing.Large, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.Top) {
-                // Image
-                Box(modifier = Modifier.size(72.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant)) {
-                    GagFoodImage(
-                        model = item.foodImageUrl,
-                        contentDescription = item.foodName,
-                        modifier = Modifier.matchParentSize()
-                    )
-                    Box(modifier = Modifier.padding(6.dp).size(12.dp).background(if (item.isVeg) GagSuccess else GagError, CircleShape).align(Alignment.TopStart))
-                }
-                
-                Spacer(modifier = Modifier.width(16.dp))
-                
-                // Info
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(item.foodName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("₹${item.price.toInt()}", style = MaterialTheme.typography.titleSmall, color = GagPink, fontWeight = FontWeight.SemiBold)
-                    
-                    if (item.selectedCustomizations.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(6.dp))
-                        item.selectedCustomizations.forEach { custom ->
-                            val priceText = if (custom.extraPrice > 0) " (+₹${custom.extraPrice.toInt()})" else ""
-                            Text(
-                                text = "• ${custom.optionName}$priceText",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Bottom Controls Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                QuantitySelector(
-                    quantity = item.quantity,
-                    onDecrease = { onQuantityChanged(item.quantity - 1) },
-                    onIncrease = { onQuantityChanged(item.quantity + 1) },
-                    minQuantity = 1
+        // Food image
+        AsyncImage(
+            model = item.foodImageUrl,
+            contentDescription = item.foodName,
+            modifier = Modifier
+                .size(64.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentScale = ContentScale.Crop
+        )
+
+        Spacer(modifier = Modifier.width(14.dp))
+
+        // Name + customization
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = item.foodName,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 2
+            )
+            if (item.selectedCustomizations.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = item.selectedCustomizations.joinToString(", ") { it.optionName },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
                 )
-                
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("₹${item.itemTotal.toInt()}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
-                    Spacer(modifier = Modifier.width(16.dp))
-                    IconButton(
-                        onClick = onRemove, 
-                        modifier = Modifier.size(36.dp).background(GagErrorContainer, CircleShape)
-                    ) {
-                        Icon(Icons.Outlined.DeleteOutline, "Remove item", tint = GagError, modifier = Modifier.size(20.dp))
-                    }
-                }
             }
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "₹${item.itemTotal.toInt()}",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        }
+
+        Spacer(modifier = Modifier.width(10.dp))
+
+        // Quantity controls
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            QuantitySelector(
+                quantity = item.quantity,
+                onIncrease = { onQuantityChanged(item.quantity + 1) },
+                onDecrease = {
+                    if (item.quantity > 1) onQuantityChanged(item.quantity - 1)
+                    else onRemove()
+                }
+            )
         }
     }
 }

@@ -28,14 +28,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.srmfood.gag.core.ui.theme.GagError
-import com.srmfood.gag.core.ui.theme.GagOnSurfaceVariant
-import com.srmfood.gag.core.ui.theme.GagPink
 
 @Composable
 fun GagLoadingScreen(
@@ -51,7 +48,7 @@ fun GagLoadingScreen(
             verticalArrangement = Arrangement.Center
         ) {
             CircularProgressIndicator(
-                color = GagPink,
+                color = MaterialTheme.colorScheme.primary,  // Token — no raw GagPink
                 strokeWidth = 3.dp,
                 modifier = Modifier.size(48.dp)
             )
@@ -59,7 +56,7 @@ fun GagLoadingScreen(
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
-                color = GagOnSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -85,7 +82,7 @@ fun GagErrorScreen(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = GagError.copy(alpha = 0.7f),
+                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
                 modifier = Modifier.size(64.dp)
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -99,7 +96,7 @@ fun GagErrorScreen(
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
-                color = GagOnSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
             onRetry?.let {
@@ -133,7 +130,7 @@ fun GagEmptyScreen(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = GagOnSurfaceVariant.copy(alpha = 0.5f),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 modifier = Modifier.size(64.dp)
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -148,7 +145,7 @@ fun GagEmptyScreen(
                 Text(
                     text = message,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = GagOnSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
             }

@@ -70,7 +70,7 @@ fun OutletListScreen(
 
     Scaffold(
         topBar = { GagTopBar(title = "All Outlets", onBack = onBack) },
-        containerColor = GagBackground
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         when (uiState) {
             is UiState.Loading -> GagLoadingScreen(modifier = Modifier.padding(padding))

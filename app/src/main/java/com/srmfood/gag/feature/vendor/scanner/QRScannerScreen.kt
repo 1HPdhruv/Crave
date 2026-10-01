@@ -74,7 +74,7 @@ fun QRScannerScreen(
 
     Scaffold(
         topBar = { GagTopBar(title = "Scan Pickup QR", onBack = onBack) },
-        containerColor = GagBackground
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Column(
             modifier = Modifier.fillMaxSize().padding(padding).padding(24.dp),
