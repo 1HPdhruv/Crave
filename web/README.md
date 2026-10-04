@@ -9,12 +9,17 @@ pnpm install
 pnpm dev
 ```
 
-The app uses seeded campus data and client-side state so the core discovery, menu, customization, bag, pickup, checkout, tracking/QR, favorites, history, vendor, and admin demo flows work without browser secrets or a live backend.
+The managed project supplies these browser-safe environment values through Webdev secret input:
+
+- `VITE_SUPABASE_URL` — the Supabase project URL; the adapter also normalizes a connector-provided `/rest/v1` URL.
+- `VITE_SUPABASE_ANON_KEY` — the public anon key. Do not use a service-role key in browser code.
+
+For a plain local run, set those values in your local environment before `pnpm dev`. If they are unavailable or the live catalog request fails, the site keeps the seeded campus dataset as a graceful fallback.
 
 ## Product shape
 
-- **Students:** discover open outlets, search/filter food, customize items, add to bag, choose pickup slots, place demo orders, track live status, show QR pickup tokens, save bites, and reorder.
-- **Vendors:** see incoming orders, quick menu availability, and daily metrics.
-- **Admins:** see campus pulse, outlet health, and high-level system metrics.
+- **Students:** discover open outlets, search/filter live food, customize items from Supabase variants, add to bag, read real pickup slots, sign in with Supabase Auth, place server-authoritative pickup orders through `place_order`, track status with realtime updates, save bites, and reorder.
+- **Vendors:** see incoming-order concepts, quick menu availability, and daily metrics in the secondary role workspace.
+- **Admins:** see campus pulse, outlet health, and high-level system metrics in the secondary role workspace.
 
-The Android app remains under `/app`; this website lives under `/web` in the original repository mirror.
+The browser adapter lives in `src/lib/backend.ts`. It uses the existing schema and RLS policies for public catalog reads, authenticated favorites, carts, pickup slots, and orders. The Android app remains under `/app`; this website lives under `/web` in the original repository mirror.

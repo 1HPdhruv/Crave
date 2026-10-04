@@ -1,5 +1,27 @@
 export type Tone = 'tangerine' | 'chartreuse' | 'lavender' | 'aqua' | 'sun'
 
+export type CustomizationOption = {
+  id: string
+  variantId: string
+  variantName: string
+  name: string
+  extraPrice: number
+}
+
+export type CustomizationGroup = {
+  id: string
+  name: string
+  isRequired: boolean
+  maxSelections: number
+  options: CustomizationOption[]
+}
+
+export type Category = {
+  id: string
+  label: string
+  emoji: string
+}
+
 export type Food = {
   id: string
   outletId: string
@@ -11,9 +33,12 @@ export type Food = {
   prep: string
   emoji: string
   tone: Tone
+  imageUrl?: string | null
+  isVeg?: boolean
   tag?: string
   popular?: boolean
   customizations?: string[]
+  customizationGroups?: CustomizationGroup[]
 }
 
 export type Outlet = {
@@ -27,18 +52,33 @@ export type Outlet = {
   tone: Tone
   open: boolean
   vibe: string
+  imageUrl?: string | null
+  vendorId?: string | null
 }
 
 export type CartItem = Food & {
   quantity: number
   note?: string
   customizations?: string[]
+  selectedOptions?: CustomizationOption[]
   customizationTotal?: number
 }
 
-export type OrderStatus = 'Queued' | 'Cooking' | 'Ready for pickup'
+export type OrderStatus = 'Queued' | 'Cooking' | 'Ready for pickup' | 'Picked up' | 'Cancelled'
 
-export const categories = [
+export type CraveOrder = {
+  id: string
+  backendId?: string
+  outlet: string
+  itemLabel: string
+  total: number
+  status: OrderStatus
+  pickup: string
+  counter: string
+  fulfillmentMode: 'pickup' | 'delivery'
+}
+
+export const categories: Category[] = [
   { id: 'all', label: 'Everything', emoji: '✦' },
   { id: 'quick-bites', label: 'Quick bites', emoji: '⚡' },
   { id: 'comfort', label: 'Comfort', emoji: '♡' },
@@ -65,7 +105,7 @@ export const foods: Food[] = [
   { id: 'filter-kaapi', outletId: 'chai', name: 'Filter Kaapi Float', description: 'Strong South Indian coffee with a cold cream float.', category: 'drinks', price: 89, rating: 4.5, prep: '8 min', emoji: '☕', tone: 'sun', tag: 'cozy', customizations: ['Less sugar', 'Extra strong', 'Cold only'] },
 ]
 
-export const demoOrder = {
+export const demoOrder: CraveOrder = {
   id: 'CRV-4821',
   outlet: 'Nosh Lab',
   itemLabel: 'Peri Peri Paneer Melt × 1',

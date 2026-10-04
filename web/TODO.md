@@ -27,3 +27,12 @@
 - [x] Serve a synchronized `/manus-routes.json` route manifest, register host-managed diagnostics, run available typecheck/build checks, and resolve actionable diagnostics.
 - [x] Keep responsive desktop and mobile layouts usable, including navigation, persistent cart/order context, overflow, stickers, and status treatments.
 - [x] Set project logo metadata before checkpointing, save a managed checkpoint, and mirror the stable website into `/home/ubuntu/Crave/web` without modifying the Android app under `/home/ubuntu/Crave/app`.
+
+## Connect the website to the real Supabase backend
+
+- [x] Load outlets, categories, food items, variants, availability, images, ratings, and prep times from the existing Supabase schema, while keeping the seeded campus dataset only as an offline/error fallback.
+- [x] Use managed environment values for the Supabase URL and public anon key; do not commit credentials or use a service-role key in browser code.
+- [x] Add Supabase Auth-aware sign-in/sign-up state and use the authenticated user for favorites, carts, orders, and profile data under the existing RLS policies.
+- [x] Read real pickup slots and use the existing `place_order(p_cart_id, p_pickup_slot_id, p_payment_method)` RPC so server-side inventory, customization pricing, totals, slot capacity, and QR token generation remain authoritative.
+- [x] Read the user’s real orders and subscribe to realtime order status changes, with a clear fallback message when no session is available or the backend is unreachable.
+- [ ] Re-run diagnostics, typecheck, production build, live Supabase reads, and Preview checks after the integration; checkpoint the updated managed project and mirror the integration into `/home/ubuntu/Crave/web`.
