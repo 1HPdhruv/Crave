@@ -22,9 +22,11 @@ import {
   fetchLiveCatalog,
   fetchPickupSlots,
   fetchUserOrders,
+  fetchUserRole,
   placeLiveOrder,
   subscribeToOrder,
   setFavorite,
+  type CraveRole,
   type LiveCatalog,
   type LivePickupSlot,
 } from './lib/backend'
@@ -33,6 +35,9 @@ import { isSupabaseConfigured, supabase } from './lib/supabase'
 type Role = 'student' | 'vendor' | 'admin'
 type ToastTone = 'orange' | 'ink' | 'green'
 type FulfillmentMode = 'pickup' | 'delivery'
+
+const uiRoleForCraveRole = (role: CraveRole): Role => role === 'VENDOR' ? 'vendor' : role === 'ADMIN' ? 'admin' : 'student'
+const roleLabel = (role: Role) => role === 'admin' ? 'Management' : role === 'vendor' ? 'Vendor' : 'Student'
 
 const money = (value: number) => `₹${value}`
 const cartLineTotal = (item: CartItem) => (item.price + (item.customizationTotal ?? 0)) * item.quantity
@@ -59,6 +64,7 @@ function useRoute() {
 function App() {
   const { path, navigate } = useRoute()
   const [role, setRole] = useState<Role>('student')
+  const [profileRole, setProfileRole] = useState<CraveRole | null>(null)
   const [cart, setCart] = useState<CartItem[]>([])
   const [favorites, setFavorites] = useState(initialFavorites)
   const [catalog, setCatalog] = useState<LiveCatalog>({ outlets: seedOutlets, foods: seedFoods, categories: seedCategories })
@@ -80,7 +86,7 @@ function App() {
 
   const segments = path.split('/').filter(Boolean)
   const page = segments[0] || 'home'
-  const activeRole: Role = page.startsWith('vendor') ? 'vendor' : page.startsWith('admin') ? 'admin' : role
+  const activeRole: Role = role
   const foodFromPath = page === 'food' ? catalog.foods.find((food) => food.id === segments[1]) : undefined
 
   useEffect(() => {
@@ -105,11 +111,29 @@ function App() {
     }
     void loadCatalog()
 
-    void supabase.auth.getSession().then(({ data }) => {
-      if (active) setSession(data.session)
-    })
+    const hydrateSession = async (nextSession: Session | null) => {
+      if (!active) return
+      setSession(nextSession)
+      if (!nextSession) {
+        setProfileRole(null)
+        setRole('student')
+        return
+      }
+      try {
+        const nextRole = await fetchUserRole(nextSession.user.id, supabase!)
+        if (!active) return
+        setProfileRole(nextRole)
+        setRole(uiRoleForCraveRole(nextRole))
+      } catch (error) {
+        if (!active) return
+        setProfileRole('STUDENT')
+        setRole('student')
+        setBackendError(error instanceof Error ? error.message : 'Could not read your Crave role')
+      }
+    }
+    void supabase.auth.getSession().then(({ data }) => hydrateSession(data.session))
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      if (active) setSession(nextSession)
+      void hydrateSession(nextSession)
     })
     return () => {
       active = false
@@ -237,13 +261,6 @@ function App() {
     navigate(`/orders/${demoOrder.id}`)
   }
 
-  const handleRole = (nextRole: Role) => {
-    setRole(nextRole)
-    if (nextRole === 'vendor') navigate('/vendor')
-    else if (nextRole === 'admin') navigate('/admin')
-    else navigate('/')
-  }
-
   const navItems = activeRole === 'student'
     ? [
         { label: 'Discover', path: '/', icon: '✦' },
@@ -259,13 +276,25 @@ function App() {
       : [
           { label: 'Overview', path: '/admin', icon: '▦' },
           { label: 'Outlets', path: '/admin/outlets', icon: '⌂' },
-          { label: 'Users', path: '/admin/users', icon: '◎' },
+        { label: 'Users', path: '/admin/users', icon: '◎' },
         ]
+
+  const handleAuthenticated = (nextRole: CraveRole) => {
+    setProfileRole(nextRole)
+    const nextUiRole = uiRoleForCraveRole(nextRole)
+    setRole(nextUiRole)
+    navigate(nextUiRole === 'vendor' ? '/vendor' : nextUiRole === 'admin' ? '/admin' : '/')
+  }
+  const selectedOrder = remoteOrders.find((item) => item.id === segments[1] || item.backendId === segments[1]) || order
+
+  if (!session || !profileRole) {
+    return <LoginPage backendStatus={backendStatus} backendError={backendError} onAuthenticated={handleAuthenticated} />
+  }
 
   return (
     <div className="app-frame">
       <div className="grain" aria-hidden="true" />
-      <Sidebar role={activeRole} navItems={navItems} path={path} navigate={navigate} onRole={handleRole} />
+      <Sidebar role={activeRole} navItems={navItems} path={path} navigate={navigate} />
       <main className="workspace">
         <Topbar role={activeRole} path={path} navigate={navigate} cartCount={cartCount} search={search} onSearch={setSearch} backendStatus={backendStatus} session={session} />
         <div className="content-wrap">
@@ -274,13 +303,15 @@ function App() {
           {activeRole === 'student' && page === 'food' && <FoodDetailPage food={foodFromPath} outlet={catalog.outlets.find((outlet) => outlet.id === foodFromPath?.outletId)} navigate={navigate} addToCart={addToCart} selectedCustomizations={selectedCustomizations} setSelectedCustomizations={setSelectedCustomizations} selectedOptions={selectedOptions} setSelectedOptions={setSelectedOptions} selectedQuantity={selectedQuantity} setSelectedQuantity={setSelectedQuantity} />}
           {activeRole === 'student' && page === 'cart' && <CartPage cart={cart} cartTotal={cartTotal} fulfillmentMode={fulfillmentMode} setItemQuantity={setItemQuantity} navigate={navigate} />}
           {activeRole === 'student' && page === 'checkout' && <CheckoutPage cart={cart} cartTotal={cartTotal} fulfillmentMode={fulfillmentMode} setFulfillmentMode={setFulfillmentMode} slot={checkoutSlot} setSlot={setCheckoutSlot} pickupSlots={pickupSlots} liveMode={backendStatus === 'live'} liveSlotId={liveSlotId} setLiveSlotId={setLiveSlotId} navigate={navigate} placeOrder={placeOrder} />}
-          {activeRole === 'student' && page === 'orders' && !segments[1] && <OrdersPage foods={catalog.foods} order={order} navigate={navigate} addToCart={addToCart} />}
-          {activeRole === 'student' && page === 'orders' && Boolean(segments[1]) && <OrderTrackingPage order={order} navigate={navigate} />}
+          {activeRole === 'student' && page === 'orders' && !segments[1] && <OrdersPage foods={catalog.foods} remoteOrders={remoteOrders} order={order} navigate={navigate} addToCart={addToCart} />}
+          {activeRole === 'student' && page === 'orders' && Boolean(segments[1]) && <OrderTrackingPage order={selectedOrder} navigate={navigate} />}
           {activeRole === 'student' && page === 'favorites' && <FavoritesPage foods={catalog.foods} favorites={favorites} openFood={openFood} navigate={navigate} addToCart={addToCart} toggleFavorite={toggleFavorite} />}
-          {activeRole === 'student' && page === 'profile' && <ProfilePage session={session} backendStatus={backendStatus} backendError={backendError} onRole={handleRole} onSignOut={() => { void supabase?.auth.signOut() }} />}
-          {activeRole === 'vendor' && page.startsWith('vendor') && <VendorPage foods={catalog.foods} navigate={navigate} onRole={handleRole} />}
-          {activeRole === 'admin' && page.startsWith('admin') && <AdminPage outlets={catalog.outlets} navigate={navigate} onRole={handleRole} />}
-          {activeRole === 'student' && page !== 'home' && page !== 'menu' && page !== 'food' && page !== 'cart' && page !== 'checkout' && page !== 'orders' && page !== 'favorites' && page !== 'profile' && <EmptyState title="That page took a snack break" copy="Let’s get you back to the good stuff." action="Back to discovery" onAction={() => navigate('/')} />}
+          {activeRole === 'student' && page === 'profile' && <ProfilePage session={session} profileRole={profileRole} backendStatus={backendStatus} backendError={backendError} onSignOut={() => { void supabase?.auth.signOut() }} />}
+          {activeRole === 'vendor' && page.startsWith('vendor') && profileRole === 'VENDOR' && <VendorPage foods={catalog.foods} navigate={navigate} />}
+          {activeRole === 'admin' && page.startsWith('admin') && profileRole === 'ADMIN' && <AdminPage outlets={catalog.outlets} navigate={navigate} />}
+          {page.startsWith('vendor') && profileRole !== 'VENDOR' && <AccessDenied title="Vendor access only" copy="This workspace is limited to approved vendor accounts. Sign in with the role assigned to your Crave profile." navigate={navigate} />}
+          {page.startsWith('admin') && profileRole !== 'ADMIN' && <AccessDenied title="Management access only" copy="This workspace is limited to management accounts. Your Crave profile decides what you can see." navigate={navigate} />}
+          {activeRole === 'student' && !page.startsWith('vendor') && !page.startsWith('admin') && page !== 'home' && page !== 'menu' && page !== 'food' && page !== 'cart' && page !== 'checkout' && page !== 'orders' && page !== 'favorites' && page !== 'profile' && <EmptyState title="That page took a snack break" copy="Let’s get you back to the good stuff." action="Back to discovery" onAction={() => navigate('/')} />}
         </div>
       </main>
       {activeRole === 'student' && <CartRail cart={cart} total={cartTotal} count={cartCount} navigate={navigate} setItemQuantity={setItemQuantity} order={order} />}
@@ -294,7 +325,7 @@ function BrandMark({ compact = false }: { compact?: boolean }) {
   return <div className={`brand-mark ${compact ? 'brand-compact' : ''}`}><span className="brand-glyph">C</span><span className="brand-word">RAVE</span><span className="brand-spark">✦</span></div>
 }
 
-function Sidebar({ role, navItems, path, navigate, onRole }: { role: Role; navItems: { label: string; path: string; icon: string }[]; path: string; navigate: (path: string) => void; onRole: (role: Role) => void }) {
+function Sidebar({ role, navItems, path, navigate }: { role: Role; navItems: { label: string; path: string; icon: string }[]; path: string; navigate: (path: string) => void }) {
   return <aside className="sidebar">
     <button className="brand-button" onClick={() => navigate('/')} aria-label="Go to Crave home"><BrandMark /></button>
     <div className="campus-chip"><span className="pulse-dot" /> SRMIST <span className="chip-arrow">⌄</span></div>
@@ -305,7 +336,7 @@ function Sidebar({ role, navItems, path, navigate, onRole }: { role: Role; navIt
     </nav>
     <div className="sidebar-spacer" />
     {role === 'student' && <div className="sidebar-order-note" onClick={() => navigate('/orders/CRV-4821')}><span className="order-note-icon">↗</span><div><span className="eyebrow">Current order</span><strong>Ready in 12 min</strong></div><span className="tiny-arrow">→</span></div>}
-    <div className="profile-mini" onClick={() => role === 'student' && navigate('/profile')}><div className="avatar">DS</div><div><strong>Dhruv Shah</strong><span>Student · B.Tech CSE</span></div><button className="more-button" onClick={(event) => { event.stopPropagation(); onRole(role === 'student' ? 'vendor' : role === 'vendor' ? 'admin' : 'student') }}>•••</button></div>
+    <div className="profile-mini" onClick={() => role === 'student' && navigate('/profile')}><div className="avatar">DS</div><div><strong>Your Crave ID</strong><span>{roleLabel(role)} access</span></div></div>
   </aside>
 }
 
@@ -398,12 +429,15 @@ function CheckoutPage({ cart, cartTotal, fulfillmentMode, setFulfillmentMode, sl
   return <div className="page page-checkout"><button className="back-link" onClick={() => navigate('/cart')}><span>←</span> back to bag</button><div className="checkout-heading"><span className="eyebrow">LAST LAP</span><h1>Almost yours.<br /><em>Pick a moment.</em></h1></div><div className="checkout-layout"><div className="checkout-main"><div className="checkout-step"><div className="step-number">01</div><div className="step-copy"><span className="eyebrow">HOW SHOULD IT ARRIVE?</span><h2>Pick your kind of convenient.</h2><div className="fulfillment-grid"><button className={`fulfillment-option ${!isDelivery ? 'fulfillment-selected' : ''}`} onClick={() => setFulfillmentMode('pickup')}><span className="fulfillment-icon">⌖</span><strong>Pick it up</strong><small>Skip the queue at Nosh Lab</small></button><button className={`fulfillment-option ${isDelivery ? 'fulfillment-selected' : ''}`} onClick={() => setFulfillmentMode('delivery')} disabled={liveMode}><span className="fulfillment-icon">↗</span><strong>Drop it here</strong><small>Hostel H delivery · +₹45</small></button></div></div></div><div className="checkout-step"><div className="step-number">02</div><div className="step-copy"><span className="eyebrow">{isDelivery ? 'DROP-OFF SPOT' : 'PICKUP SPOT'}</span><h2>{isDelivery ? 'Where should it land?' : 'Where should we meet?'}</h2><button className="pickup-select"><span className="pickup-pin">{isDelivery ? '↗' : '⌖'}</span><span><strong>{isDelivery ? 'Hostel H · Block 3' : 'Nosh Lab'}</strong><small>{isDelivery ? 'Hostel H · next to the common room' : 'Tech Park · Ground floor'}</small></span><span className="select-caret">⌄</span></button></div></div><div className="checkout-step"><div className="step-number">03</div><div className="step-copy"><span className="eyebrow">{isDelivery ? 'DELIVERY SLOT' : 'PICKUP SLOT'}</span><h2>When are you free?</h2><div className="slot-grid">{slots.map((value, index) => <button key={value} className={`slot-button ${slot === value ? 'slot-selected' : ''}`} onClick={() => selectSlot(value, index)}><strong>{value}</strong><small>{index === 0 ? 'fastest' : index === 1 ? 'popular' : 'still chill'}</small></button>)}</div></div></div><div className="checkout-step checkout-payment"><div className="step-number">04</div><div className="step-copy"><span className="eyebrow">PAYMENT</span><h2>{liveMode ? 'Pay at the counter, no queue theatre.' : 'Demo mode, good vibes.'}</h2><div className="payment-card"><span className="payment-icon">↗</span><span><strong>Campus wallet</strong><small>•••• 4242 · ready to pretend</small></span><span className="payment-check">✓</span></div></div></div></div><aside className="checkout-aside"><span className="eyebrow">YOUR ORDER</span><div className="checkout-items">{cart.map((item) => <div className="checkout-item" key={`${item.id}-${item.customizations?.join('-') || 'plain'}`}><span>{item.emoji}</span><div><strong>{item.name}</strong><small>{item.quantity} × {money(item.price + (item.customizationTotal ?? 0))}{item.note ? ` · ${item.note}` : ''}</small></div><b>{money(cartLineTotal(item))}</b></div>)}</div><div className="summary-line"><span>Food subtotal</span><strong>{money(cartTotal)}</strong></div><div className="summary-line"><span>{isDelivery ? 'Delivery fee' : 'Campus fee'}</span><strong>{money(fee)}</strong></div><div className="summary-line summary-total"><span>To pay</span><strong>{money(cartTotal + fee)}</strong></div><button className="button button-primary full-button" onClick={placeOrder} disabled={liveMode && (!liveSlotId || !cart.length)}>Place {liveMode ? 'real pickup order' : 'demo order'} <span>↗</span></button><p className="summary-note">{liveMode ? 'Supabase validates stock, pricing, and slot capacity.' : 'By tapping, you agree this is a very real demo.'}</p></aside></div></div>
 }
 
-function OrdersPage({ foods, order, navigate, addToCart }: { foods: Food[]; order: typeof demoOrder; navigate: (path: string) => void; addToCart: (food: Food, quantity?: number) => void }) {
-  return <div className="page page-orders"><div className="page-heading-row"><div><span className="eyebrow">THE RECEIPTS</span><h1>Your order<br /><em>story.</em></h1></div><button className="button button-dark" onClick={() => navigate('/')}>new craving <span>↗</span></button></div><section className="active-order-card"><div className="active-order-top"><div><span className="sticker sticker-orange">ON THE WAY TO YOU</span><h2>{order.outlet}</h2><p>{order.itemLabel}</p></div><div className="order-id">#{order.id}</div></div><div className="order-progress"><div className="progress-line"><span className="progress-fill" style={{ width: order.status === 'Queued' ? '28%' : order.status === 'Cooking' ? '66%' : '100%' }} /></div><div className="progress-steps"><span className="step-done">Queued</span><span className={order.status !== 'Queued' ? 'step-done' : ''}>Cooking</span><span className={order.status === 'Ready for pickup' ? 'step-done' : ''}>Ready for pickup</span></div></div><div className="active-order-footer"><div><span className="eyebrow">PICKUP SLOT</span><strong>{order.pickup}</strong></div><div><span className="eyebrow">TOTAL</span><strong>{money(order.total)}</strong></div><button className="button button-light small-button" onClick={() => navigate(`/orders/${order.id}`)}>track order <span>↗</span></button></div></section><section className="section-block order-history"><div className="section-heading"><div><span className="eyebrow">BEFORE THAT</span><h2>Good times, documented.</h2></div></div><div className="history-list">{pastOrders.map((past) => <div className="history-row" key={past.id}><div className="history-thumb">{past.outlet === 'Dosa District' ? '🥞' : '🍜'}</div><div className="history-copy"><strong>{past.outlet}</strong><p>{past.itemLabel}</p></div><span className="history-date">{past.date}</span><strong className="history-total">{money(past.total)}</strong><button className="history-reorder" onClick={() => { const food = foods.find((item) => past.itemLabel.includes(item.name)); if (food) addToCart(food, past.itemLabel.includes('× 2') ? 2 : 1) }}>reorder ↗</button></div>)}</div></section></div>
+function OrdersPage({ foods, remoteOrders, order, navigate, addToCart }: { foods: Food[]; remoteOrders: CraveOrder[]; order: CraveOrder; navigate: (path: string) => void; addToCart: (food: Food, quantity?: number) => void }) {
+  const reorder = (label: string) => {
+    const food = foods.find((item) => label.includes(item.name))
+    if (food) addToCart(food, label.includes('× 2') ? 2 : 1)
+  }
+  return <div className="page page-orders"><div className="page-heading-row"><div><span className="eyebrow">THE RECEIPTS</span><h1>Your order<br /><em>story.</em></h1></div><button className="button button-dark" onClick={() => navigate('/')}>new craving <span>↗</span></button></div><section className="active-order-card"><div className="active-order-top"><div><span className="sticker sticker-orange">{remoteOrders.length ? 'SYNCED WITH SUPABASE' : 'ON THE WAY TO YOU'}</span><h2>{order.outlet}</h2><p>{order.itemLabel}</p></div><div className="order-id">#{order.id}</div></div><div className="order-progress"><div className="progress-line"><span className="progress-fill" style={{ width: order.status === 'Queued' ? '28%' : order.status === 'Cooking' ? '66%' : '100%' }} /></div><div className="progress-steps"><span className="step-done">Queued</span><span className={order.status !== 'Queued' ? 'step-done' : ''}>Cooking</span><span className={order.status === 'Ready for pickup' ? 'step-done' : ''}>Ready for pickup</span></div></div><div className="active-order-footer"><div><span className="eyebrow">PICKUP SLOT</span><strong>{order.pickup}</strong></div><div><span className="eyebrow">TOTAL</span><strong>{money(order.total)}</strong></div><button className="button button-light small-button" onClick={() => navigate(`/orders/${order.id}`)}>track order <span>↗</span></button></div></section><section className="section-block order-history"><div className="section-heading"><div><span className="eyebrow">{remoteOrders.length ? 'FROM YOUR CRAVE ACCOUNT' : 'BEFORE THAT'}</span><h2>{remoteOrders.length ? 'Live receipts.' : 'Good times, documented.'}</h2></div></div><div className="history-list">{remoteOrders.length ? remoteOrders.map((past) => <div className="history-row" key={past.backendId || past.id}><div className="history-thumb">{past.pickupToken ? '⌖' : '↗'}</div><div className="history-copy"><strong>{past.outlet}</strong><p>{past.itemLabel}</p></div><span className="history-date">{past.status}</span><strong className="history-total">{money(past.total)}</strong><button className="history-reorder" onClick={() => navigate(`/orders/${past.id}`)}>track ↗</button></div>) : pastOrders.map((past) => <div className="history-row" key={past.id}><div className="history-thumb">{past.outlet === 'Dosa District' ? '🥞' : '🍜'}</div><div className="history-copy"><strong>{past.outlet}</strong><p>{past.itemLabel}</p></div><span className="history-date">{past.date}</span><strong className="history-total">{money(past.total)}</strong><button className="history-reorder" onClick={() => reorder(past.itemLabel)}>reorder ↗</button></div>)}</div></section></div>
 }
-
 function OrderTrackingPage({ order, navigate }: { order: typeof demoOrder; navigate: (path: string) => void }) {
-  return <div className="page page-tracking"><button className="back-link" onClick={() => navigate('/orders')}><span>←</span> all orders</button><div className="tracking-head"><div><span className="eyebrow">LIVE ORDER · #{order.id}</span><h1>It’s getting<br /><em>delicious.</em></h1></div><span className="tracking-status">{order.status === 'Queued' ? 'QUEUED' : 'COOKING'} <i /></span></div><div className="tracking-layout"><section className="tracking-card"><div className="tracking-card-top"><div><span className="sticker sticker-dark">PICKUP TOKEN</span><h2>Show this at the counter</h2><p>{order.counter}</p></div><span className="tracking-arrow">↗</span></div><div className="qr-wrap"><FakeQr /><div className="qr-label">{order.id} · {order.pickup}</div></div><div className="tracking-tip"><span>✦</span> Your phone is your token. No printing. No queue theatre.</div></section><section className="status-card"><span className="eyebrow">LIVE STATUS</span><div className="status-list"><StatusRow label="Order received" time="12:18 PM" done /><StatusRow label="Kitchen is cooking" time="12:24 PM" done={order.status !== 'Queued'} active={order.status === 'Cooking'} /><StatusRow label="Ready for pickup" time="~12:36 PM" done={order.status === 'Ready for pickup'} active={order.status === 'Ready for pickup'} /><StatusRow label="You, reunited with food" time={order.pickup} /></div><div className="status-bottom"><span>Pickup from</span><strong>{order.outlet} · {order.pickup}</strong></div></section></div><div className="tracking-foot"><span className="eyebrow">NEED A HAND?</span><button className="text-button">message support <span>↗</span></button><span className="tracking-foot-copy">We answer faster than campus wifi sometimes.</span></div></div>
+  return <div className="page page-tracking"><button className="back-link" onClick={() => navigate('/orders')}><span>←</span> all orders</button><div className="tracking-head"><div><span className="eyebrow">LIVE ORDER · #{order.id}</span><h1>It’s getting<br /><em>delicious.</em></h1></div><span className="tracking-status">{order.status === 'Queued' ? 'QUEUED' : 'COOKING'} <i /></span></div><div className="tracking-layout"><section className="tracking-card"><div className="tracking-card-top"><div><span className="sticker sticker-dark">PICKUP TOKEN</span><h2>Show this at the counter</h2><p>{order.counter}</p></div><span className="tracking-arrow">↗</span></div><div className="qr-wrap">{order.pickupToken ? <TokenQr token={order.pickupToken} /> : <FakeQr />}<div className="qr-label">{order.pickupToken ? `LIVE TOKEN · ${order.pickupToken.slice(0, 12)}…` : `${order.id} · ${order.pickup}`}</div></div><div className="tracking-tip"><span>✦</span> Your phone is your token. No printing. No queue theatre.</div></section><section className="status-card"><span className="eyebrow">LIVE STATUS</span><div className="status-list"><StatusRow label="Order received" time="12:18 PM" done /><StatusRow label="Kitchen is cooking" time="12:24 PM" done={order.status !== 'Queued'} active={order.status === 'Cooking'} /><StatusRow label="Ready for pickup" time="~12:36 PM" done={order.status === 'Ready for pickup'} active={order.status === 'Ready for pickup'} /><StatusRow label="You, reunited with food" time={order.pickup} /></div><div className="status-bottom"><span>Pickup from</span><strong>{order.outlet} · {order.pickup}</strong></div></section></div><div className="tracking-foot"><span className="eyebrow">NEED A HAND?</span><button className="text-button">message support <span>↗</span></button><span className="tracking-foot-copy">We answer faster than campus wifi sometimes.</span></div></div>
 }
 
 function StatusRow({ label, time, done, active }: { label: string; time: string; done?: boolean; active?: boolean }) {
@@ -415,38 +449,82 @@ function FakeQr() {
   return <div className="fake-qr" aria-label="Demo QR pickup token">{pattern.map((filled, index) => <span key={index} className={filled ? 'qr-on' : ''} />)}</div>
 }
 
+function TokenQr({ token }: { token: string }) {
+  const pattern = Array.from({ length: 81 }, (_, index) => ((token.charCodeAt(index % token.length) + index * 7) % 5 === 0 ? 1 : 0))
+  return <div className="token-qr-block"><div className="fake-qr live-qr" aria-label="Live pickup token">{pattern.map((filled, index) => <span key={index} className={filled ? 'qr-on' : ''} />)}</div><small>server-issued pickup token</small></div>
+}
+
 function FavoritesPage({ foods, favorites, openFood, navigate, addToCart, toggleFavorite }: { foods: Food[]; favorites: string[]; openFood: (food: Food) => void; navigate: (path: string) => void; addToCart: (food: Food) => void; toggleFavorite: (id: string) => void }) {
   const savedFoods = foods.filter((food) => favorites.includes(food.id))
   return <div className="page page-favorites"><div className="page-heading-row"><div><span className="eyebrow">YOUR LITTLE BLACK BOOK</span><h1>Saved<br /><em>bites.</em></h1></div><span className="heart-burst">♥</span></div><p className="lede favorites-lede">The things you said “I’ll get this later” about. Later is now.</p>{savedFoods.length ? <div className="food-grid favorites-grid">{savedFoods.map((food) => <FoodCard key={food.id} food={food} openFood={openFood} addToCart={addToCart} favorite toggleFavorite={toggleFavorite} />)}</div> : <EmptyState title="Nothing saved yet" copy="Tap the little heart on a food card when the vibes are right." action="Browse the menu" onAction={() => navigate('/')} />}</div>
 }
 
-function ProfilePage({ session, backendStatus, backendError, onRole, onSignOut }: { session: Session | null; backendStatus: 'loading' | 'live' | 'fallback'; backendError: string; onRole: (role: Role) => void; onSignOut: () => void }) {
+function LoginPage({ backendStatus, backendError, onAuthenticated }: { backendStatus: 'loading' | 'live' | 'fallback'; backendError: string; onAuthenticated: (role: CraveRole) => void }) {
+  const [selectedRole, setSelectedRole] = useState<'student' | 'vendor' | 'management'>('student')
   const [authMode, setAuthMode] = useState<'sign-in' | 'sign-up'>('sign-in')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [authMessage, setAuthMessage] = useState('')
   const [authBusy, setAuthBusy] = useState(false)
+  const expectedRole: CraveRole = selectedRole === 'vendor' ? 'VENDOR' : selectedRole === 'management' ? 'ADMIN' : 'STUDENT'
+  const selectedLabel = selectedRole === 'management' ? 'management' : selectedRole
+  const roleOptions = [
+    { id: 'student' as const, label: 'Student', copy: 'Find bites, save favourites, and skip campus queues.', icon: '✦' },
+    { id: 'vendor' as const, label: 'Vendor', copy: 'Run your outlet, menu, stock, and order board.', icon: '▦' },
+    { id: 'management' as const, label: 'Management', copy: 'See campus-wide outlets, users, and operations.', icon: '◎' },
+  ]
 
   const submitAuth = async () => {
     if (!supabase) {
-      setAuthMessage('Live Supabase is not configured in this environment.')
+      setAuthMessage('Supabase is not configured for this environment.')
+      return
+    }
+    if (authMode === 'sign-up' && selectedRole !== 'student') {
+      setAuthMessage('Vendor and Management accounts are provisioned by Crave admins. Use Sign in for an approved account.')
       return
     }
     setAuthBusy(true)
     setAuthMessage('')
-    const result = authMode === 'sign-in'
-      ? await supabase.auth.signInWithPassword({ email, password })
-      : await supabase.auth.signUp({ email, password, options: { data: { name } } })
-    setAuthBusy(false)
-    if (result.error) setAuthMessage(result.error.message)
-    else setAuthMessage(authMode === 'sign-up' ? 'Check your email to confirm your Crave ID.' : 'You are back in the campus food loop.')
+    try {
+      const result = authMode === 'sign-in'
+        ? await supabase.auth.signInWithPassword({ email, password })
+        : await supabase.auth.signUp({ email, password, options: { data: { name } } })
+      if (result.error) {
+        setAuthMessage(result.error.message)
+        return
+      }
+      if (!result.data.session) {
+        setAuthMessage('Check your email to confirm your Student Crave ID, then sign in here.')
+        return
+      }
+      const actualRole = await fetchUserRole(result.data.session.user.id, supabase)
+      if (actualRole !== expectedRole) {
+        await supabase.auth.signOut()
+        setAuthMessage(`This account is assigned to ${actualRole === 'ADMIN' ? 'Management' : actualRole === 'VENDOR' ? 'Vendor' : 'Student'} access. Choose that role to continue.`)
+        return
+      }
+      onAuthenticated(actualRole)
+    } catch (error) {
+      setAuthMessage(error instanceof Error ? error.message : 'Could not verify this Crave account')
+    } finally {
+      setAuthBusy(false)
+    }
   }
 
-  return <div className="page page-profile"><span className="eyebrow">YOUR CRAVE ID</span><h1>Hi, <em>{session?.user.email?.split('@')[0] || 'Dhruv'}.</em></h1><div className="profile-hero"><div className="profile-avatar-large">DS</div><div><span className="sticker sticker-orange">{session ? 'CONNECTED' : 'STUDENT'}</span><h2>{session?.user.email || 'Dhruv Shah'}</h2><p>{session ? 'Authenticated with Supabase · RLS protected' : 'B.Tech CSE · 3rd year · SRMIST'}</p></div>{session ? <button className="button button-dark" onClick={onSignOut}>sign out <span>↗</span></button> : <button className="button button-dark" onClick={() => document.getElementById('crave-auth')?.scrollIntoView({ behavior: 'smooth' })}>connect ID <span>↗</span></button>}</div><div className="profile-grid"><div className="profile-stat"><span>{session ? 'LIVE' : backendStatus === 'live' ? 'SYNC' : 'DEMO'}</span><small>backend mode</small></div><div className="profile-stat"><span>{session ? 'RLS' : '—'}</span><small>data access</small></div><div className="profile-stat"><span>{session ? 'ON' : 'OFF'}</span><small>real orders</small></div></div>{!session && <section id="crave-auth" className="auth-card"><div><span className="eyebrow">{authMode === 'sign-in' ? 'WELCOME BACK' : 'NEW CRAVE ID'}</span><h2>{authMode === 'sign-in' ? 'Sign in. Skip queues.' : 'Make the campus yours.'}</h2><p>Connect your Supabase account to save bites, sync your cart, and place real pickup orders.</p></div><div className="auth-form">{authMode === 'sign-up' && <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Your name" aria-label="Your name" />}{authMode === 'sign-up' && <input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="College email" aria-label="College email" type="email" />}{authMode === 'sign-in' && <input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="College email" aria-label="College email" type="email" />}<input value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Password" aria-label="Password" type="password" /><button className="button button-primary" onClick={() => void submitAuth()} disabled={authBusy}>{authBusy ? 'connecting…' : authMode === 'sign-in' ? 'sign in ↗' : 'create ID ↗'}</button>{authMessage && <small className="auth-message">{authMessage}</small>}<button className="text-button" onClick={() => { setAuthMode(authMode === 'sign-in' ? 'sign-up' : 'sign-in'); setAuthMessage('') }}>{authMode === 'sign-in' ? 'Need a Crave ID? create one' : 'Already have a Crave ID? sign in'}</button></div></section>}{backendError && <p className="backend-error">Live sync note: {backendError}</p>}<section className="role-switcher"><span className="eyebrow">DEMO SWITCHER</span><h2>Peek behind the counter</h2><p>Try the vendor or admin view to see how Crave works for the people making the magic happen.</p><div className="role-buttons"><button onClick={() => onRole('student')}>Student view <span>✓</span></button><button onClick={() => onRole('vendor')}>Vendor view <span>↗</span></button><button onClick={() => onRole('admin')}>Admin view <span>↗</span></button></div></section></div>
+  return <div className="login-screen"><div className="login-topline"><BrandMark /><span className={`backend-pill backend-${backendStatus}`}><span />{backendStatus === 'live' ? 'LIVE BACKEND' : backendStatus === 'loading' ? 'CONNECTING' : 'OFFLINE FALLBACK'}</span></div><div className="login-shell"><div className="login-copy"><span className="eyebrow orange-ink">SRMIST CAMPUS FOOD</span><h1>Who are you<br /><em>at Crave?</em></h1><p>Sign in once. Your approved profile decides which world you can enter.</p><div className="login-lockup"><span>ROLE-GATED ACCESS</span><strong>No demo dashboards. No borrowed keys.</strong></div></div><div className="login-panel"><span className="eyebrow">CHOOSE YOUR DOOR</span><div className="login-role-grid">{roleOptions.map((option) => <button key={option.id} className={`login-role-option ${selectedRole === option.id ? 'login-role-selected' : ''}`} onClick={() => { setSelectedRole(option.id); setAuthMessage('') }}><span className="login-role-icon">{option.icon}</span><span><strong>{option.label}</strong><small>{option.copy}</small></span><i>{selectedRole === option.id ? '✓' : '↗'}</i></button>)}</div><div className="login-form-heading"><div><span className="eyebrow">{authMode === 'sign-in' ? 'WELCOME BACK' : 'NEW STUDENT ID'}</span><h2>{authMode === 'sign-in' ? `Sign in as ${selectedLabel}.` : 'Create your Student ID.'}</h2></div><span className="login-role-badge">{selectedRole === 'management' ? 'MGMT' : selectedRole.toUpperCase()}</span></div><div className="auth-form">{authMode === 'sign-up' && <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Your name" aria-label="Your name" />}{authMode === 'sign-up' && <input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="College email" aria-label="College email" type="email" />}{authMode === 'sign-in' && <input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="College email" aria-label="College email" type="email" />}<input value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Password" aria-label="Password" type="password" /><button className="button button-primary full-button" onClick={() => void submitAuth()} disabled={authBusy}>{authBusy ? 'verifying…' : authMode === 'sign-in' ? `enter ${selectedLabel} ↗` : 'create student ID ↗'}</button>{authMessage && <small className="auth-message">{authMessage}</small>}<button className="text-button" onClick={() => { setAuthMode(authMode === 'sign-in' ? 'sign-up' : 'sign-in'); setAuthMessage('') }}>{authMode === 'sign-in' ? 'Need a Student ID? create one' : 'Already have a Crave ID? sign in'}</button></div></div></div>{backendError && <p className="backend-error login-error">Live sync note: {backendError}</p>}<p className="login-footnote">Your role is read from the protected Supabase profile. Selecting a different door cannot grant access.</p></div>
 }
-function VendorPage({ foods, navigate, onRole }: { foods: Food[]; navigate: (path: string) => void; onRole: (role: Role) => void }) {
-  return <div className="page page-ops"><div className="ops-heading"><div><span className="eyebrow orange-ink">VENDOR CONSOLE · NOSH LAB</span><h1>Make lunch<br /><em>move.</em></h1></div><div className="ops-status"><span className="pulse-dot" /> accepting orders <button onClick={() => onRole('student')}>exit demo ↗</button></div></div><div className="metric-row"><Metric value="38" label="orders today" delta="+12%" tone="tangerine" /><Metric value="₹6.8k" label="revenue today" delta="+18%" tone="aqua" /><Metric value="4.8★" label="outlet rating" delta="steady" tone="lavender" /></div><div className="ops-layout"><section className="ops-panel"><div className="panel-heading"><div><span className="eyebrow">LIVE QUEUE</span><h2>Incoming orders</h2></div><span className="panel-count">04 active</span></div><div className="vendor-order-list"><VendorOrder id="#CRV-4824" item="Miso Crunch Bowl × 1" time="just now" status="New" tone="tangerine" /><VendorOrder id="#CRV-4823" item="Peri Peri Paneer Melt × 2" time="2 min ago" status="Cooking" tone="aqua" /><VendorOrder id="#CRV-4822" item="Loaded Campus Fries × 1" time="6 min ago" status="Ready" tone="chartreuse" /></div></section><section className="ops-panel menu-status-panel"><div className="panel-heading"><div><span className="eyebrow">QUICK MENU</span><h2>Availability</h2></div><button className="text-button" onClick={() => navigate('/vendor/menu')}>full menu ↗</button></div>{foods.slice(0, 4).map((food) => <div className="availability-row" key={food.id}><span className="availability-dot" /><div><strong>{food.name}</strong><small>{food.prep} · {money(food.price)}</small></div><button className="toggle-on">ON</button></div>)}</section></div></div>
+
+function ProfilePage({ session, profileRole, backendStatus, backendError, onSignOut }: { session: Session; profileRole: CraveRole; backendStatus: 'loading' | 'live' | 'fallback'; backendError: string; onSignOut: () => void }) {
+  const uiRole = uiRoleForCraveRole(profileRole)
+  return <div className="page page-profile"><span className="eyebrow">YOUR CRAVE ID</span><h1>Hi, <em>{session.user.email?.split('@')[0] || 'there'}.</em></h1><div className="profile-hero"><div className="profile-avatar-large">{uiRole === 'admin' ? 'MG' : uiRole === 'vendor' ? 'VN' : 'DS'}</div><div><span className="sticker sticker-orange">{roleLabel(uiRole).toUpperCase()}</span><h2>{session.user.email}</h2><p>Authenticated with Supabase · {roleLabel(uiRole)} access · RLS protected</p></div><button className="button button-dark" onClick={onSignOut}>sign out <span>↗</span></button></div><div className="profile-grid"><div className="profile-stat"><span>{backendStatus === 'live' ? 'LIVE' : 'DEMO'}</span><small>backend mode</small></div><div className="profile-stat"><span>{profileRole}</span><small>assigned role</small></div><div className="profile-stat"><span>RLS</span><small>protected access</small></div></div><section className="auth-card profile-access-card"><div><span className="eyebrow">ACCESS POLICY</span><h2>This account sees the {roleLabel(uiRole).toLowerCase()} workspace.</h2><p>Crave reads your role from the protected profile row. Vendor and Management dashboards are not selectable from inside the app.</p></div><div className="profile-access-list"><span>✓ {roleLabel(uiRole)} dashboard enabled</span><span>✓ Supabase Auth session active</span><span>✓ Row-level policies stay in charge</span></div></section>{backendError && <p className="backend-error">Live sync note: {backendError}</p>}</div>
+}
+
+function AccessDenied({ title, copy, navigate }: { title: string; copy: string; navigate: (path: string) => void }) {
+  return <div className="page page-access-denied"><span className="empty-shape">◎</span><span className="eyebrow orange-ink">PRIVATE CRAVE WORKSPACE</span><h1>{title}</h1><p>{copy}</p><button className="button button-primary" onClick={() => navigate('/')}>back to my workspace <span>↗</span></button></div>
+}
+function VendorPage({ foods, navigate }: { foods: Food[]; navigate: (path: string) => void }) {
+  return <div className="page page-ops"><div className="ops-heading"><div><span className="eyebrow orange-ink">VENDOR CONSOLE · NOSH LAB</span><h1>Make lunch<br /><em>move.</em></h1></div><div className="ops-status"><span className="pulse-dot" /> accepting orders</div></div><div className="metric-row"><Metric value="38" label="orders today" delta="+12%" tone="tangerine" /><Metric value="₹6.8k" label="revenue today" delta="+18%" tone="aqua" /><Metric value="4.8★" label="outlet rating" delta="steady" tone="lavender" /></div><div className="ops-layout"><section className="ops-panel"><div className="panel-heading"><div><span className="eyebrow">LIVE QUEUE</span><h2>Incoming orders</h2></div><span className="panel-count">04 active</span></div><div className="vendor-order-list"><VendorOrder id="#CRV-4824" item="Miso Crunch Bowl × 1" time="just now" status="New" tone="tangerine" /><VendorOrder id="#CRV-4823" item="Peri Peri Paneer Melt × 2" time="2 min ago" status="Cooking" tone="aqua" /><VendorOrder id="#CRV-4822" item="Loaded Campus Fries × 1" time="6 min ago" status="Ready" tone="chartreuse" /></div></section><section className="ops-panel menu-status-panel"><div className="panel-heading"><div><span className="eyebrow">QUICK MENU</span><h2>Availability</h2></div><button className="text-button" onClick={() => navigate('/vendor/menu')}>full menu ↗</button></div>{foods.slice(0, 4).map((food) => <div className="availability-row" key={food.id}><span className="availability-dot" /><div><strong>{food.name}</strong><small>{food.prep} · {money(food.price)}</small></div><button className="toggle-on">ON</button></div>)}</section></div></div>
 }
 
 function Metric({ value, label, delta, tone }: { value: string; label: string; delta: string; tone: Tone }) {
@@ -457,8 +535,8 @@ function VendorOrder({ id, item, time, status, tone }: { id: string; item: strin
   return <div className="vendor-order"><div className={`vendor-order-icon tone-${tone}`}>↗</div><div className="vendor-order-copy"><strong>{id}</strong><span>{item}</span><small>{time}</small></div><span className={`order-state state-${status.toLowerCase()}`}>{status}</span><button className="dots-button">•••</button></div>
 }
 
-function AdminPage({ outlets, navigate, onRole }: { outlets: Outlet[]; navigate: (path: string) => void; onRole: (role: Role) => void }) {
-  return <div className="page page-ops page-admin"><div className="ops-heading"><div><span className="eyebrow orange-ink">ADMIN HQ · SRMIST CAMPUS</span><h1>Campus at<br /><em>a glance.</em></h1></div><div className="ops-status"><span className="pulse-dot" /> all systems playful <button onClick={() => onRole('student')}>exit demo ↗</button></div></div><div className="metric-row"><Metric value="1,284" label="active students" delta="+8.2%" tone="tangerine" /><Metric value="18" label="live outlets" delta="all online" tone="aqua" /><Metric value="96%" label="order happiness" delta="+4.1%" tone="chartreuse" /></div><div className="admin-grid"><section className="ops-panel campus-health"><div className="panel-heading"><div><span className="eyebrow">CAMPUS PULSE</span><h2>Busy, in a good way.</h2></div><span className="panel-count">LIVE</span></div><div className="bar-chart">{[34, 52, 44, 76, 62, 88, 70, 96, 68, 78, 58, 84].map((height, index) => <div key={index} className="bar-column"><span style={{ height: `${height}%` }} /><small>{index + 9}</small></div>)}</div><div className="chart-legend"><span><i className="legend-orange" /> orders</span><span><i className="legend-dark" /> happy students</span></div></section><section className="ops-panel outlet-health"><div className="panel-heading"><div><span className="eyebrow">OUTLET HEALTH</span><h2>Everyone’s open.</h2></div><button className="text-button">manage ↗</button></div>{outlets.slice(0, 4).map((outlet) => <div className="outlet-health-row" key={outlet.id}><span className="health-emoji">{outlet.emoji}</span><div><strong>{outlet.name}</strong><small>{outlet.orders} · {outlet.eta}</small></div><span className="health-open">{outlet.open ? 'OPEN' : 'CLOSED'}</span></div>)}</section></div><section className="admin-note"><span className="note-star">✷</span><div><span className="eyebrow">ADMIN NOTE</span><h2>Peak lunch is 12:30–1:15.</h2><p>Maybe nudge pickup slots earlier? Or just keep the snacks coming. Your call.</p></div><button className="button button-dark">view insights <span>↗</span></button></section></div>
+function AdminPage({ outlets, navigate }: { outlets: Outlet[]; navigate: (path: string) => void }) {
+  return <div className="page page-ops page-admin"><div className="ops-heading"><div><span className="eyebrow orange-ink">ADMIN HQ · SRMIST CAMPUS</span><h1>Campus at<br /><em>a glance.</em></h1></div><div className="ops-status"><span className="pulse-dot" /> all systems playful</div></div><div className="metric-row"><Metric value="1,284" label="active students" delta="+8.2%" tone="tangerine" /><Metric value="18" label="live outlets" delta="all online" tone="aqua" /><Metric value="96%" label="order happiness" delta="+4.1%" tone="chartreuse" /></div><div className="admin-grid"><section className="ops-panel campus-health"><div className="panel-heading"><div><span className="eyebrow">CAMPUS PULSE</span><h2>Busy, in a good way.</h2></div><span className="panel-count">LIVE</span></div><div className="bar-chart">{[34, 52, 44, 76, 62, 88, 70, 96, 68, 78, 58, 84].map((height, index) => <div key={index} className="bar-column"><span style={{ height: `${height}%` }} /><small>{index + 9}</small></div>)}</div><div className="chart-legend"><span><i className="legend-orange" /> orders</span><span><i className="legend-dark" /> happy students</span></div></section><section className="ops-panel outlet-health"><div className="panel-heading"><div><span className="eyebrow">OUTLET HEALTH</span><h2>Everyone’s open.</h2></div><button className="text-button">manage ↗</button></div>{outlets.slice(0, 4).map((outlet) => <div className="outlet-health-row" key={outlet.id}><span className="health-emoji">{outlet.emoji}</span><div><strong>{outlet.name}</strong><small>{outlet.orders} · {outlet.eta}</small></div><span className="health-open">{outlet.open ? 'OPEN' : 'CLOSED'}</span></div>)}</section></div><section className="admin-note"><span className="note-star">✷</span><div><span className="eyebrow">ADMIN NOTE</span><h2>Peak lunch is 12:30–1:15.</h2><p>Maybe nudge pickup slots earlier? Or just keep the snacks coming. Your call.</p></div><button className="button button-dark">view insights <span>↗</span></button></section></div>
 }
 
 function CartRail({ cart, total, count, navigate, setItemQuantity, order }: { cart: CartItem[]; total: number; count: number; navigate: (path: string) => void; setItemQuantity: (id: string, quantity: number) => void; order: typeof demoOrder }) {

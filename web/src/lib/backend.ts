@@ -85,9 +85,11 @@ type LiveOrderRow = {
   order_number: string
   outlet_id: string
   outlet_name?: string | null
+  outlets?: Pick<LiveOutletRow, 'name'> | Pick<LiveOutletRow, 'name'>[] | null
   total: number
   status: string
   pickup_slots?: { start_time?: string; end_time?: string; slot_date?: string } | null
+  pickup_tokens?: { token_value?: string | null; expires_at?: string | null } | Array<{ token_value?: string | null; expires_at?: string | null }> | null
   items?: Array<{ food_name: string; quantity: number }>
 }
 
@@ -96,6 +98,8 @@ export type LiveCatalog = {
   foods: Food[]
   categories: Category[]
 }
+
+export type CraveRole = 'STUDENT' | 'VENDOR' | 'ADMIN'
 
 export type LivePickupSlot = {
   id: string
@@ -253,6 +257,14 @@ export async function fetchFavoriteIds(userId: string, client: SupabaseClient = 
   return (data ?? []).map((row) => row.food_item_id as string)
 }
 
+export async function fetchUserRole(userId: string, client: SupabaseClient = supabase!): Promise<CraveRole> {
+  if (!client) return 'STUDENT'
+  const { data, error } = await client.from('profiles').select('role').eq('id', userId).maybeSingle()
+  if (error) throw error
+  const role = String(data?.role || 'STUDENT').toUpperCase()
+  return role === 'VENDOR' || role === 'ADMIN' ? role : 'STUDENT'
+}
+
 export async function setFavorite(foodId: string, userId: string, favorite: boolean, client: SupabaseClient = supabase!) {
   if (!client) return
   if (favorite) {
@@ -333,14 +345,14 @@ export async function placeLiveOrder(session: Session, items: CartItem[], pickup
   })
   if (placed.error) throw placed.error
   const orderId = String(placed.data)
-  const order = await client.from('orders').select('id, order_number, outlet_id, total, status, pickup_slots(start_time, end_time, slot_date), items:order_items(food_name, quantity)').eq('id', orderId).single()
+  const order = await client.from('orders').select('id, order_number, outlet_id, total, status, outlets(name), pickup_slots(start_time, end_time, slot_date), pickup_tokens(token_value, expires_at), items:order_items(food_name, quantity)').eq('id', orderId).single()
   if (order.error) throw order.error
   return mapOrder(order.data as LiveOrderRow)
 }
 
 export async function fetchUserOrders(userId: string, client: SupabaseClient = supabase!) {
   if (!client) return []
-  const { data, error } = await client.from('orders').select('id, order_number, outlet_id, total, status, pickup_slots(start_time, end_time, slot_date), items:order_items(food_name, quantity)').eq('user_id', userId).order('created_at', { ascending: false }).limit(20)
+  const { data, error } = await client.from('orders').select('id, order_number, outlet_id, total, status, outlets(name), pickup_slots(start_time, end_time, slot_date), pickup_tokens(token_value, expires_at), items:order_items(food_name, quantity)').eq('user_id', userId).order('created_at', { ascending: false }).limit(20)
   if (error) throw error
   return ((data ?? []) as LiveOrderRow[]).map(mapOrder)
 }
@@ -349,16 +361,19 @@ export function mapOrder(row: LiveOrderRow): CraveOrder {
   const status = String(row.status).toUpperCase()
   const normalizedStatus = status === 'READY' ? 'Ready for pickup' : status === 'PICKED_UP' ? 'Picked up' : status === 'CANCELLED' || status === 'REJECTED' ? 'Cancelled' : status === 'PREPARING' || status === 'ACCEPTED' ? 'Cooking' : 'Queued'
   const slot = row.pickup_slots
+  const token = Array.isArray(row.pickup_tokens) ? row.pickup_tokens[0] : row.pickup_tokens
+  const outlet = Array.isArray(row.outlets) ? row.outlets[0] : row.outlets
   const pickup = slot?.start_time ? `${formatTime(slot.start_time)}${slot.end_time ? ` – ${formatTime(slot.end_time)}` : ''}` : 'Slot pending'
   return {
     id: row.order_number || row.id,
     backendId: row.id,
-    outlet: row.outlet_name || 'Live outlet',
+    outlet: outlet?.name || row.outlet_name || 'Live outlet',
     itemLabel: (row.items ?? []).map((item) => `${item.food_name} × ${item.quantity}`).join(' · ') || 'Crave order',
     total: Number(row.total),
     status: normalizedStatus,
     pickup,
     counter: 'SRMIST pickup counter',
+    pickupToken: token?.token_value || null,
     fulfillmentMode: 'pickup',
   }
 }
@@ -366,7 +381,7 @@ export function mapOrder(row: LiveOrderRow): CraveOrder {
 export function subscribeToOrder(orderId: string, onOrder: (order: CraveOrder) => void, client: SupabaseClient = supabase!) {
   if (!client) return () => undefined
   const channel = client.channel(`crave-order-${orderId}`).on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` }, async () => {
-    const { data } = await client.from('orders').select('id, order_number, outlet_id, total, status, pickup_slots(start_time, end_time, slot_date), items:order_items(food_name, quantity)').eq('id', orderId).maybeSingle()
+    const { data } = await client.from('orders').select('id, order_number, outlet_id, total, status, outlets(name), pickup_slots(start_time, end_time, slot_date), pickup_tokens(token_value, expires_at), items:order_items(food_name, quantity)').eq('id', orderId).maybeSingle()
     if (data) onOrder(mapOrder(data as LiveOrderRow))
   }).subscribe()
   return () => { void client.removeChannel(channel) }

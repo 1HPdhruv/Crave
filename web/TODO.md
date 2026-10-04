@@ -36,3 +36,10 @@
 - [x] Read real pickup slots and use the existing `place_order(p_cart_id, p_pickup_slot_id, p_payment_method)` RPC so server-side inventory, customization pricing, totals, slot capacity, and QR token generation remain authoritative.
 - [x] Read the user’s real orders and subscribe to realtime order status changes, with a clear fallback message when no session is available or the backend is unreachable.
 - [x] Re-run diagnostics, typecheck, production build, live Supabase reads, and Preview checks after the integration; checkpoint the updated managed project and mirror the integration into `/home/ubuntu/Crave/web`.
+
+## Gate vendor and management workspaces by login role
+
+- [x] Open the website on a login-first access page with Student, Vendor, and Management choices; do not open directly into a demo dashboard.
+- [x] Read the authoritative `profiles.role` from Supabase after authentication and require the selected login door to match the account’s assigned role.
+- [x] Allow only approved Vendor accounts to render vendor routes and only approved ADMIN/Management accounts to render management routes; do not grant access through a client-side role switcher or URL alone.
+- [x] Remove demo role switching and show the signed-in user’s assigned role and access policy in the profile surface.

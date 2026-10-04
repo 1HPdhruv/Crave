@@ -19,7 +19,11 @@ For a plain local run, set those values in your local environment before `pnpm d
 ## Product shape
 
 - **Students:** discover open outlets, search/filter live food, customize items from Supabase variants, add to bag, read real pickup slots, sign in with Supabase Auth, place server-authoritative pickup orders through `place_order`, track status with realtime updates, save bites, and reorder.
-- **Vendors:** see incoming-order concepts, quick menu availability, and daily metrics in the secondary role workspace.
-- **Admins:** see campus pulse, outlet health, and high-level system metrics in the secondary role workspace.
+- **Vendors:** see incoming-order concepts, quick menu availability, and daily metrics only when the protected Supabase profile role is `VENDOR`.
+- **Management:** see campus pulse, outlet health, and high-level system metrics only when the protected Supabase profile role is `ADMIN`.
+
+The website opens on a login-first role picker. Selecting Student, Vendor, or Management only selects the expected account type; it never grants access by itself. After authentication, Crave reads `profiles.role`, rejects mismatches, removes the demo role switcher, and gates vendor/management routes in the UI while the existing Supabase RLS policies protect the underlying data.
+
+Remote order history now renders the authenticated user’s Supabase orders, specific order URLs select the matching backend order, outlet names come from the live relation, and tracking uses the server-issued pickup token when the authenticated policy exposes it.
 
 The browser adapter lives in `src/lib/backend.ts`. It uses the existing schema and RLS policies for public catalog reads, authenticated favorites, carts, pickup slots, and orders. The Android app remains under `/app`; this website lives under `/web` in the original repository mirror.

@@ -69,6 +69,7 @@ export type OrderStatus = 'Queued' | 'Cooking' | 'Ready for pickup' | 'Picked up
 export type CraveOrder = {
   id: string
   backendId?: string
+  pickupToken?: string | null
   outlet: string
   itemLabel: string
   total: number
