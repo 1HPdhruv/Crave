@@ -32,6 +32,8 @@ export type Outlet = {
 export type CartItem = Food & {
   quantity: number
   note?: string
+  customizations?: string[]
+  customizationTotal?: number
 }
 
 export type OrderStatus = 'Queued' | 'Cooking' | 'Ready for pickup'
@@ -71,6 +73,7 @@ export const demoOrder = {
   status: 'Cooking' as OrderStatus,
   pickup: '12:40 – 12:55 PM',
   counter: 'Nosh Lab • Tech Park ground floor',
+  fulfillmentMode: 'pickup' as 'pickup' | 'delivery',
 }
 
 export const pastOrders = [
@@ -86,4 +89,10 @@ export function getOutlet(id: string) {
 
 export function getFood(id: string) {
   return foods.find((food) => food.id === id)
+}
+
+export function getCustomizationPrice(item: string) {
+  if (item.includes('combo')) return 40
+  if (item.includes('cheese') || item.includes('tofu')) return 20
+  return 0
 }

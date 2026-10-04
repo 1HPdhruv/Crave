@@ -294,6 +294,14 @@ p { color: var(--muted); line-height: 1.45; }
 .checkout-step { display: grid; grid-template-columns: 32px 1fr; gap: 13px; padding: 0 0 36px; margin-bottom: 32px; border-bottom: 1px solid var(--line); }
 .step-number { color: var(--orange); font: 500 11px 'DM Mono', monospace; }
 .step-copy h2 { margin: 9px 0 18px; font-size: 22px; }
+.fulfillment-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.fulfillment-option { display: grid; grid-template-columns: 30px 1fr; gap: 3px 9px; padding: 11px; border: 1px solid var(--line); border-radius: 11px; background: var(--white); text-align: left; }
+.fulfillment-option strong, .fulfillment-option small { grid-column: 2; display: block; }
+.fulfillment-option strong { font-size: 11px; }
+.fulfillment-option small { color: var(--muted); font-size: 9px; line-height: 1.35; }
+.fulfillment-icon { grid-row: span 2; display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid var(--ink); border-radius: 9px; background: var(--aqua); font-size: 18px; }
+.fulfillment-option:last-child .fulfillment-icon { background: var(--lavender); }
+.fulfillment-selected { border-color: var(--ink); background: var(--chartreuse); box-shadow: 2px 3px 0 var(--ink); }
 .pickup-select, .payment-card { display: flex; align-items: center; gap: 12px; width: 100%; padding: 13px; border: 1px solid var(--line); border-radius: 11px; background: var(--white); text-align: left; }
 .pickup-pin, .payment-icon { display: grid; place-items: center; width: 31px; height: 31px; border: 1px solid var(--ink); border-radius: 9px; background: var(--orange); font-size: 20px; }
 .pickup-select strong, .pickup-select small, .payment-card strong, .payment-card small { display: block; }
