@@ -35,4 +35,4 @@
 - [x] Add Supabase Auth-aware sign-in/sign-up state and use the authenticated user for favorites, carts, orders, and profile data under the existing RLS policies.
 - [x] Read real pickup slots and use the existing `place_order(p_cart_id, p_pickup_slot_id, p_payment_method)` RPC so server-side inventory, customization pricing, totals, slot capacity, and QR token generation remain authoritative.
 - [x] Read the user’s real orders and subscribe to realtime order status changes, with a clear fallback message when no session is available or the backend is unreachable.
-- [ ] Re-run diagnostics, typecheck, production build, live Supabase reads, and Preview checks after the integration; checkpoint the updated managed project and mirror the integration into `/home/ubuntu/Crave/web`.
+- [x] Re-run diagnostics, typecheck, production build, live Supabase reads, and Preview checks after the integration; checkpoint the updated managed project and mirror the integration into `/home/ubuntu/Crave/web`.
