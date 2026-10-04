@@ -125,6 +125,31 @@ function emojiFor(name: string, categoryEmoji?: string | null) {
   return emojis[stableIndex(name) % emojis.length]
 }
 
+function emojiForFood(name: string, categoryName?: string | null) {
+  const text = `${name} ${categoryName || ''}`.toLowerCase()
+  if (/biryani|pulao/.test(text)) return '🍛'
+  if (/roll|shawarma|wrap|kubos|paratha wrap/.test(text)) return '🌯'
+  if (/burger/.test(text)) return '🍔'
+  if (/sandwich|club|bread omelet/.test(text)) return '🥪'
+  if (/pizza/.test(text)) return '🍕'
+  if (/momo/.test(text)) return '🥟'
+  if (/dosa|idli|uttapam/.test(text)) return '🥞'
+  if (/naan|roti|chapati|parotta|pulk|kulcha|bread/.test(text)) return '🫓'
+  if (/noodle|maggi|pasta/.test(text)) return '🍜'
+  if (/fried rice|rice/.test(text)) return '🍚'
+  if (/samosa|vada pav|pakoda|fry|fries|snack/.test(text)) return '🍟'
+  if (/egg|omelet|omlette/.test(text)) return '🍳'
+  if (/chicken|mutton|fish|prawn|seafood|tandoori|kabab|kebab/.test(text)) return '🍗'
+  if (/gravy|curry|masala|korma|paneer|dal|bhartha|gobi|aloo|bhindi/.test(text)) return '🍲'
+  if (/chat|chaat|salad/.test(text)) return '🥗'
+  if (/juice|shake|lassi|mojito|soda|lime|booster|milk/.test(text)) return '🥤'
+  if (/ice cream|kulfi|brownie|cake|caramel|bounty|treat/.test(text)) return '🍨'
+  if (/corn/.test(text)) return '🌽'
+  if (/coffee|tea/.test(text)) return '☕'
+  if (/fresh fruit|fruit|apple|banana|avocado|blueberry|blackberry|cherry|carrot|beetroot/.test(text)) return '🍎'
+  return '🍽️'
+}
+
 function locationFor(outlet: LiveOutletRow) {
   return [outlet.building, outlet.floor].filter(Boolean).join(' · ') || outlet.location_description || 'SRMIST campus'
 }
@@ -183,7 +208,7 @@ function mapFoods(rows: LiveFoodRow[]) {
       price: Number(food.price),
       rating: Number(food.rating ?? 0),
       prep: `${food.prep_time_minutes ?? 10} min`,
-      emoji: emojiFor(food.name, food.categories?.emoji),
+      emoji: emojiForFood(food.name, food.categories?.name),
       tone: toneFor(food.id),
       imageUrl: food.image_url,
       isVeg: Boolean(food.is_veg ?? true),
