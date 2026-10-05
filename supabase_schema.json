@@ -1,1 +1,264 @@
-{"message":"Invalid API key","hint":"Only the `service_role` API key can be used for this endpoint."}
+{
+    "version": "1.0",
+    "schemas": [
+        {
+            "name": "public",
+            "tables": [
+                {
+                    "name": "categories",
+                    "columns": [
+                        {
+                            "name": "id",
+                            "data_type": "uuid",
+                            "is_nullable": false,
+                            "is_primary_key": true,
+                            "default_value": "uuid_generate_v4()"
+                        },
+                        {
+                            "name": "name",
+                            "data_type": "text",
+                            "is_nullable": false,
+                            "is_unique": true
+                        },
+                        {
+                            "name": "emoji",
+                            "data_type": "text",
+                            "is_nullable": false
+                        },
+                        {
+                            "name": "image_url",
+                            "data_type": "text",
+                            "is_nullable": true
+                        },
+                        {
+                            "name": "created_at",
+                            "data_type": "timestamp with time zone",
+                            "is_nullable": false,
+                            "default_value": "now()"
+                        },
+                        {
+                            "name": "updated_at",
+                            "data_type": "timestamp with time zone",
+                            "is_nullable": false,
+                            "default_value": "now()"
+                        }
+                    ],
+                    "primary_key": [
+                        "id"
+                    ]
+                },
+                {
+                    "name": "food_items",
+                    "columns": [
+                        {
+                            "name": "id",
+                            "data_type": "uuid",
+                            "is_nullable": false,
+                            "is_primary_key": true,
+                            "default_value": "uuid_generate_v4()"
+                        },
+                        {
+                            "name": "outlet_id",
+                            "data_type": "uuid",
+                            "is_nullable": false,
+                            "is_primary_key": false
+                        },
+                        {
+                            "name": "category_id",
+                            "data_type": "uuid",
+                            "is_nullable": false,
+                            "is_primary_key": false
+                        },
+                        {
+                            "name": "name",
+                            "data_type": "text",
+                            "is_nullable": false,
+                            "is_primary_key": false
+                        },
+                        {
+                            "name": "description",
+                            "data_type": "text",
+                            "is_nullable": false,
+                            "is_primary_key": false
+                        },
+                        {
+                            "name": "image_url",
+                            "data_type": "text",
+                            "is_nullable": true,
+                            "is_primary_key": false
+                        },
+                        {
+                            "name": "price",
+                            "data_type": "numeric",
+                            "is_nullable": false,
+                            "is_primary_key": false,
+                            "check_expression": "(price >= 0)"
+                        },
+                        {
+                            "name": "is_veg",
+                            "data_type": "boolean",
+                            "is_nullable": false,
+                            "is_primary_key": false,
+                            "default_value": true
+                        },
+                        {
+                            "name": "is_available",
+                            "data_type": "boolean",
+                            "is_nullable": false,
+                            "is_primary_key": false,
+                            "default_value": true
+                        },
+                        {
+                            "name": "prep_time_minutes",
+                            "data_type": "integer",
+                            "is_nullable": false,
+                            "is_primary_key": false,
+                            "default_value": 5,
+                            "check_expression": "(prep_time_minutes >= 0)"
+                        },
+                        {
+                            "name": "calories",
+                            "data_type": "integer",
+                            "is_nullable": true,
+                            "is_primary_key": false
+                        },
+                        {
+                            "name": "ingredients",
+                            "data_type": "text[]",
+                            "is_nullable": true,
+                            "is_primary_key": false,
+                            "default_value": "'{}'::text[]"
+                        },
+                        {
+                            "name": "tags",
+                            "data_type": "text[]",
+                            "is_nullable": true,
+                            "is_primary_key": false,
+                            "default_value": "'{}'::text[]"
+                        },
+                        {
+                            "name": "is_popular",
+                            "data_type": "boolean",
+                            "is_nullable": false,
+                            "is_primary_key": false,
+                            "default_value": false
+                        },
+                        {
+                            "name": "is_recommended",
+                            "data_type": "boolean",
+                            "is_nullable": false,
+                            "is_primary_key": false,
+                            "default_value": false
+                        },
+                        {
+                            "name": "rating",
+                            "data_type": "numeric",
+                            "is_nullable": false,
+                            "is_primary_key": false,
+                            "default_value": "0.00",
+                            "check_expression": "(rating >= 0)"
+                        },
+                        {
+                            "name": "total_reviews",
+                            "data_type": "integer",
+                            "is_nullable": false,
+                            "is_primary_key": false,
+                            "default_value": 0
+                        },
+                        {
+                            "name": "created_at",
+                            "data_type": "timestamp with time zone",
+                            "is_nullable": false,
+                            "is_primary_key": false,
+                            "default_value": "now()"
+                        },
+                        {
+                            "name": "updated_at",
+                            "data_type": "timestamp with time zone",
+                            "is_nullable": false,
+                            "is_primary_key": false,
+                            "default_value": "now()"
+                        },
+                        {
+                            "name": "deleted_at",
+                            "data_type": "timestamp with time zone",
+                            "is_nullable": true,
+                            "is_primary_key": false
+                        }
+                    ],
+                    "primary_key": [
+                        "id"
+                    ],
+                    "foreign_keys": [
+                        {
+                            "column_names": [
+                                "outlet_id"
+                            ],
+                            "references_table": "outlets",
+                            "references_columns": [
+                                "id"
+                            ],
+                            "on_delete": "cascade"
+                        },
+                        {
+                            "column_names": [
+                                "category_id"
+                            ],
+                            "references_table": "categories",
+                            "references_columns": [
+                                "id"
+                            ],
+                            "on_delete": "restrict"
+                        }
+                    ]
+                },
+                {
+                    "name": "food_variant_options",
+                    "columns": [
+                        {
+                            "name": "id",
+                            "data_type": "uuid",
+                            "is_nullable": false,
+                            "is_primary_key": true,
+                            "default_value": "uuid_generate_v4()"
+                        },
+                        {
+                            "name": "variant_id",
+                            "data_type": "uuid",
+                            "is_nullable": false,
+                            "is_primary_key": false
+                        },
+                        {
+                            "name": "name",
+                            "data_type": "text",
+                            "is_nullable": false,
+                            "is_primary_key": false
+                        },
+                        {
+                            "name": "extra_price",
+                            "data_type": "numeric",
+                            "is_nullable": false,
+                            "is_primary_key": false,
+                            "default_value": "0.00",
+                            "check_expression": "(extra_price >= 0)"
+                        }
+                    ],
+                    "primary_key": [
+                        "id"
+                    ],
+                    "foreign_keys": [
+                        {
+                            "column_names": [
+                                "variant_id"
+                            ],
+                            "references_table": "food_variants",
+                            "references_columns": [
+                                "id"
+                            ],
+                            "on_delete": "cascade"
+                        }
+                    ]
+                },
+                {
+                    "name": "food_variants",
+                    "columns": [

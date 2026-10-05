@@ -48,6 +48,7 @@ import com.srmfood.gag.feature.profile.HelpScreen
 import com.srmfood.gag.feature.profile.ProfileScreen
 import com.srmfood.gag.feature.profile.SettingsScreen
 import com.srmfood.gag.feature.vendor.dashboard.VendorDashboardScreen
+import com.srmfood.gag.feature.vendor.reviews.VendorReviewsScreen
 import com.srmfood.gag.feature.vendor.orders.VendorOrderDetailScreen
 import com.srmfood.gag.feature.vendor.orders.VendorOrdersScreen
 import com.srmfood.gag.feature.vendor.menu.VendorMenuScreen
@@ -369,12 +370,18 @@ fun GagNavGraph() {
                 onOrderClick = { navController.navigate(Screen.VendorOrderDetail.createRoute(it)) },
                 onScanQR     = { navController.navigate(Screen.QRScanner.route) },
                 onAllOrders  = { navController.navigate(Screen.VendorOrders.route) },
+                onReviews    = { navController.navigate(Screen.VendorReviews.route) },
                 onMenu       = { navController.navigate(Screen.VendorMenu.route) },
                 onLogout     = {
                     navController.navigate(Screen.Login.createRoute("vendor")) {
                         popUpTo(0) { inclusive = true }
                     }
                 }
+            )
+        }
+        composable(Screen.VendorReviews.route) {
+            VendorReviewsScreen(
+                onBack = { navController.popBackStack() }
             )
         }
         composable(Screen.VendorOrders.route) {
@@ -595,6 +602,12 @@ fun GagNavGraph() {
                         }
                         
                         androidx.compose.material3.Button(onClick = {
+                            navController.navigate(Screen.ManagementReviews.route)
+                        }) {
+                            androidx.compose.material3.Text("Food Reviews")
+                        }
+                        
+                        androidx.compose.material3.Button(onClick = {
                             navController.navigate(Screen.ManagementNotifications.route)
                         }) {
                             androidx.compose.material3.Text("Notifications")
@@ -628,6 +641,13 @@ fun GagNavGraph() {
             com.srmfood.gag.feature.management.ManagementContentScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
+        }
+        composable(Screen.ManagementReviews.route) {
+            ManagementShell(navController = navController, currentRoute = Screen.ManagementMore.route) {
+                com.srmfood.gag.feature.management.ManagementReviewsScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
         }
         composable(Screen.ManagementNotifications.route) {
             com.srmfood.gag.feature.management.ManagementNotificationsScreen(

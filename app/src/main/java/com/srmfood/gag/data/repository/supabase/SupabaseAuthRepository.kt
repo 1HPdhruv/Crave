@@ -175,6 +175,8 @@ class SupabaseAuthRepository @Inject constructor(
             createdAt = profile.created_at
         )
 
+        userDao.clearAll()
+
         userDao.insertUser(UserEntity(
             id = domainUser.id,
             name = domainUser.name,

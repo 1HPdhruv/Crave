@@ -3,9 +3,12 @@ package com.srmfood.gag.feature.outlets
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -15,7 +18,6 @@ import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material.icons.outlined.RestaurantMenu
-import androidx.compose.foundation.border
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,6 +36,7 @@ import coil.compose.AsyncImage
 import com.srmfood.gag.core.common.UiState
 import com.srmfood.gag.core.ui.component.DeliveryModeSelector
 import com.srmfood.gag.core.ui.component.FoodItemCard
+import com.srmfood.gag.core.ui.component.GagCategoryChip
 import com.srmfood.gag.core.ui.component.GagErrorScreen
 import com.srmfood.gag.core.ui.component.GagLoadingScreen
 import com.srmfood.gag.core.ui.component.HostelAddressBanner
@@ -63,6 +66,7 @@ import javax.inject.Inject
 data class OutletDetailUiState(
     val outlet: UiState<Outlet> = UiState.Loading,
     val menu: UiState<List<FoodItem>> = UiState.Loading,
+    val reviews: UiState<com.srmfood.gag.domain.model.OutletReviewPage> = UiState.Loading,
     val selectedCategory: String? = null,
     val orderingMode: OrderingMode = OrderingMode.PICKUP,
     val hostelAddress: HostelAddress = HostelAddress()
@@ -79,7 +83,8 @@ class OutletDetailViewModel @Inject constructor(
     private val getOutletDetailsUseCase: GetOutletDetailsUseCase,
     private val getMenuByOutletUseCase: GetMenuByOutletUseCase,
     private val addToCartUseCase: AddToCartUseCase,
-    private val orderingModeRepository: OrderingModeRepository
+    private val orderingModeRepository: OrderingModeRepository,
+    private val reviewRepository: com.srmfood.gag.domain.repository.ReviewRepository
 ) : ViewModel() {
 
     private val outletId: String = savedStateHandle[Screen.OutletDetail.ARG_OUTLET_ID] ?: ""
@@ -127,6 +132,15 @@ class OutletDetailViewModel @Inject constructor(
                 )
             )
         }
+        viewModelScope.launch {
+            val reviewsResult = reviewRepository.getOutletReviews(outletId = outletId, limit = 5, offset = 0)
+            _uiState.value = _uiState.value.copy(
+                reviews = reviewsResult.fold(
+                    onSuccess = { if (it.reviews.isEmpty()) UiState.Empty else UiState.Success(it) },
+                    onFailure = { UiState.Error(it.message ?: "Failed to load reviews") }
+                )
+            )
+        }
     }
 
     fun onCategorySelected(category: String?) {
@@ -145,7 +159,6 @@ class OutletDetailViewModel @Inject constructor(
 }
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
-@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun OutletDetailScreen(
     onBack: () -> Unit,
@@ -187,13 +200,19 @@ fun OutletDetailScreen(
                 contentWindowInsets = WindowInsets(0, 0, 0, 0)
             ) { padding ->
                 Box(modifier = Modifier.fillMaxSize()) {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(bottom = padding.calculateBottomPadding())
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(
+                            start = 16.dp,
+                            end = 16.dp,
+                            bottom = padding.calculateBottomPadding() + 16.dp
+                        ),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         // 1. Hero Section
-                        item {
+                        item(span = { GridItemSpan(2) }) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -239,7 +258,7 @@ fun OutletDetailScreen(
                         }
 
                         // 2. Outlet Information
-                        item {
+                        item(span = { GridItemSpan(2) }) {
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -248,7 +267,7 @@ fun OutletDetailScreen(
                                         color = MaterialTheme.colorScheme.background,
                                         shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
                                     )
-                                    .padding(horizontal = 24.dp, vertical = 24.dp)
+                                    .padding(horizontal = 8.dp, vertical = 24.dp)
                             ) {
                                 Text(
                                     text = outlet.name,
@@ -362,11 +381,11 @@ fun OutletDetailScreen(
                         }
 
                         // 2.5 Delivery / Pickup Selector
-                        item {
+                        item(span = { GridItemSpan(2) }) {
                             var showAddressDialog by remember { mutableStateOf(false) }
                             Column(
                                 modifier = Modifier
-                                    .padding(horizontal = 16.dp)
+                                    .fillMaxWidth()
                                     .padding(bottom = 16.dp)
                                     .offset(y = (-32).dp)
                             ) {
@@ -394,29 +413,29 @@ fun OutletDetailScreen(
                             }
                         }
 
-                        // 3. Sticky Category Nav
+                        // 3. Category Nav
                         if (categories.isNotEmpty()) {
-                            stickyHeader {
+                            item(span = { GridItemSpan(2) }) {
                                 Surface(
                                     color = MaterialTheme.colorScheme.background,
                                     modifier = Modifier.fillMaxWidth().offset(y = (-32).dp)
                                 ) {
                                     LazyRow(
-                                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp),
                                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                                     ) {
                                         item {
                                             GagCategoryChip(
-                                                selected = uiState.selectedCategory == null,
-                                                onClick = { viewModel.onCategorySelected(null) },
-                                                label = "All"
+                                                label = "All",
+                                                isSelected = uiState.selectedCategory == null,
+                                                onClick = { viewModel.onCategorySelected(null) }
                                             )
                                         }
                                         items(categories) { cat ->
                                             GagCategoryChip(
-                                                selected = uiState.selectedCategory == cat,
-                                                onClick = { viewModel.onCategorySelected(cat) },
-                                                label = cat
+                                                label = cat,
+                                                isSelected = uiState.selectedCategory == cat,
+                                                onClick = { viewModel.onCategorySelected(cat) }
                                             )
                                         }
                                     }
@@ -427,12 +446,11 @@ fun OutletDetailScreen(
                         // 4. Menu Items
                         when (uiState.menu) {
                             is UiState.Loading -> {
-                                items(3) {
+                                items(4, span = { GridItemSpan(1) }) {
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(120.dp)
-                                            .padding(horizontal = 24.dp, vertical = 8.dp)
+                                            .height(200.dp)
                                             .offset(y = (-32).dp)
                                             .clip(RoundedCornerShape(20.dp))
                                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
@@ -441,7 +459,7 @@ fun OutletDetailScreen(
                             }
                             is UiState.Success -> {
                                 if (filteredMenu.isEmpty()) {
-                                    item {
+                                    item(span = { GridItemSpan(2) }) {
                                         Column(
                                             modifier = Modifier
                                                 .fillMaxWidth()
@@ -467,13 +485,13 @@ fun OutletDetailScreen(
                                 } else {
                                     // Optional: Popular Section if viewing "All"
                                     if (uiState.selectedCategory == null && popularItems.isNotEmpty()) {
-                                        item {
+                                        item(span = { GridItemSpan(2) }) {
                                             Text(
                                                 text = "Popular Choices",
                                                 style = MaterialTheme.typography.titleLarge,
                                                 fontWeight = FontWeight.Black,
                                                 color = MaterialTheme.colorScheme.onBackground,
-                                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp).offset(y = (-32).dp)
+                                                modifier = Modifier.padding(vertical = 12.dp).offset(y = (-32).dp)
                                             )
                                         }
                                         items(popularItems, key = { "pop_${it.id}" }) { food ->
@@ -481,17 +499,17 @@ fun OutletDetailScreen(
                                                 foodItem = food,
                                                 onClick = { onFoodClick(food.id) },
                                                 onAddToCart = { viewModel.addToCart(food) },
-                                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp).offset(y = (-32).dp)
+                                                modifier = Modifier.offset(y = (-32).dp)
                                             )
                                         }
-                                        item {
+                                        item(span = { GridItemSpan(2) }) {
                                             Spacer(modifier = Modifier.height(16.dp))
                                             Text(
                                                 text = "All Menu",
                                                 style = MaterialTheme.typography.titleLarge,
                                                 fontWeight = FontWeight.Black,
                                                 color = MaterialTheme.colorScheme.onBackground,
-                                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp).offset(y = (-32).dp)
+                                                modifier = Modifier.padding(vertical = 12.dp).offset(y = (-32).dp)
                                             )
                                         }
                                     }
@@ -501,17 +519,97 @@ fun OutletDetailScreen(
                                             foodItem = food,
                                             onClick = { onFoodClick(food.id) },
                                             onAddToCart = { viewModel.addToCart(food) },
-                                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp).offset(y = (-32).dp)
+                                            modifier = Modifier.offset(y = (-32).dp)
                                         )
                                     }
-                                    item { Spacer(modifier = Modifier.height(48.dp)) }
                                 }
                             }
                             else -> {}
                         }
+
+                        // 5. Reviews Section
+                        item(span = { GridItemSpan(2) }) {
+                            Spacer(modifier = Modifier.height(24.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            Text(
+                                text = "REVIEWS",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Black,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(bottom = 16.dp)
+                            )
+
+                            when (val reviewsState = uiState.reviews) {
+                                is UiState.Loading -> CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+                                is UiState.Empty -> {
+                                    Text(
+                                        text = "No reviews yet.",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(bottom = 32.dp)
+                                    )
+                                }
+                                is UiState.Error -> {
+                                    Text("Failed to load reviews.", color = GagError)
+                                }
+                                is UiState.Success -> {
+                                    val reviews = reviewsState.data.reviews
+                                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                        reviews.forEach { review ->
+                                            Column {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    repeat(5) { starIndex ->
+                                                        Icon(
+                                                            Icons.Filled.Star,
+                                                            contentDescription = null,
+                                                            tint = if (starIndex < review.rating) GagYellow else MaterialTheme.colorScheme.outlineVariant,
+                                                            modifier = Modifier.size(14.dp)
+                                                        )
+                                                    }
+                                                }
+                                                if (!review.reviewText.isNullOrBlank()) {
+                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Text(
+                                                        text = "\"${review.reviewText}\"",
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.height(4.dp))
+                                                Text(
+                                                    text = "${review.studentName} · ${review.createdAt}",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                                
+                                                if (review.vendorReply != null) {
+                                                    Spacer(modifier = Modifier.height(8.dp))
+                                                    Surface(
+                                                        shape = RoundedCornerShape(8.dp),
+                                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                                        modifier = Modifier.fillMaxWidth()
+                                                    ) {
+                                                        Column(modifier = Modifier.padding(12.dp)) {
+                                                            Text("Vendor reply:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = GagOrange)
+                                                            Spacer(modifier = Modifier.height(4.dp))
+                                                            Text(review.vendorReply.replyText, style = MaterialTheme.typography.bodySmall)
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                        }
+                                    }
+                                }
+                                else -> {}
+                            }
+                            Spacer(modifier = Modifier.height(32.dp))
+                        }
                     }
                     
-                    // 5. Floating Top Controls (Back and Cart)
+                    // 6. Floating Top Controls (Back and Cart)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -556,36 +654,6 @@ private fun TopControlButton(
             contentDescription = contentDescription,
             tint = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.size(24.dp)
-        )
-    }
-}
-
-@Composable
-private fun GagCategoryChip(
-    selected: Boolean,
-    onClick: () -> Unit,
-    label: String
-) {
-    val backgroundColor = if (selected) GagPink else MaterialTheme.colorScheme.surface
-    val contentColor = if (selected) Color.White else MaterialTheme.colorScheme.onSurface
-    
-    Box(
-        modifier = Modifier
-            .clip(CircleShape)
-            .background(backgroundColor)
-            .clickable(onClick = onClick)
-            .then(
-                if (!selected) Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
-                else Modifier
-            )
-            .padding(horizontal = 20.dp, vertical = 10.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Bold,
-            color = contentColor
         )
     }
 }

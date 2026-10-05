@@ -79,6 +79,7 @@ sealed class Screen(val route: String) {
 
     // ─── Vendor ──────────────────────────────────────────────────
     object VendorDashboard  : Screen("vendor/dashboard")
+    object VendorReviews    : Screen("vendor/reviews")
     object VendorOrders     : Screen("vendor/orders")
     object VendorOrderDetail: Screen("vendor/order/{orderId}") {
         fun createRoute(orderId: String) = "vendor/order/$orderId"
@@ -115,6 +116,7 @@ sealed class Screen(val route: String) {
     object ManagementContent    : Screen("management/content")
     object ManagementLiveCampus : Screen("management/live_campus")
     object ManagementMore       : Screen("management/more")
+    object ManagementReviews    : Screen("management/reviews")
     object ManagementNotifications : Screen("management/notifications")
     object ManagementSupport    : Screen("management/support")
     object ManagementVendors    : Screen("management/vendors")

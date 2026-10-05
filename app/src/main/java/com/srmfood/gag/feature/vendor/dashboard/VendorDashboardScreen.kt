@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.outlined.Assignment
 import androidx.compose.material.icons.outlined.Logout
 import androidx.compose.material.icons.outlined.MenuBook
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -82,6 +83,7 @@ fun VendorDashboardScreen(
     onOrderClick: (String) -> Unit,
     onScanQR: () -> Unit,
     onAllOrders: () -> Unit,
+    onReviews: () -> Unit,
     onMenu: () -> Unit,
     onLogout: () -> Unit,
     viewModel: VendorDashboardViewModel = hiltViewModel()
@@ -99,8 +101,9 @@ fun VendorDashboardScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onMenu) { Icon(Icons.Outlined.MenuBook, "Menu", tint = MaterialTheme.colorScheme.onBackground) }
-                    IconButton(onClick = onAllOrders) { Icon(Icons.Outlined.Assignment, "Orders", tint = MaterialTheme.colorScheme.onBackground) }
+                    IconButton(onClick = onMenu) { Icon(Icons.Outlined.MenuBook, "Menu", tint = MaterialTheme.colorScheme.onSurface) }
+                    IconButton(onClick = onAllOrders) { Icon(Icons.Outlined.Assignment, "Orders", tint = MaterialTheme.colorScheme.onSurface) }
+                    IconButton(onClick = onReviews) { Icon(Icons.Filled.Star, "Reviews", tint = MaterialTheme.colorScheme.onSurface) }
                     IconButton(onClick = onLogout) { Icon(Icons.Outlined.Logout, "Logout", tint = GagError) }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -116,12 +119,13 @@ fun VendorDashboardScreen(
             )
         }
     ) { padding ->
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
         when (val state = ordersState) {
-            is UiState.Loading -> GagLoadingScreen(modifier = Modifier.padding(padding))
+            is UiState.Loading -> GagLoadingScreen()
             is UiState.Success -> {
                 val activeOrders = state.data.filter { it.status.isActive }
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(padding),
+                    modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
@@ -156,7 +160,7 @@ fun VendorDashboardScreen(
             }
             is UiState.Empty -> {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(padding),
+                    modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
@@ -176,7 +180,7 @@ fun VendorDashboardScreen(
                 }
             }
             is UiState.Error -> {
-                Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("Unable to load your dashboard.", style = MaterialTheme.typography.titleMedium, color = GagError)
                         Spacer(modifier = Modifier.height(16.dp))
@@ -190,10 +194,11 @@ fun VendorDashboardScreen(
                 }
             }
             else -> {
-                Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("Loading dashboard...", style = MaterialTheme.typography.bodyMedium, color = GagOnSurfaceVariant)
                 }
             }
+        }
         }
     }
 }

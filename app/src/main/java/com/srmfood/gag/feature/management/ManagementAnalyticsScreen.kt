@@ -20,6 +20,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.srmfood.gag.core.common.UiState
 import com.srmfood.gag.core.ui.theme.OrbitLime
 import com.srmfood.gag.domain.usecase.admin.ManagementAnalytics
+import com.srmfood.gag.domain.usecase.admin.TrendPoint
 import java.text.NumberFormat
 import java.util.Currency
 import java.util.Locale
@@ -153,13 +154,8 @@ fun ManagementAnalyticsScreen(
                             }
                         }
                         
-                        // Deferred notices
-                        Text(
-                            text = "Historical trends, top-selling items, and outlet performance metrics are deferred. The backend currently lacks optimized time-series or complex aggregate analytics APIs for these dimensions.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 24.dp)
-                        )
+                        // Analytics Trend Section
+                        AnalyticsTrendSection(data = data, period = selectedPeriod)
                     }
                 }
                 else -> {}
@@ -299,6 +295,221 @@ private fun MetricCard(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = highlightColor ?: MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+@Composable
+private fun AnalyticsTrendSection(
+    data: ManagementAnalytics,
+    period: String
+) {
+    val trendPoints = when (period) {
+        "TODAY" -> data.trendToday
+        "THIS WEEK" -> data.trendWeek
+        "THIS MONTH" -> data.trendMonth
+        else -> emptyList()
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Header
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = "ANALYTICS TREND",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "Orders and revenue over time",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            if (trendPoints.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(140.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No trend data available yet.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                // Legend
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    LegendItem(color = OrbitLime, label = "Orders")
+                    LegendItem(color = Color(0xFF4CAF50), label = "Revenue")
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                val maxOrders = (trendPoints.maxOfOrNull { it.orders } ?: 1).coerceAtLeast(1)
+                val maxRevenue = (trendPoints.maxOfOrNull { it.revenue } ?: 1.0).coerceAtLeast(1.0)
+
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    TrendSubChart(
+                        title = "Orders Trend",
+                        points = trendPoints,
+                        maxValue = maxOrders.toDouble(),
+                        lineColor = OrbitLime,
+                        valueFormatter = { it.toInt().toString() }
+                    )
+
+                    TrendSubChart(
+                        title = "Revenue Trend",
+                        points = trendPoints,
+                        maxValue = maxRevenue,
+                        lineColor = Color(0xFF4CAF50),
+                        valueFormatter = { formatCurrency(it) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LegendItem(color: Color, label: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(10.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(color)
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
+@Composable
+private fun TrendSubChart(
+    title: String,
+    points: List<TrendPoint>,
+    maxValue: Double,
+    lineColor: Color,
+    valueFormatter: (Double) -> String
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            val latestValue = points.lastOrNull()?.let { if (title.contains("Orders")) it.orders.toDouble() else it.revenue } ?: 0.0
+            Text(
+                text = "Latest: ${valueFormatter(latestValue)}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(90.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                .padding(8.dp)
+        ) {
+            androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+                if (points.isEmpty()) return@Canvas
+                val width = size.width
+                val height = size.height
+                val stepX = if (points.size > 1) width / (points.size - 1) else width
+
+                val path = androidx.compose.ui.graphics.Path()
+                val pointsList = mutableListOf<androidx.compose.ui.geometry.Offset>()
+
+                points.forEachIndexed { index, point ->
+                    val value = if (title.contains("Orders")) point.orders.toDouble() else point.revenue
+                    val x = index * stepX
+                    val ratio = (value / maxValue).coerceIn(0.0, 1.0)
+                    val y = height - (ratio * height).toFloat()
+                    pointsList.add(androidx.compose.ui.geometry.Offset(x, y))
+
+                    if (index == 0) {
+                        path.moveTo(x, y)
+                    } else {
+                        path.lineTo(x, y)
+                    }
+                }
+
+                drawPath(
+                    path = path,
+                    color = lineColor,
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(
+                        width = 3.dp.toPx(),
+                        cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                        join = androidx.compose.ui.graphics.StrokeJoin.Round
+                    )
+                )
+
+                pointsList.forEach { offset ->
+                    drawCircle(
+                        color = lineColor,
+                        radius = 4.dp.toPx(),
+                        center = offset
+                    )
+                    drawCircle(
+                        color = Color.White,
+                        radius = 2.dp.toPx(),
+                        center = offset
+                    )
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = points.firstOrNull()?.label ?: "",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (points.size > 2) {
+                Text(
+                    text = points[points.size / 2].label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text(
+                text = points.lastOrNull()?.label ?: "",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

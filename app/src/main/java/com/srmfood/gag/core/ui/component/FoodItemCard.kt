@@ -52,7 +52,7 @@ fun FoodItemCard(
 
     Column(
         modifier = modifier
-            .width(176.dp)                           // Slightly wider: 170 → 176dp
+            .fillMaxWidth()
             .scale(scale)
             .clip(RoundedCornerShape(16.dp))
             .background(MaterialTheme.colorScheme.surface)

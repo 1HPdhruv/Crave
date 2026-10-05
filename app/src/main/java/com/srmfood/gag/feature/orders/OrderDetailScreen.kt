@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.QrCode2
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -44,17 +45,52 @@ import javax.inject.Inject
 @HiltViewModel
 class OrderDetailViewModel @Inject constructor(
     private val getOrderDetailsUseCase: GetOrderDetailsUseCase,
-    private val cancelOrderUseCase: CancelOrderUseCase
+    private val cancelOrderUseCase: CancelOrderUseCase,
+    private val reviewRepository: com.srmfood.gag.domain.repository.ReviewRepository
 ) : ViewModel() {
 
     private val _order = MutableStateFlow<UiState<Order>>(UiState.Loading)
     val order: StateFlow<UiState<Order>> = _order.asStateFlow()
+    
+    private val _itemReviewStates = MutableStateFlow<Map<String, com.srmfood.gag.domain.model.FoodReview?>>(emptyMap())
+    val itemReviewStates: StateFlow<Map<String, com.srmfood.gag.domain.model.FoodReview?>> = _itemReviewStates.asStateFlow()
+
+    private val _outletReviewState = MutableStateFlow<com.srmfood.gag.domain.model.OutletReview?>(null)
+    val outletReviewState: StateFlow<com.srmfood.gag.domain.model.OutletReview?> = _outletReviewState.asStateFlow()
 
     fun loadOrder(orderId: String) {
         viewModelScope.launch {
             _order.value = UiState.Loading
             val result = getOrderDetailsUseCase(orderId)
-            _order.value = result.fold(onSuccess = { UiState.Success(it) }, onFailure = { UiState.Error(it.message ?: "Failed") })
+            _order.value = result.fold(
+                onSuccess = { order ->
+                    if (order.status == OrderStatus.PICKED_UP) {
+                        checkReviewsForItems(order.items)
+                        checkOutletReview(order.id)
+                    }
+                    UiState.Success(order)
+                },
+                onFailure = { UiState.Error(it.message ?: "Failed") }
+            )
+        }
+    }
+    
+    private fun checkReviewsForItems(items: List<OrderItem>) {
+        viewModelScope.launch {
+            val states = mutableMapOf<String, com.srmfood.gag.domain.model.FoodReview?>()
+            for (item in items) {
+                val reviewResult = reviewRepository.getReviewForOrderItem(item.id)
+                val review = reviewResult.getOrNull()
+                states[item.id] = review
+            }
+            _itemReviewStates.value = states
+        }
+    }
+
+    private fun checkOutletReview(orderId: String) {
+        viewModelScope.launch {
+            val reviewResult = reviewRepository.getOutletReviewForOrder(orderId)
+            _outletReviewState.value = reviewResult.getOrNull()
         }
     }
 
@@ -78,6 +114,27 @@ fun OrderDetailScreen(
 ) {
     LaunchedEffect(orderId) { viewModel.loadOrder(orderId) }
     val orderState by viewModel.order.collectAsState()
+    val reviewStates by viewModel.itemReviewStates.collectAsState()
+    val outletReviewState by viewModel.outletReviewState.collectAsState()
+
+    data class ReviewComposerArgs(
+        val orderItemId: String,
+        val foodItemId: String,
+        val existingReviewId: String?,
+        val existingRating: Int?,
+        val existingText: String?
+    )
+
+    var composerArgs by remember { mutableStateOf<ReviewComposerArgs?>(null) }
+    
+    data class OutletReviewComposerArgs(
+        val outletId: String,
+        val existingReviewId: String?,
+        val existingRating: Int?,
+        val existingText: String?
+    )
+    
+    var outletComposerArgs by remember { mutableStateOf<OutletReviewComposerArgs?>(null) }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -88,19 +145,67 @@ fun OrderDetailScreen(
             is UiState.Error -> GagErrorScreen(message = state.message, onRetry = { viewModel.loadOrder(orderId) }, modifier = Modifier.padding(padding))
             is UiState.Success -> OrderDetailContent(
                 order = state.data,
+                reviewStates = reviewStates,
                 onBack = onBack,
                 onTrack = { onTrackOrder(orderId) },
                 onShowQR = { onShowQR(orderId) },
                 onCancel = { viewModel.cancelOrder(orderId) },
+                onRateItem = { orderItemId, foodItemId, existingReviewId, existingRating, existingText ->
+                    composerArgs = ReviewComposerArgs(orderItemId, foodItemId, existingReviewId, existingRating, existingText)
+                },
+                outletReviewState = outletReviewState,
+                onRateOutlet = { outletId, existingReviewId, existingRating, existingText ->
+                    outletComposerArgs = OutletReviewComposerArgs(outletId, existingReviewId, existingRating, existingText)
+                },
                 modifier = Modifier.padding(top = padding.calculateTopPadding(), bottom = padding.calculateBottomPadding() + 24.dp)
             )
             else -> {}
         }
     }
+
+    composerArgs?.let { args ->
+        com.srmfood.gag.feature.reviews.ReviewComposerBottomSheet(
+            orderId = orderId,
+            orderItemId = args.orderItemId,
+            foodItemId = args.foodItemId,
+            existingReviewId = args.existingReviewId,
+            existingRating = args.existingRating,
+            existingText = args.existingText,
+            onDismiss = { composerArgs = null },
+            onReviewSubmitted = {
+                viewModel.loadOrder(orderId)
+            }
+        )
+    }
+
+    outletComposerArgs?.let { args ->
+        com.srmfood.gag.feature.reviews.OutletReviewComposerBottomSheet(
+            orderId = orderId,
+            outletId = args.outletId,
+            existingReviewId = args.existingReviewId,
+            existingRating = args.existingRating,
+            existingText = args.existingText,
+            onDismiss = { outletComposerArgs = null },
+            onReviewSubmitted = {
+                viewModel.loadOrder(orderId)
+            }
+        )
+    }
 }
 
 @Composable
-private fun OrderDetailContent(order: Order, onBack: () -> Unit, onTrack: () -> Unit, onShowQR: () -> Unit, onCancel: () -> Unit, modifier: Modifier = Modifier) {
+private fun OrderDetailContent(
+    order: Order, 
+    reviewStates: Map<String, com.srmfood.gag.domain.model.FoodReview?>,
+    onBack: () -> Unit, 
+    onTrack: () -> Unit, 
+    onShowQR: () -> Unit, 
+    onCancel: () -> Unit, 
+    onRateItem: (String, String, String?, Int?, String?) -> Unit,
+    outletReviewState: com.srmfood.gag.domain.model.OutletReview?,
+    onRateOutlet: (String, String?, Int?, String?) -> Unit,
+    modifier: Modifier = Modifier
+) {
     val statusColor = order.status.color()
 
     LazyColumn(modifier = modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
@@ -233,8 +338,118 @@ private fun OrderDetailContent(order: Order, onBack: () -> Unit, onTrack: () -> 
                                 }
                             }
                         }
+                        
+                        if (order.status == OrderStatus.PICKED_UP) {
+                            val reviewState = reviewStates[item.id]
+                            Spacer(modifier = Modifier.height(8.dp))
+                            if (reviewState != null) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(start = 72.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column {
+                                        Text("Your review", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Row {
+                                            repeat(5) { starIndex ->
+                                                Icon(
+                                                    Icons.Filled.Star, 
+                                                    contentDescription = null, 
+                                                    tint = if (starIndex < reviewState.rating) GagYellow else MaterialTheme.colorScheme.outlineVariant, 
+                                                    modifier = Modifier.size(12.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                    TextButton(
+                                        onClick = { onRateItem(item.id, item.foodItemId, reviewState.id, reviewState.rating, reviewState.reviewText) },
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                        modifier = Modifier.height(32.dp)
+                                    ) {
+                                        Text("Edit Review", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = GagPink)
+                                    }
+                                }
+                            } else {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(start = 72.dp),
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    OutlinedButton(
+                                        onClick = { onRateItem(item.id, item.foodItemId, null, null, null) },
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                        modifier = Modifier.height(32.dp),
+                                        shape = RoundedCornerShape(8.dp),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, GagPink)
+                                    ) {
+                                        Text("Rate this food", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = GagPink)
+                                    }
+                                }
+                            }
+                        }
+
                         if (index < order.items.size - 1) {
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Outlet Review
+        if (order.status == OrderStatus.PICKED_UP) {
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = 2.dp,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)
+                ) {
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        if (outletReviewState != null) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Your Outlet Review", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+                                TextButton(
+                                    onClick = {
+                                        onRateOutlet(order.outletId, outletReviewState.id, outletReviewState.rating, outletReviewState.reviewText)
+                                    }
+                                ) {
+                                    Text("Edit Review", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = GagPink)
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                repeat(5) { starIndex ->
+                                    Icon(
+                                        Icons.Filled.Star,
+                                        contentDescription = null,
+                                        tint = if (starIndex < outletReviewState.rating) GagYellow else MaterialTheme.colorScheme.outlineVariant,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                            if (!outletReviewState.reviewText.isNullOrBlank()) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    "\"${outletReviewState.reviewText}\"",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        } else {
+                            Text("Rate your experience", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("How was ${order.items.firstOrNull()?.foodName?.let { "your order" } ?: "the outlet"}?", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            GagPrimaryButton(
+                                text = "Submit Outlet Review",
+                                onClick = { onRateOutlet(order.outletId, null, null, null) },
+                                modifier = Modifier.fillMaxWidth()
+                            )
                         }
                     }
                 }

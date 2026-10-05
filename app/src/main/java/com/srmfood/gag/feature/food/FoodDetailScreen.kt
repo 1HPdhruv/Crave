@@ -70,7 +70,8 @@ data class FoodDetailUiState(
     val isFavorite: Boolean = false,
     val addedToCart: Boolean = false,
     val selectedOptions: Map<String, List<String>> = emptyMap(),
-    val showMixedOutletDialog: Boolean = false
+    val showMixedOutletDialog: Boolean = false,
+    val reviewsState: UiState<com.srmfood.gag.domain.model.ReviewPage> = UiState.Loading
 )
 
 @HiltViewModel
@@ -80,7 +81,8 @@ class FoodDetailViewModel @Inject constructor(
     private val addToCartUseCase: AddToCartUseCase,
     private val toggleFavoriteUseCase: ToggleFavoriteUseCase,
     private val getCartOutletIdUseCase: GetCartOutletIdUseCase,
-    private val clearCartUseCase: ClearCartUseCase
+    private val clearCartUseCase: ClearCartUseCase,
+    private val reviewRepository: com.srmfood.gag.domain.repository.ReviewRepository
 ) : ViewModel() {
 
     private val foodId: String = savedStateHandle[Screen.FoodDetail.ARG_FOOD_ID] ?: ""
@@ -92,6 +94,12 @@ class FoodDetailViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            loadFoodAndReviews()
+        }
+    }
+
+    fun loadFoodAndReviews() {
+        viewModelScope.launch {
             val result = getFoodItemUseCase(foodId)
             _uiState.update { state -> 
                 state.copy(
@@ -102,6 +110,17 @@ class FoodDetailViewModel @Inject constructor(
                         onFailure = { UiState.Error(it.message ?: "Failed") }
                     ),
                     isFavorite = result.getOrNull()?.isFavorite ?: false
+                )
+            }
+            
+            _uiState.update { it.copy(reviewsState = UiState.Loading) }
+            val reviewsResult = reviewRepository.getFoodReviews(foodId, limit = 20, offset = 0)
+            _uiState.update { state ->
+                state.copy(
+                    reviewsState = reviewsResult.fold(
+                        onSuccess = { UiState.Success(it) },
+                        onFailure = { UiState.Error("Reviews are temporarily unavailable.") }
+                    )
                 )
             }
         }
@@ -630,9 +649,18 @@ fun FoodDetailScreen(
                                 }
                             }
                         }
+
+                        // 4. Reviews Section
+                        item {
+                            FoodReviewsSection(
+                                rating = food.rating.toFloat(),
+                                totalReviews = food.totalReviews,
+                                reviewsState = uiState.reviewsState
+                            )
+                        }
                     }
 
-                    // 4. Floating Top Controls
+                    // 5. Floating Top Controls
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -686,7 +714,7 @@ fun FoodDetailScreen(
                 }
             }
         }
-        else -> {}
+        is UiState.Empty, is UiState.Idle -> {}
     }
 }
 
@@ -712,3 +740,215 @@ private fun TopControlButton(
         )
     }
 }
+
+@Composable
+private fun FoodReviewsSection(
+    rating: Float,
+    totalReviews: Int,
+    reviewsState: UiState<com.srmfood.gag.domain.model.ReviewPage>
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 24.dp)
+    ) {
+        Text(
+            text = "Reviews",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Black,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Rating summary
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier.padding(20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                if (totalReviews > 0) {
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = rating.toString(),
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Black,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Row {
+                                repeat(5) { index ->
+                                    Icon(
+                                        imageVector = Icons.Filled.Star,
+                                        contentDescription = null,
+                                        tint = if (index < rating.toInt()) GagYellow else MaterialTheme.colorScheme.outlineVariant,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "$totalReviews reviews",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    Text(
+                        text = "No reviews yet",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        when (reviewsState) {
+            is UiState.Loading -> {
+                Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = GagPink)
+                }
+            }
+            is UiState.Error -> {
+                Text(
+                    text = reviewsState.message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = GagError,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+            }
+            is UiState.Success -> {
+                val reviews = reviewsState.data.reviews
+                if (reviews.isEmpty()) {
+                    Text(
+                        text = "Be the first to review this item after ordering!",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        reviews.forEach { review ->
+                            ReviewItem(review)
+                        }
+                    }
+                }
+            }
+            else -> {}
+        }
+    }
+}
+
+@Composable
+private fun ReviewItem(review: com.srmfood.gag.domain.model.FoodReview) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 1.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column {
+                    Text(
+                        text = review.studentName.ifBlank { "Student" },
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Row {
+                        repeat(5) { index ->
+                            Icon(
+                                imageVector = Icons.Filled.Star,
+                                contentDescription = null,
+                                tint = if (index < review.rating) GagYellow else MaterialTheme.colorScheme.outlineVariant,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+                }
+                Text(
+                    text = formatTimeAgo(review.createdAt),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            if (review.reviewText.isNullOrBlank()) {
+                Text(
+                    text = "Rated without a written review.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                )
+            } else {
+                Text(
+                    text = review.reviewText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    lineHeight = MaterialTheme.typography.bodyMedium.lineHeight
+                )
+            }
+            
+            review.vendorReply?.let { reply ->
+                Spacer(modifier = Modifier.height(12.dp))
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            text = "Vendor Reply",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = GagPink
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = reply.replyText,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            lineHeight = MaterialTheme.typography.bodyMedium.lineHeight
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun formatTimeAgo(dateString: String): String {
+    return try {
+        val instant = java.time.Instant.parse(dateString)
+        val now = java.time.Instant.now()
+        val duration = java.time.Duration.between(instant, now)
+        when {
+            duration.toDays() > 365 -> "${duration.toDays() / 365} years ago"
+            duration.toDays() > 30 -> "${duration.toDays() / 30} months ago"
+            duration.toDays() > 0 -> "${duration.toDays()} days ago"
+            duration.toHours() > 0 -> "${duration.toHours()} hours ago"
+            duration.toMinutes() > 0 -> "${duration.toMinutes()} mins ago"
+            else -> "Just now"
+        }
+    } catch (e: Exception) {
+        "Recently"
+    }
+}
+

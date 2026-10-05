@@ -114,4 +114,15 @@ class RepositoryModule {
     fun provideManagementVendorRepository(
         impl: com.srmfood.gag.data.repository.supabase.SupabaseManagementVendorRepository
     ): com.srmfood.gag.domain.repository.ManagementVendorRepository = impl
+
+    /**
+     * ReviewRepository always uses the Supabase implementation.
+     * Reviews are purchase-validated server-side — a mock implementation
+     * would bypass those checks and is therefore not appropriate.
+     */
+    @Provides
+    @Singleton
+    fun provideReviewRepository(
+        impl: com.srmfood.gag.data.repository.supabase.SupabaseReviewRepository
+    ): com.srmfood.gag.domain.repository.ReviewRepository = impl
 }

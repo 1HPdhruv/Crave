@@ -11,6 +11,8 @@ import com.srmfood.gag.domain.usecase.cart.GetCartOutletIdUseCase
 import com.srmfood.gag.domain.usecase.cart.ClearCartUseCase
 import com.srmfood.gag.domain.usecase.food.SearchFoodUseCase
 import com.srmfood.gag.domain.usecase.food.ToggleFavoriteUseCase
+import com.srmfood.gag.domain.usecase.food.GetPopularFoodUseCase
+import com.srmfood.gag.domain.usecase.food.GetAllFoodUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import androidx.lifecycle.SavedStateHandle
 import kotlinx.coroutines.FlowPreview
@@ -37,6 +39,7 @@ data class SearchUiState(
     val query: String = "",
     val results: UiState<List<FoodItem>> = UiState.Idle,
     val categories: UiState<List<FoodCategory>> = UiState.Loading,
+    val campusFavorites: UiState<List<FoodItem>> = UiState.Loading,
     val filterVegOnly: Boolean? = null,
     val filterMaxPrice: Double? = null,
     val filterMaxPrepTime: Int? = null,
@@ -54,6 +57,8 @@ data class SearchUiState(
 class SearchViewModel @Inject constructor(
     private val searchFoodUseCase: SearchFoodUseCase,
     private val getCategoriesUseCase: GetCategoriesUseCase,
+    private val getPopularFoodUseCase: GetPopularFoodUseCase,
+    private val getAllFoodUseCase: GetAllFoodUseCase,
     private val addToCartUseCase: AddToCartUseCase,
     private val getCartOutletIdUseCase: GetCartOutletIdUseCase,
     private val toggleFavoriteUseCase: ToggleFavoriteUseCase,
@@ -81,6 +86,32 @@ class SearchViewModel @Inject constructor(
                         onSuccess = { cats -> if (cats.isEmpty()) UiState.Empty else UiState.Success(cats) },
                         onFailure = { err -> UiState.Error(err.message ?: "Failed to load categories") }
                     )
+                )
+            }
+        }
+
+        // Fetch campus favorites for explore discovery hub
+        viewModelScope.launch {
+            val popularResult = getPopularFoodUseCase()
+            val items = if (popularResult.isSuccess && popularResult.getOrNull()?.isNotEmpty() == true) {
+                popularResult.getOrNull()!!
+            } else {
+                getAllFoodUseCase().getOrNull() ?: emptyList()
+            }
+            
+            val ranked = items
+                .filter { it.isAvailable }
+                .sortedWith(
+                    compareByDescending<FoodItem> { it.isPopular }
+                        .thenByDescending { it.totalReviews }
+                        .thenByDescending { it.rating }
+                        .thenBy { it.name }
+                )
+                .take(8)
+
+            _uiState.update { state ->
+                state.copy(
+                    campusFavorites = if (ranked.isEmpty()) UiState.Empty else UiState.Success(ranked)
                 )
             }
         }

@@ -228,15 +228,14 @@ fun ExploreScreen(
                     // ─── EXPLORE DISCOVERY HUB (IDLE STATE) ───
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 32.dp)
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         // 1. Pick a Feeling
                         item {
-                            Spacer(modifier = Modifier.height(16.dp))
                             CraveSectionHeader(
                                 title = "Pick a Feeling",
-                                onSeeAll = null,
-                                modifier = Modifier.padding(horizontal = 16.dp)
+                                onSeeAll = null
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             
@@ -250,7 +249,6 @@ fun ExploreScreen(
                             
                             LazyRow(
                                 modifier = Modifier.fillMaxWidth(),
-                                contentPadding = PaddingValues(horizontal = 16.dp),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 items(moods.size) { index ->
@@ -284,11 +282,10 @@ fun ExploreScreen(
 
                         // 2. Categories
                         item {
-                            Spacer(modifier = Modifier.height(24.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
                             CraveSectionHeader(
                                 title = "Categories",
-                                onSeeAll = null,
-                                modifier = Modifier.padding(horizontal = 16.dp)
+                                onSeeAll = null
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             
@@ -296,7 +293,6 @@ fun ExploreScreen(
                                 val cats = (uiState.categories as UiState.Success).data
                                 LazyRow(
                                     modifier = Modifier.fillMaxWidth(),
-                                    contentPadding = PaddingValues(horizontal = 16.dp),
                                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
                                     items(cats) { category ->
@@ -312,7 +308,6 @@ fun ExploreScreen(
                             } else if (uiState.categories is UiState.Loading) {
                                 LazyRow(
                                     modifier = Modifier.fillMaxWidth(),
-                                    contentPadding = PaddingValues(horizontal = 16.dp),
                                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
                                     items(5) {
@@ -326,6 +321,100 @@ fun ExploreScreen(
                                     }
                                 }
                             }
+                        }
+
+                        // 3. CAMPUS FAVORITES
+                        item {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Column {
+                                Text(
+                                    text = "CAMPUS FAVORITES",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Black,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                                Text(
+                                    text = "Popular around campus",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+
+                        when (uiState.campusFavorites) {
+                            is UiState.Loading -> {
+                                items(2) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(180.dp)
+                                                .clip(RoundedCornerShape(16.dp))
+                                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(180.dp)
+                                                .clip(RoundedCornerShape(16.dp))
+                                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                        )
+                                    }
+                                }
+                            }
+                            is UiState.Success -> {
+                                val favs = (uiState.campusFavorites as UiState.Success).data
+                                items(favs.chunked(2), key = { row -> "fav_${row.first().id}" }) { pair ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        FoodItemCard(
+                                            foodItem = pair[0],
+                                            onClick = { onFoodClick(pair[0].id) },
+                                            onAddToCart = { viewModel.onAddToCartClicked(pair[0]) },
+                                            onFavoriteToggle = { viewModel.toggleFavorite(pair[0].id) },
+                                            isFavorite = pair[0].isFavorite,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        if (pair.size > 1) {
+                                            FoodItemCard(
+                                                foodItem = pair[1],
+                                                onClick = { onFoodClick(pair[1].id) },
+                                                onAddToCart = { viewModel.onAddToCartClicked(pair[1]) },
+                                                onFavoriteToggle = { viewModel.toggleFavorite(pair[1].id) },
+                                                isFavorite = pair[1].isFavorite,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        } else {
+                                            Spacer(modifier = Modifier.weight(1f))
+                                        }
+                                    }
+                                }
+                            }
+                            is UiState.Empty -> {
+                                item {
+                                    Text(
+                                        text = "No popular picks yet. Try searching for a dish or category.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            is UiState.Error -> {
+                                item {
+                                    Text(
+                                        text = "Could not load campus favorites.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = GagError
+                                    )
+                                }
+                            }
+                            else -> {}
                         }
                     }
                 }
@@ -524,8 +613,8 @@ private fun FilterOptionRow(
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(vertical = 14.dp, horizontal = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
             text = label, 
