@@ -8,15 +8,36 @@ import android.util.Log
 import com.srmfood.gag.BuildConfig
 import com.srmfood.gag.core.constants.AppConstants
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.launch
 import java.net.URL
 
 @HiltAndroidApp
 class GagApplication : Application() {
 
+    @javax.inject.Inject lateinit var auth: io.github.jan.supabase.gotrue.Auth
+    @javax.inject.Inject lateinit var pushTokens: com.srmfood.gag.domain.repository.PushTokenRepository
+
+    private val appScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Default)
+
     override fun onCreate() {
         super.onCreate()
         logStartupConfig()
         createNotificationChannels()
+        registerPushTokenOnSignIn()
+    }
+
+    /**
+     * Binds this device's FCM token to whoever is signed in: fires on cold start with a restored session, on login,
+     * and on account switch (the server moves the token). Failures are retried on the next sign-in/token refresh.
+     */
+    private fun registerPushTokenOnSignIn() {
+        appScope.launch {
+            auth.sessionStatus.collect { status ->
+                if (status is io.github.jan.supabase.gotrue.SessionStatus.Authenticated) {
+                    runCatching { pushTokens.syncForCurrentUser() }
+                }
+            }
+        }
     }
 
     private fun logStartupConfig() {

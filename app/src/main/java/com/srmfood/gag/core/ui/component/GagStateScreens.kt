@@ -8,6 +8,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -79,12 +80,14 @@ fun GagErrorScreen(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.padding(32.dp)
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
-                modifier = Modifier.size(64.dp)
-            )
+            CraveBlob(size = 76.dp, container = com.srmfood.gag.core.ui.theme.CraveRedSoft) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = com.srmfood.gag.core.ui.theme.CraveInk,
+                    modifier = Modifier.size(34.dp)
+                )
+            }
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = title,
@@ -104,7 +107,7 @@ fun GagErrorScreen(
                 GagPrimaryButton(
                     text = "Retry",
                     onClick = it,
-                    modifier = Modifier.fillMaxWidth(0.5f)
+                    modifier = Modifier.defaultMinSize(minWidth = 160.dp).fillMaxWidth(0.5f)
                 )
             }
         }
@@ -127,12 +130,14 @@ fun GagEmptyScreen(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.padding(32.dp)
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.size(64.dp)
-            )
+            CraveBlob(size = 76.dp, container = com.srmfood.gag.core.ui.theme.CraveChartreuse) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = com.srmfood.gag.core.ui.theme.CraveInk,
+                    modifier = Modifier.size(34.dp)
+                )
+            }
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = title,

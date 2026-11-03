@@ -1,5 +1,11 @@
 package com.srmfood.gag.feature.management
 
+import com.srmfood.gag.core.ui.theme.OrbitSuccess
+
+import com.srmfood.gag.core.ui.theme.OrbitWarning
+
+import com.srmfood.gag.core.ui.theme.OrbitLimeDark
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -72,9 +78,9 @@ fun ManagementPickupSlotsScreen(
                 enabled = !isRefreshing
             ) {
                 if (isRefreshing) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = OrbitLime, strokeWidth = 2.dp)
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = OrbitLimeDark, strokeWidth = 2.dp)
                 } else {
-                    Icon(imageVector = Icons.Filled.Refresh, contentDescription = "Refresh", tint = OrbitLime)
+                    Icon(imageVector = Icons.Filled.Refresh, contentDescription = "Refresh", tint = OrbitLimeDark)
                 }
             }
         }
@@ -150,8 +156,8 @@ fun ManagementPickupSlotsScreen(
                 ) {
                     MetricColumn("Slots", totalSlots.toString())
                     MetricColumn("Capacity", totalCapacity.toString())
-                    MetricColumn("Booked", totalBooked.toString(), Color(0xFFFFA000))
-                    MetricColumn("Remaining", totalRemaining.toString(), Color(0xFF4CAF50))
+                    MetricColumn("Booked", totalBooked.toString(), OrbitWarning)
+                    MetricColumn("Remaining", totalRemaining.toString(), OrbitSuccess)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
             }
@@ -162,7 +168,7 @@ fun ManagementPickupSlotsScreen(
             when (val state = uiState) {
                 is UiState.Loading -> {
                     CircularProgressIndicator(
-                        color = OrbitLime,
+                        color = OrbitLimeDark,
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
@@ -261,8 +267,8 @@ private fun PickupSlotCard(
                 
                 // Status Badge
                 val (statusColor, statusText) = when (slot.status) {
-                    SlotStatus.AVAILABLE -> Color(0xFF4CAF50) to "Available"
-                    SlotStatus.LIMITED -> Color(0xFFFFA000) to "Near Capacity"
+                    SlotStatus.AVAILABLE -> OrbitSuccess to "Available"
+                    SlotStatus.LIMITED -> OrbitWarning to "Near Capacity"
                     SlotStatus.FULL -> MaterialTheme.colorScheme.error to "Full"
                 }
                 

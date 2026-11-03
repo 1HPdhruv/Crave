@@ -1,5 +1,11 @@
 package com.srmfood.gag.feature.management
 
+import com.srmfood.gag.core.ui.theme.OrbitSuccess
+
+import com.srmfood.gag.core.ui.theme.OrbitWarning
+
+import com.srmfood.gag.core.ui.theme.OrbitLimeDark
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -66,9 +72,9 @@ fun ManagementInventoryScreen(
                 enabled = !isRefreshing
             ) {
                 if (isRefreshing) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = OrbitLime, strokeWidth = 2.dp)
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = OrbitLimeDark, strokeWidth = 2.dp)
                 } else {
-                    Icon(imageVector = Icons.Filled.Refresh, contentDescription = "Refresh", tint = OrbitLime)
+                    Icon(imageVector = Icons.Filled.Refresh, contentDescription = "Refresh", tint = OrbitLimeDark)
                 }
             }
         }
@@ -151,7 +157,7 @@ fun ManagementInventoryScreen(
             when (val state = uiState) {
                 is UiState.Loading -> {
                     CircularProgressIndicator(
-                        color = OrbitLime,
+                        color = OrbitLimeDark,
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
@@ -233,8 +239,8 @@ private fun InventoryItemCard(
                 
                 // Status Badge
                 val (statusColor, statusText) = when (item.stockStatus) {
-                    ManagementInventoryItem.StockStatus.IN_STOCK -> Color(0xFF4CAF50) to "In Stock"
-                    ManagementInventoryItem.StockStatus.LOW_STOCK -> Color(0xFFFFA000) to "Low Stock"
+                    ManagementInventoryItem.StockStatus.IN_STOCK -> OrbitSuccess to "In Stock"
+                    ManagementInventoryItem.StockStatus.LOW_STOCK -> OrbitWarning to "Low Stock"
                     ManagementInventoryItem.StockStatus.OUT_OF_STOCK -> MaterialTheme.colorScheme.error to "Out of Stock"
                 }
                 

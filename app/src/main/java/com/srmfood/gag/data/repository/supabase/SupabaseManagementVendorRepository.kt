@@ -104,7 +104,8 @@ class SupabaseManagementVendorRepository @Inject constructor(
                     totalReviews = dto.totalReviews,
                     vendorId = dto.vendorId ?: id,
                     isActive = dto.isActive,
-                    phone = dto.phone
+                    phone = dto.phone,
+                    orderingStatus = com.srmfood.gag.domain.model.OutletOrderingStatus.fromString(dto.orderingStatus)
                 )
             }
         )

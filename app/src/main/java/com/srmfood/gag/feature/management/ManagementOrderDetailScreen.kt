@@ -1,5 +1,7 @@
 package com.srmfood.gag.feature.management
 
+import com.srmfood.gag.core.ui.theme.OrbitLimeDark
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -54,7 +56,7 @@ fun ManagementOrderDetailScreen(
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {
             when (val state = orderState) {
                 is UiState.Loading -> {
-                    CircularProgressIndicator(color = OrbitLime, modifier = Modifier.align(Alignment.Center))
+                    CircularProgressIndicator(color = OrbitLimeDark, modifier = Modifier.align(Alignment.Center))
                 }
                 is UiState.Error -> {
                     Column(
@@ -189,7 +191,7 @@ private fun ItemsSection(order: Order, formatter: NumberFormat) {
         Spacer(modifier = Modifier.height(4.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("Total", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
-            Text("₹${formatter.format(order.total)}", color = OrbitLime, fontWeight = FontWeight.Bold)
+            Text("₹${formatter.format(order.total)}", color = OrbitLimeDark, fontWeight = FontWeight.Bold)
         }
     }
 }

@@ -1,5 +1,13 @@
 package com.srmfood.gag.feature.management
 
+import com.srmfood.gag.core.ui.theme.StatusAccepted
+
+import com.srmfood.gag.core.ui.theme.OrbitWarning
+
+import com.srmfood.gag.core.ui.theme.GagOnSurfaceVariant
+
+import com.srmfood.gag.core.ui.theme.OrbitLimeDark
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -70,9 +78,9 @@ fun ManagementUsersScreen(
                 enabled = !isRefreshing
             ) {
                 if (isRefreshing) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = OrbitLime, strokeWidth = 2.dp)
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = OrbitLimeDark, strokeWidth = 2.dp)
                 } else {
-                    Icon(imageVector = Icons.Filled.Refresh, contentDescription = "Refresh", tint = OrbitLime)
+                    Icon(imageVector = Icons.Filled.Refresh, contentDescription = "Refresh", tint = OrbitLimeDark)
                 }
             }
         }
@@ -135,7 +143,7 @@ fun ManagementUsersScreen(
             when (val state = usersState) {
                 is UiState.Loading -> {
                     CircularProgressIndicator(
-                        color = OrbitLime,
+                        color = OrbitLimeDark,
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
@@ -215,9 +223,9 @@ private fun UserCard(
                 )
                 
                 val roleColor = when (user.role) {
-                    UserRole.ADMIN -> Color(0xFF9C27B0)
-                    UserRole.VENDOR -> Color(0xFFFF9800)
-                    UserRole.PENDING_VENDOR -> Color(0xFF607D8B)
+                    UserRole.ADMIN -> StatusAccepted
+                    UserRole.VENDOR -> OrbitWarning
+                    UserRole.PENDING_VENDOR -> GagOnSurfaceVariant
                     UserRole.STUDENT -> OrbitLime
                 }
                 val roleDisplay = when (user.role) {

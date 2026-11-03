@@ -1,5 +1,11 @@
 package com.srmfood.gag.feature.management
 
+import com.srmfood.gag.core.ui.theme.OrbitSuccess
+
+import com.srmfood.gag.core.ui.theme.OrbitWarning
+
+import com.srmfood.gag.core.ui.theme.OrbitLimeDark
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -52,7 +58,7 @@ fun ManagementPickupSlotDetailScreen(
             when (val state = uiState) {
                 is UiState.Loading -> {
                     CircularProgressIndicator(
-                        color = OrbitLime,
+                        color = OrbitLimeDark,
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
@@ -116,8 +122,8 @@ fun ManagementPickupSlotDetailScreen(
                                     SlotStatus.FULL -> "Full"
                                 }
                                 val statusColor = when (slot.status) {
-                                    SlotStatus.AVAILABLE -> Color(0xFF4CAF50)
-                                    SlotStatus.LIMITED -> Color(0xFFFFA000)
+                                    SlotStatus.AVAILABLE -> OrbitSuccess
+                                    SlotStatus.LIMITED -> OrbitWarning
                                     SlotStatus.FULL -> MaterialTheme.colorScheme.error
                                 }
                                 

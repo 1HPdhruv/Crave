@@ -1,5 +1,9 @@
 package com.srmfood.gag.feature.management
 
+import com.srmfood.gag.core.ui.theme.OrbitSuccess
+
+import com.srmfood.gag.core.ui.theme.OrbitLimeDark
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -68,9 +72,9 @@ fun ManagementAnalyticsScreen(
                 enabled = !isRefreshing
             ) {
                 if (isRefreshing) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = OrbitLime, strokeWidth = 2.dp)
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = OrbitLimeDark, strokeWidth = 2.dp)
                 } else {
-                    Icon(imageVector = Icons.Filled.Refresh, contentDescription = "Refresh", tint = OrbitLime)
+                    Icon(imageVector = Icons.Filled.Refresh, contentDescription = "Refresh", tint = OrbitLimeDark)
                 }
             }
         }
@@ -79,7 +83,7 @@ fun ManagementAnalyticsScreen(
             when (val state = analyticsState) {
                 is UiState.Loading -> {
                     CircularProgressIndicator(
-                        color = OrbitLime,
+                        color = OrbitLimeDark,
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
@@ -118,7 +122,7 @@ fun ManagementAnalyticsScreen(
                         MetricSection("ORDERS") {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 MetricCard(title = "Total", value = data.totalOrders.toString(), modifier = Modifier.weight(1f))
-                                MetricCard(title = "Completed", value = data.completedOrders.toString(), modifier = Modifier.weight(1f), highlightColor = Color(0xFF4CAF50))
+                                MetricCard(title = "Completed", value = data.completedOrders.toString(), modifier = Modifier.weight(1f), highlightColor = OrbitSuccess)
                             }
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 MetricCard(title = "Active", value = data.activeOrders.toString(), modifier = Modifier.weight(1f), highlightColor = OrbitLime)
@@ -129,7 +133,7 @@ fun ManagementAnalyticsScreen(
                         // Revenue Breakdown
                         MetricSection("REVENUE") {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                MetricCard(title = "Paid Revenue", value = formatCurrency(data.paidRevenue), modifier = Modifier.weight(1f), highlightColor = Color(0xFF4CAF50))
+                                MetricCard(title = "Paid Revenue", value = formatCurrency(data.paidRevenue), modifier = Modifier.weight(1f), highlightColor = OrbitSuccess)
                                 MetricCard(title = "Refunded", value = formatCurrency(data.refundedAmount), modifier = Modifier.weight(1f), highlightColor = MaterialTheme.colorScheme.error)
                             }
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -355,8 +359,8 @@ private fun AnalyticsTrendSection(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    LegendItem(color = OrbitLime, label = "Orders")
-                    LegendItem(color = Color(0xFF4CAF50), label = "Revenue")
+                    LegendItem(color = OrbitLimeDark, label = "Orders")
+                    LegendItem(color = OrbitSuccess, label = "Revenue")
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -377,7 +381,7 @@ private fun AnalyticsTrendSection(
                         title = "Revenue Trend",
                         points = trendPoints,
                         maxValue = maxRevenue,
-                        lineColor = Color(0xFF4CAF50),
+                        lineColor = OrbitSuccess,
                         valueFormatter = { formatCurrency(it) }
                     )
                 }

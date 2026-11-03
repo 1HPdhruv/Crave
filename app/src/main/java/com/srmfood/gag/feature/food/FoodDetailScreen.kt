@@ -4,6 +4,9 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.ui.unit.sp
+import com.srmfood.gag.core.ui.component.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -218,7 +221,7 @@ class FoodDetailViewModel @Inject constructor(
             _events.emit(FoodDetailUiEvent.ShowSnackbar("Added to cart!"))
             _uiState.update { it.copy(addedToCart = true) }
         }.onFailure {
-            _events.emit(FoodDetailUiEvent.ShowSnackbar(it.message ?: "Failed to add to cart"))
+            _events.emit(FoodDetailUiEvent.ShowSnackbar(com.srmfood.gag.core.common.UiState.Error.userFacing(it.message ?: "Failed to add to cart")))
         }
     }
 
@@ -281,7 +284,9 @@ fun FoodDetailScreen(
             confirmButton = {
                 Button(
                     onClick = viewModel::onClearAndAddCart,
-                    colors = ButtonDefaults.buttonColors(containerColor = GagPink)
+                    colors = ButtonDefaults.buttonColors(containerColor = CraveOrange, contentColor = CraveInk),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, CraveInk),
+                    shape = RoundedCornerShape(10.dp)
                 ) { Text("Clear & Add") }
             },
             dismissButton = {
@@ -294,7 +299,7 @@ fun FoodDetailScreen(
 
     when (val foodState = uiState.food) {
         is UiState.Loading -> GagLoadingScreen()
-        is UiState.Error -> GagErrorScreen(message = foodState.message, onRetry = {})
+        is UiState.Error -> GagErrorScreen(message = foodState.message, onRetry = viewModel::loadFoodAndReviews)
         is UiState.Success -> {
             val food = foodState.data
             Scaffold(
@@ -303,16 +308,16 @@ fun FoodDetailScreen(
                 snackbarHost = { SnackbarHost(snackbarHostState) },
                 bottomBar = {
                     Surface(
-                        color = MaterialTheme.colorScheme.surface, 
-                        shadowElevation = 24.dp,
+                        color = MaterialTheme.colorScheme.surface,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, CraveInk)
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .navigationBarsPadding()
-                                .padding(horizontal = 16.dp, vertical = 16.dp),
+                                .padding(horizontal = 17.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             QuantitySelector(
                                 quantity = uiState.quantity,
@@ -320,7 +325,7 @@ fun FoodDetailScreen(
                                 onIncrease = viewModel::increaseQuantity
                             )
                             GagPrimaryButton(
-                                text = "Add item  •  ₹${(viewModel.computedPrice() * uiState.quantity).toInt()}",
+                                text = "Add to bag  ·  ₹${(viewModel.computedPrice() * uiState.quantity).toInt()}",
                                 onClick = viewModel::addToCart,
                                 enabled = viewModel.isCartEnabled(),
                                 modifier = Modifier.weight(1f)
@@ -335,48 +340,25 @@ fun FoodDetailScreen(
                             .fillMaxSize()
                             .padding(bottom = padding.calculateBottomPadding())
                     ) {
-                        // 1. HERO Image
+                        // 1. HERO art — tone block, ink border, hard shadow
                         item {
+                            val heroShape = RoundedCornerShape(28.dp)
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(380.dp)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    .statusBarsPadding()
+                                    .padding(start = 17.dp, end = 21.dp, top = 68.dp, bottom = 5.dp)
+                                    .height(300.dp)
+                                    .craveShadow(heroShape, 4.dp, 5.dp)
+                                    .clip(heroShape)
+                                    .background(craveToneFor(food.id))
+                                    .border(2.dp, CraveInk, heroShape)
                             ) {
                                 GagFoodImage(
                                     model = food.imageUrl,
                                     contentDescription = food.name,
                                     category = food.category,
                                     modifier = Modifier.fillMaxSize()
-                                )
-                                // Top-down subtle gradient for status bar / icons
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(120.dp)
-                                        .background(
-                                            Brush.verticalGradient(
-                                                colors = listOf(
-                                                    Color.Black.copy(alpha = 0.5f),
-                                                    Color.Transparent
-                                                )
-                                            )
-                                        )
-                                )
-                                // Bottom-up gradient to blend into content
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(80.dp)
-                                        .align(Alignment.BottomCenter)
-                                        .background(
-                                            Brush.verticalGradient(
-                                                colors = listOf(
-                                                    Color.Transparent,
-                                                    MaterialTheme.colorScheme.background
-                                                )
-                                            )
-                                        )
                                 )
                             }
                         }
@@ -386,264 +368,165 @@ fun FoodDetailScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .offset(y = (-32).dp)
-                                    .background(
-                                        color = MaterialTheme.colorScheme.background,
-                                        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
-                                    )
-                                    .padding(horizontal = 24.dp, vertical = 24.dp)
+                                    .padding(horizontal = 17.dp)
+                                    .padding(top = 22.dp, bottom = 8.dp)
                             ) {
-                                // Title and Price
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(), 
-                                    horizontalArrangement = Arrangement.SpaceBetween, 
-                                    verticalAlignment = Alignment.Top
-                                ) {
-                                    Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    CraveSticker(
+                                        food.category.ifBlank { "campus classic" },
+                                        container = CraveOrange,
+                                        content = CraveInk
+                                    )
+                                    if (food.rating > 0) {
                                         Text(
-                                            text = food.name, 
-                                            style = MaterialTheme.typography.headlineLarge, 
-                                            fontWeight = FontWeight.Black,
-                                            color = MaterialTheme.colorScheme.onBackground,
-                                            lineHeight = MaterialTheme.typography.headlineLarge.lineHeight
+                                            text = "★ ${"%.1f".format(food.rating)} (${food.totalReviews})",
+                                            style = GagMonoStyle.copy(fontSize = 10.sp),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        if (food.outletName.isNotEmpty()) {
-                                            Text(
-                                                text = "From ${food.outletName}", 
-                                                style = MaterialTheme.typography.titleMedium, 
-                                                color = GagPink,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
                                     }
+                                }
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = food.name,
+                                    style = MaterialTheme.typography.displayLarge.copy(fontSize = 38.sp, lineHeight = 38.sp),
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                                if (food.outletName.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.height(8.dp))
                                     Text(
-                                        text = "₹${food.price.toInt()}", 
-                                        style = MaterialTheme.typography.headlineLarge, 
-                                        fontWeight = FontWeight.Black, 
-                                        color = GagPink
+                                        text = "From ${food.outletName}",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = CraveOrangeDeep,
+                                        fontWeight = FontWeight.Bold
                                     )
                                 }
 
-                                Spacer(modifier = Modifier.height(20.dp))
-                                
-                                // Metadata Chips Row
+                                Spacer(modifier = Modifier.height(14.dp))
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    // Veg/Non-Veg
-                                    Surface(
-                                        shape = RoundedCornerShape(12.dp),
-                                        color = if (food.isVeg) GagSuccessContainer else GagErrorContainer
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                                        ) {
-                                            Icon(
-                                                Icons.Filled.FiberManualRecord,
-                                                contentDescription = if (food.isVeg) "Veg" else "Non-veg",
-                                                tint = if (food.isVeg) GagSuccess else GagError,
-                                                modifier = Modifier.size(12.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text(
-                                                text = if (food.isVeg) "Veg" else "Non-Veg",
-                                                style = MaterialTheme.typography.labelLarge,
-                                                fontWeight = FontWeight.ExtraBold,
-                                                color = if (food.isVeg) GagSuccess else GagError
+                                    DetailPill(
+                                        text = if (food.isVeg) "Veg" else "Non-veg",
+                                        container = if (food.isVeg) CraveChartreuse else CraveRedSoft,
+                                        leading = {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(10.dp)
+                                                    .clip(CircleShape)
+                                                    .background(if (food.isVeg) VegGreen else NonVegRed)
                                             )
                                         }
-                                    }
-                                    
-                                    // Prep Time
-                                    Surface(
-                                        shape = RoundedCornerShape(12.dp),
-                                        color = MaterialTheme.colorScheme.surfaceVariant
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                                        ) {
-                                            Icon(Icons.Outlined.Schedule, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text(
-                                                text = "${food.prepTimeMinutes} min", 
-                                                style = MaterialTheme.typography.labelLarge, 
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-                                    }
-                                    
-                                    // Rating
-                                    if (food.rating > 0) {
-                                        Surface(
-                                            shape = RoundedCornerShape(12.dp),
-                                            color = GagYellow.copy(alpha = 0.15f)
-                                        ) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                                            ) {
-                                                Icon(Icons.Filled.Star, null, tint = GagYellow, modifier = Modifier.size(16.dp))
-                                                Spacer(modifier = Modifier.width(6.dp))
-                                                Text(
-                                                    text = "${food.rating} (${food.totalReviews})", 
-                                                    style = MaterialTheme.typography.labelLarge, 
-                                                    color = GagYellow,
-                                                    fontWeight = FontWeight.ExtraBold
-                                                )
-                                            }
-                                        }
-                                    }
+                                    )
+                                    DetailPill(
+                                        text = "${food.prepTimeMinutes} min",
+                                        container = MaterialTheme.colorScheme.surface,
+                                        leading = { Icon(Icons.Outlined.Schedule, null, tint = CraveInk, modifier = Modifier.size(13.dp)) }
+                                    )
+                                    CraveMono(
+                                        text = "₹${food.price.toInt()}",
+                                        fontSize = 16f,
+                                        modifier = Modifier.padding(start = 4.dp)
+                                    )
                                 }
 
-                                Spacer(modifier = Modifier.height(24.dp))
-                                
                                 if (food.description.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.height(16.dp))
                                     Text(
-                                        text = food.description, 
-                                        style = MaterialTheme.typography.bodyLarge, 
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        lineHeight = MaterialTheme.typography.bodyLarge.lineHeight
+                                        text = food.description,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
 
                                 if (!food.isAvailable) {
-                                    Spacer(modifier = Modifier.height(24.dp))
-                                    Surface(shape = RoundedCornerShape(16.dp), color = GagErrorContainer, modifier = Modifier.fillMaxWidth()) {
+                                    Spacer(modifier = Modifier.height(20.dp))
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = CraveRedSoft,
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, GagError),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
                                         Text(
-                                            text = "Currently Unavailable", 
-                                            color = GagError, 
-                                            style = MaterialTheme.typography.titleMedium, 
-                                            fontWeight = FontWeight.Black, 
-                                            modifier = Modifier.padding(16.dp),
+                                            text = "Currently unavailable",
+                                            color = GagError,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(14.dp),
                                             textAlign = TextAlign.Center
                                         )
                                     }
                                 }
+                                Spacer(modifier = Modifier.height(18.dp))
+                                Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outline))
                             }
                         }
 
                         // 3. Customizations
-                        if (food.customizations.isNotEmpty()) {
-                            item {
-                                Text(
-                                    text = "Customize", 
-                                    style = MaterialTheme.typography.titleLarge, 
-                                    fontWeight = FontWeight.Black,
-                                    color = MaterialTheme.colorScheme.onBackground,
-                                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
-                                )
-                            }
-                            
-                            items(food.customizations) { customization ->
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 20.dp, vertical = 8.dp)
-                                        .clip(RoundedCornerShape(24.dp))
-                                        .background(MaterialTheme.colorScheme.surface)
-                                        .padding(20.dp)
+                        items(food.customizations) { customization ->
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 17.dp)
+                                    .padding(top = 18.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = customization.name,
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        if (customization.isRequired) {
-                                            Surface(
-                                                shape = RoundedCornerShape(8.dp),
-                                                color = GagOrangeContainer
-                                            ) {
-                                                Text(
-                                                    text = "Required",
-                                                    style = MaterialTheme.typography.labelMedium,
-                                                    color = GagOrange,
-                                                    fontWeight = FontWeight.Bold,
-                                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                                                )
-                                            }
-                                        }
+                                    CraveEyebrow(customization.name, color = MaterialTheme.colorScheme.onSurface)
+                                    if (customization.isRequired) {
+                                        CraveStateBadge("Required", container = CraveOrange)
+                                    } else if (customization.maxSelections > 1) {
+                                        CraveEyebrow("up to ${customization.maxSelections}")
                                     }
-                                    
-                                    if (customization.maxSelections > 1) {
-                                        Text(
-                                            text = "Select up to ${customization.maxSelections}",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
-                                        )
-                                    } else {
-                                        Spacer(modifier = Modifier.height(16.dp))
-                                    }
-                                    
-                                    val selectedOptionIds = uiState.selectedOptions[customization.id] ?: emptyList()
-                                    
-                                    customization.options.forEachIndexed { index, option ->
+                                }
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                val selectedOptionIds = uiState.selectedOptions[customization.id] ?: emptyList()
+                                Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                                    customization.options.forEach { option ->
                                         val isSelected = selectedOptionIds.contains(option.id)
-                                        
+                                        val optionShape = RoundedCornerShape(8.dp)
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .clip(RoundedCornerShape(12.dp))
+                                                .clip(optionShape)
+                                                .background(if (isSelected) CraveChartreuse else MaterialTheme.colorScheme.surface)
+                                                .border(1.dp, if (isSelected) CraveInk else MaterialTheme.colorScheme.outline, optionShape)
                                                 .clickable { viewModel.toggleOption(customization.id, option.id, customization.maxSelections) }
-                                                .padding(vertical = 14.dp, horizontal = 12.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.SpaceBetween
+                                                .padding(horizontal = 11.dp, vertical = 10.dp),
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                if (customization.maxSelections == 1) {
-                                                    RadioButton(
-                                                        selected = isSelected,
-                                                        onClick = null, // handled by Row clickable
-                                                        colors = RadioButtonDefaults.colors(
-                                                            selectedColor = GagPink,
-                                                            unselectedColor = MaterialTheme.colorScheme.outline
-                                                        )
-                                                    )
-                                                } else {
-                                                    Checkbox(
-                                                        checked = isSelected,
-                                                        onCheckedChange = null,
-                                                        colors = CheckboxDefaults.colors(
-                                                            checkedColor = GagPink,
-                                                            uncheckedColor = MaterialTheme.colorScheme.outline,
-                                                            checkmarkColor = Color.White
-                                                        )
-                                                    )
-                                                }
-                                                Spacer(modifier = Modifier.width(16.dp))
-                                                Text(
-                                                    text = option.name,
-                                                    style = MaterialTheme.typography.bodyLarge,
-                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                    color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(20.dp)
+                                                    .clip(if (customization.maxSelections == 1) CircleShape else RoundedCornerShape(5.dp))
+                                                    .border(
+                                                        1.dp,
+                                                        if (isSelected) CraveInk else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        if (customization.maxSelections == 1) CircleShape else RoundedCornerShape(5.dp)
+                                                    ),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                if (isSelected) Text("✓", color = CraveInk, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                             }
-                                            
+                                            Spacer(modifier = Modifier.width(10.dp))
+                                            Text(
+                                                text = option.name,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                                color = if (isSelected) CraveInk else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.weight(1f)
+                                            )
                                             if (option.extraPrice > 0) {
                                                 Text(
                                                     text = "+₹${option.extraPrice.toInt()}",
-                                                    style = MaterialTheme.typography.bodyLarge,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = GagPink
+                                                    style = GagMonoStyle.copy(fontSize = 10.sp),
+                                                    color = if (isSelected) CraveInk else MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                             }
-                                        }
-                                        if (index < customization.options.size - 1) {
-                                            HorizontalDivider(
-                                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                                modifier = Modifier.padding(horizontal = 12.dp)
-                                            )
                                         }
                                     }
                                 }
@@ -665,7 +548,7 @@ fun FoodDetailScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .statusBarsPadding()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                            .padding(horizontal = 17.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         TopControlButton(
@@ -681,16 +564,17 @@ fun FoodDetailScreen(
                                 label = "heart_scale"
                             )
                             val tint by animateColorAsState(
-                                targetValue = if (uiState.isFavorite) OrbitLime else MaterialTheme.colorScheme.onSurface,
+                                targetValue = if (uiState.isFavorite) CraveOrange else CraveInk,
                                 animationSpec = tween(durationMillis = 300),
                                 label = "heart_color"
                             )
                             
                             Box(
                                 modifier = Modifier
-                                    .size(44.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f))
+                                    .size(40.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(CraveWhite)
+                                    .border(1.dp, CraveInk, RoundedCornerShape(10.dp))
                                     .clickable(onClick = viewModel::toggleFavorite),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -726,18 +610,39 @@ private fun TopControlButton(
 ) {
     Box(
         modifier = Modifier
-            .size(44.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f))
+            .size(40.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(CraveWhite)
+            .border(1.dp, CraveInk, RoundedCornerShape(10.dp))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.size(24.dp)
+            tint = CraveInk,
+            modifier = Modifier.size(22.dp)
         )
+    }
+}
+
+@Composable
+private fun DetailPill(
+    text: String,
+    container: Color,
+    leading: @Composable () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(container)
+            .border(1.dp, CraveInk, CircleShape)
+            .padding(horizontal = 10.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        leading()
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(text, style = GagEyebrowStyle.copy(fontSize = 10.sp, letterSpacing = 0.2.sp), color = CraveInk)
     }
 }
 
@@ -750,24 +655,20 @@ private fun FoodReviewsSection(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 24.dp)
+            .padding(horizontal = 17.dp, vertical = 24.dp)
     ) {
-        Text(
-            text = "Reviews",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Black,
-            color = MaterialTheme.colorScheme.onBackground
-        )
+        CraveHeading(eyebrow = "What people say", title = "Reviews")
         Spacer(modifier = Modifier.height(16.dp))
 
         // Rating summary
         Surface(
-            shape = RoundedCornerShape(20.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant,
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
-                modifier = Modifier.padding(20.dp),
+                modifier = Modifier.padding(18.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -775,9 +676,8 @@ private fun FoodReviewsSection(
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = rating.toString(),
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Black,
+                                text = "%.1f".format(rating),
+                                style = GagMonoStyle.copy(fontSize = 26.sp),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -786,7 +686,7 @@ private fun FoodReviewsSection(
                                     Icon(
                                         imageVector = Icons.Filled.Star,
                                         contentDescription = null,
-                                        tint = if (index < rating.toInt()) GagYellow else MaterialTheme.colorScheme.outlineVariant,
+                                        tint = if (index < rating.toInt()) GagStarYellow else MaterialTheme.colorScheme.outline,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -815,7 +715,7 @@ private fun FoodReviewsSection(
         when (reviewsState) {
             is UiState.Loading -> {
                 Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = GagPink)
+                    CircularProgressIndicator(color = CraveOrange)
                 }
             }
             is UiState.Error -> {
@@ -855,7 +755,7 @@ private fun ReviewItem(review: com.srmfood.gag.domain.model.FoodReview) {
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 1.dp,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -877,7 +777,7 @@ private fun ReviewItem(review: com.srmfood.gag.domain.model.FoodReview) {
                             Icon(
                                 imageVector = Icons.Filled.Star,
                                 contentDescription = null,
-                                tint = if (index < review.rating) GagYellow else MaterialTheme.colorScheme.outlineVariant,
+                                tint = if (index < review.rating) GagStarYellow else MaterialTheme.colorScheme.outline,
                                 modifier = Modifier.size(14.dp)
                             )
                         }
@@ -910,16 +810,11 @@ private fun ReviewItem(review: com.srmfood.gag.domain.model.FoodReview) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    color = CraveLavender.copy(alpha = 0.45f),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
-                        Text(
-                            text = "Vendor Reply",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = GagPink
-                        )
+                        CraveEyebrow("Vendor reply", color = CraveInk)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = reply.replyText,

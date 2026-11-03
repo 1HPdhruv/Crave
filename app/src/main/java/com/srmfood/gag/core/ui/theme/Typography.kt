@@ -2,36 +2,76 @@ package com.srmfood.gag.core.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
+import com.srmfood.gag.R
 import androidx.compose.ui.unit.sp
 
-// Inter / system sans — resolves to Inter on API 31+, clean Roboto below.
-// Zero dependency — FontFamily.SansSerif is the recommended system neutral.
-val GagFontFamily = FontFamily.SansSerif
+// Same faces as the Crave website: Space Grotesk for text, DM Mono for numbers/eyebrows.
+@OptIn(ExperimentalTextApi::class)
+private fun spaceGrotesk(weight: FontWeight) = Font(
+    resId = R.font.space_grotesk,
+    weight = weight,
+    variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight))
+)
+
+val GagFontFamily = FontFamily(
+    spaceGrotesk(FontWeight.Normal),
+    spaceGrotesk(FontWeight.Medium),
+    spaceGrotesk(FontWeight.SemiBold),
+    spaceGrotesk(FontWeight.Bold),
+    spaceGrotesk(FontWeight.ExtraBold)
+)
+
+val GagMonoFamily = FontFamily(
+    Font(R.font.dm_mono_regular, FontWeight.Normal),
+    Font(R.font.dm_mono_medium, FontWeight.Medium),
+    Font(R.font.dm_mono_medium, FontWeight.SemiBold),
+    Font(R.font.dm_mono_medium, FontWeight.Bold)
+)
+
+/** DM Mono caps label used for the website's "eyebrow" kickers. */
+val GagEyebrowStyle = TextStyle(
+    fontFamily = GagMonoFamily,
+    fontWeight = FontWeight.Medium,
+    fontSize = 10.sp,
+    lineHeight = 14.sp,
+    letterSpacing = 1.2.sp
+)
+
+/** DM Mono figures for prices, counts and order ids. */
+val GagMonoStyle = TextStyle(
+    fontFamily = GagMonoFamily,
+    fontWeight = FontWeight.Medium,
+    fontSize = 13.sp,
+    lineHeight = 18.sp
+)
 
 val GagTypography = Typography(
     // ─── Display — Hero text, splash screens ─────────────────────
     displayLarge = TextStyle(
         fontFamily = GagFontFamily,
         fontWeight = FontWeight.ExtraBold,
-        fontSize = 32.sp,
+        fontSize = 38.sp,
         lineHeight = 38.sp,
-        letterSpacing = (-0.8).sp       // Tighter for premium feel
+        letterSpacing = (-2.0).sp       // Tighter for premium feel
     ),
     displayMedium = TextStyle(
         fontFamily = GagFontFamily,
         fontWeight = FontWeight.Bold,
-        fontSize = 28.sp,
-        lineHeight = 34.sp,
-        letterSpacing = (-0.5).sp
+        fontSize = 30.sp,
+        lineHeight = 31.sp,
+        letterSpacing = (-1.4).sp
     ),
     displaySmall = TextStyle(
         fontFamily = GagFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 24.sp,
-        lineHeight = 30.sp,
-        letterSpacing = (-0.35).sp
+        lineHeight = 27.sp,
+        letterSpacing = (-1.0).sp
     ),
 
     // ─── Headline — Screen titles, prominent sections ─────────────
@@ -39,8 +79,8 @@ val GagTypography = Typography(
         fontFamily = GagFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 24.sp,
-        lineHeight = 30.sp,
-        letterSpacing = (-0.35).sp
+        lineHeight = 27.sp,
+        letterSpacing = (-1.0).sp
     ),
     headlineMedium = TextStyle(
         fontFamily = GagFontFamily,

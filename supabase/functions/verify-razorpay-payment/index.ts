@@ -21,6 +21,14 @@ serve(async (req) => {
       { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     )
 
+    // Privileged client: ONLY used for mark_payment_verified, and only after the user is authenticated,
+    // owns the payment (RLS-scoped select below) and the HMAC signature has been checked.
+    // (mark_payment_verified is revoked from anon/authenticated by DRAFT_payment_verification_lockdown.sql.)
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
     if (authError || !user) throw new Error('Unauthorized')
 
@@ -47,7 +55,7 @@ serve(async (req) => {
 
     if (expectedSignature !== razorpay_signature) {
         // Mark payment as FAILED if signature is invalid
-        await supabaseClient.rpc('mark_payment_verified', {
+        await supabaseAdmin.rpc('mark_payment_verified', {
             p_order_id: order_id,
             p_razorpay_payment_id: razorpay_payment_id,
             p_razorpay_signature: razorpay_signature,
@@ -57,7 +65,7 @@ serve(async (req) => {
     }
 
     // 3. Mark as PAID (Idempotent)
-    const { error: rpcError } = await supabaseClient.rpc('mark_payment_verified', {
+    const { error: rpcError } = await supabaseAdmin.rpc('mark_payment_verified', {
         p_order_id: order_id,
         p_razorpay_payment_id: razorpay_payment_id,
         p_razorpay_signature: razorpay_signature,

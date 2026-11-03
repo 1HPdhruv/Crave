@@ -1,6 +1,10 @@
 package com.srmfood.gag.feature.outlets
 
+import com.srmfood.gag.domain.usecase.outlet.studentMessage
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.ui.unit.sp
+import com.srmfood.gag.core.ui.component.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -152,7 +156,12 @@ class OutletDetailViewModel @Inject constructor(
             addToCartUseCase(food, 1).onSuccess {
                 _events.emit(OutletDetailUiEvent.ShowSnackbar("Added ${food.name} to cart"))
             }.onFailure {
-                _events.emit(OutletDetailUiEvent.ShowSnackbar("Failed to add: ${it.message}"))
+                _events.emit(OutletDetailUiEvent.ShowSnackbar(
+                    if (it is com.srmfood.gag.domain.usecase.outlet.OutletUnavailableException) it.message ?: "This outlet can't take orders right now."
+                    else "Couldn't add to cart: " + com.srmfood.gag.core.common.UiState.Error.userFacing(it.message ?: "please try again")
+                ))
+                // The outlet may have been suspended since this screen loaded: refresh it.
+                if (it is com.srmfood.gag.domain.usecase.outlet.OutletUnavailableException) loadOutletData()
             }
         }
     }
@@ -204,56 +213,37 @@ fun OutletDetailScreen(
                         columns = GridCells.Fixed(2),
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(
-                            start = 16.dp,
-                            end = 16.dp,
+                            start = 17.dp,
+                            end = 17.dp,
                             bottom = padding.calculateBottomPadding() + 16.dp
                         ),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        // 1. Hero Section
+                        // 1. Cover — tone block, ink border, hard shadow (website `.menu-cover`)
                         item(span = { GridItemSpan(2) }) {
+                            val coverShape = RoundedCornerShape(28.dp)
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(380.dp)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    .statusBarsPadding()
+                                    .padding(top = 64.dp, end = 4.dp, bottom = 5.dp)
+                                    .height(210.dp)
+                                    .craveShadow(coverShape, 4.dp, 5.dp)
+                                    .clip(coverShape)
+                                    .background(craveToneFor(outlet.id))
+                                    .border(2.dp, CraveInk, coverShape)
                             ) {
-                                AsyncImage(
-                                    model = outlet.imageUrl,
-                                    contentDescription = outlet.name,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                                // Top gradient for controls
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(120.dp)
-                                        .background(
-                                            Brush.verticalGradient(
-                                                colors = listOf(
-                                                    Color.Black.copy(alpha = 0.5f),
-                                                    Color.Transparent
-                                                )
-                                            )
-                                        )
-                                )
-                                // Bottom gradient to blend into content
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(100.dp)
-                                        .align(Alignment.BottomCenter)
-                                        .background(
-                                            Brush.verticalGradient(
-                                                colors = listOf(
-                                                    Color.Transparent,
-                                                    MaterialTheme.colorScheme.background
-                                                )
-                                            )
-                                        )
-                                )
+                                if (!outlet.imageUrl.isNullOrBlank()) {
+                                    AsyncImage(
+                                        model = outlet.imageUrl,
+                                        contentDescription = outlet.name,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                } else {
+                                    Text("🍴", fontSize = 90.sp, modifier = Modifier.align(Alignment.Center))
+                                }
                             }
                         }
 
@@ -262,119 +252,73 @@ fun OutletDetailScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .offset(y = (-40).dp)
-                                    .background(
-                                        color = MaterialTheme.colorScheme.background,
-                                        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
-                                    )
-                                    .padding(horizontal = 8.dp, vertical = 24.dp)
+                                    .padding(top = 18.dp, bottom = 8.dp)
                             ) {
+                                CraveStateBadge(
+                                    text = when {
+                                        !outlet.acceptsOrders -> "Not taking orders"
+                                        outlet.isOpen -> "Open now"
+                                        else -> "Closed right now"
+                                    },
+                                    container = if (outlet.acceptsOrders && outlet.isOpen) CraveChartreuse else CraveRedSoft
+                                )
+                                if (!outlet.acceptsOrders) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Surface(shape = RoundedCornerShape(12.dp), color = GagErrorContainer) {
+                                        Text(
+                                            // is_active=false with an ACTIVE ordering status is also unavailable
+                                            (if (outlet.orderingStatus.acceptsOrders) com.srmfood.gag.domain.model.OutletOrderingStatus.DEACTIVATED
+                                             else outlet.orderingStatus).studentMessage(outlet.name),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = GagError,
+                                            modifier = Modifier.padding(12.dp)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(12.dp))
                                 Text(
                                     text = outlet.name,
-                                    style = MaterialTheme.typography.headlineLarge,
-                                    fontWeight = FontWeight.Black,
+                                    style = MaterialTheme.typography.displayLarge.copy(fontSize = 38.sp, lineHeight = 38.sp),
                                     color = MaterialTheme.colorScheme.onBackground,
-                                    maxLines = 2,
-                                    lineHeight = MaterialTheme.typography.headlineLarge.lineHeight
+                                    maxLines = 2
                                 )
-                                
-                                Spacer(modifier = Modifier.height(8.dp))
-                                
-                                // Location Context
+
                                 val locationText = buildString {
                                     append(outlet.location.building)
                                     if (outlet.location.floor.isNotEmpty()) append(", ${outlet.location.floor}")
                                 }
-                                
-                                if (locationText.isNotEmpty()) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            Icons.Outlined.LocationOn, 
-                                            contentDescription = null, 
-                                            tint = GagPink, 
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            text = locationText,
-                                            style = MaterialTheme.typography.titleMedium,
-                                            color = GagPink,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(20.dp))
-                                
-                                // Metadata row
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    // Open/Closed Status
-                                    Surface(
-                                        shape = RoundedCornerShape(12.dp),
-                                        color = if (outlet.isOpen) GagSuccessContainer else GagErrorContainer
-                                    ) {
-                                        Text(
-                                            text = if (outlet.isOpen) "Open" else "Closed",
-                                            color = if (outlet.isOpen) GagSuccess else GagError,
-                                            style = MaterialTheme.typography.labelLarge,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                                        )
-                                    }
-                                    
-                                    // Rating
-                                    if (outlet.rating > 0) {
-                                        Surface(
-                                            shape = RoundedCornerShape(12.dp),
-                                            color = GagYellow.copy(alpha = 0.15f)
-                                        ) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                                            ) {
-                                                Icon(Icons.Filled.Star, null, tint = GagYellow, modifier = Modifier.size(16.dp))
-                                                Spacer(modifier = Modifier.width(6.dp))
-                                                Text(
-                                                    text = "${outlet.rating} (${outlet.totalReviews})",
-                                                    style = MaterialTheme.typography.labelLarge,
-                                                    fontWeight = FontWeight.ExtraBold,
-                                                    color = GagYellow
-                                                )
-                                            }
-                                        }
-                                    }
-                                    
-                                    // Wait Time
-                                    Surface(
-                                        shape = RoundedCornerShape(12.dp),
-                                        color = MaterialTheme.colorScheme.surfaceVariant
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                                        ) {
-                                            Icon(Icons.Outlined.AccessTime, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text(
-                                                text = "${outlet.estimatedWaitMinutes} min wait",
-                                                style = MaterialTheme.typography.labelLarge,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-                                }
-
                                 if (outlet.description.isNotEmpty()) {
-                                    Spacer(modifier = Modifier.height(20.dp))
+                                    Spacer(modifier = Modifier.height(8.dp))
                                     Text(
                                         text = outlet.description,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        lineHeight = MaterialTheme.typography.bodyLarge.lineHeight
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(14.dp))
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    if (outlet.rating > 0) {
+                                        Text("★ ${"%.1f".format(outlet.rating)} (${outlet.totalReviews})", style = GagMonoStyle.copy(fontSize = 11.sp))
+                                    }
+                                    Text("${outlet.estimatedWaitMinutes} min wait", style = GagMonoStyle.copy(fontSize = 11.sp))
+                                }
+                                if (locationText.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Outlined.LocationOn, null, tint = CraveOrangeDeep, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(locationText, style = GagMonoStyle.copy(fontSize = 11.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                                if (!outlet.isOpen && outlet.acceptsOrders) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        "You can still pre-order for a later slot.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Bold
                                     )
                                 }
                             }
@@ -387,7 +331,6 @@ fun OutletDetailScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(bottom = 16.dp)
-                                    .offset(y = (-32).dp)
                             ) {
                                 DeliveryModeSelector(
                                     selectedMode = uiState.orderingMode,
@@ -418,10 +361,10 @@ fun OutletDetailScreen(
                             item(span = { GridItemSpan(2) }) {
                                 Surface(
                                     color = MaterialTheme.colorScheme.background,
-                                    modifier = Modifier.fillMaxWidth().offset(y = (-32).dp)
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
                                     LazyRow(
-                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp),
+                                        contentPadding = PaddingValues(vertical = 12.dp),
                                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                                     ) {
                                         item {
@@ -451,7 +394,7 @@ fun OutletDetailScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .height(200.dp)
-                                            .offset(y = (-32).dp)
+                                            
                                             .clip(RoundedCornerShape(20.dp))
                                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                                     )
@@ -464,7 +407,7 @@ fun OutletDetailScreen(
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .padding(vertical = 48.dp)
-                                                .offset(y = (-32).dp),
+                                                ,
                                             horizontalAlignment = Alignment.CenterHorizontally
                                         ) {
                                             Icon(
@@ -486,12 +429,10 @@ fun OutletDetailScreen(
                                     // Optional: Popular Section if viewing "All"
                                     if (uiState.selectedCategory == null && popularItems.isNotEmpty()) {
                                         item(span = { GridItemSpan(2) }) {
-                                            Text(
-                                                text = "Popular Choices",
-                                                style = MaterialTheme.typography.titleLarge,
-                                                fontWeight = FontWeight.Black,
-                                                color = MaterialTheme.colorScheme.onBackground,
-                                                modifier = Modifier.padding(vertical = 12.dp).offset(y = (-32).dp)
+                                            CraveHeading(
+                                                eyebrow = "Fan favourites",
+                                                title = "Popular choices",
+                                                modifier = Modifier.padding(vertical = 12.dp)
                                             )
                                         }
                                         items(popularItems, key = { "pop_${it.id}" }) { food ->
@@ -499,17 +440,15 @@ fun OutletDetailScreen(
                                                 foodItem = food,
                                                 onClick = { onFoodClick(food.id) },
                                                 onAddToCart = { viewModel.addToCart(food) },
-                                                modifier = Modifier.offset(y = (-32).dp)
+                                                modifier = Modifier
                                             )
                                         }
                                         item(span = { GridItemSpan(2) }) {
                                             Spacer(modifier = Modifier.height(16.dp))
-                                            Text(
-                                                text = "All Menu",
-                                                style = MaterialTheme.typography.titleLarge,
-                                                fontWeight = FontWeight.Black,
-                                                color = MaterialTheme.colorScheme.onBackground,
-                                                modifier = Modifier.padding(vertical = 12.dp).offset(y = (-32).dp)
+                                            CraveHeading(
+                                                eyebrow = "Everything",
+                                                title = "Full menu",
+                                                modifier = Modifier.padding(vertical = 12.dp)
                                             )
                                         }
                                     }
@@ -519,7 +458,7 @@ fun OutletDetailScreen(
                                             foodItem = food,
                                             onClick = { onFoodClick(food.id) },
                                             onAddToCart = { viewModel.addToCart(food) },
-                                            modifier = Modifier.offset(y = (-32).dp)
+                                            modifier = Modifier
                                         )
                                     }
                                 }
@@ -533,11 +472,9 @@ fun OutletDetailScreen(
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                             Spacer(modifier = Modifier.height(16.dp))
                             
-                            Text(
-                                text = "REVIEWS",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Black,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            CraveHeading(
+                                eyebrow = "What people say",
+                                title = "Reviews",
                                 modifier = Modifier.padding(bottom = 16.dp)
                             )
 
@@ -564,7 +501,7 @@ fun OutletDetailScreen(
                                                         Icon(
                                                             Icons.Filled.Star,
                                                             contentDescription = null,
-                                                            tint = if (starIndex < review.rating) GagYellow else MaterialTheme.colorScheme.outlineVariant,
+                                                            tint = if (starIndex < review.rating) GagStarYellow else MaterialTheme.colorScheme.outline,
                                                             modifier = Modifier.size(14.dp)
                                                         )
                                                     }
@@ -588,11 +525,11 @@ fun OutletDetailScreen(
                                                     Spacer(modifier = Modifier.height(8.dp))
                                                     Surface(
                                                         shape = RoundedCornerShape(8.dp),
-                                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                                        color = CraveLavender.copy(alpha = 0.45f),
                                                         modifier = Modifier.fillMaxWidth()
                                                     ) {
                                                         Column(modifier = Modifier.padding(12.dp)) {
-                                                            Text("Vendor reply:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = GagOrange)
+                                                            Text("Vendor reply:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = CraveOrangeDeep)
                                                             Spacer(modifier = Modifier.height(4.dp))
                                                             Text(review.vendorReply.replyText, style = MaterialTheme.typography.bodySmall)
                                                         }
@@ -614,7 +551,7 @@ fun OutletDetailScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .statusBarsPadding()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                            .padding(horizontal = 17.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         TopControlButton(
@@ -643,17 +580,18 @@ private fun TopControlButton(
 ) {
     Box(
         modifier = Modifier
-            .size(44.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f))
+            .size(40.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(CraveWhite)
+            .border(1.dp, CraveInk, RoundedCornerShape(10.dp))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.size(24.dp)
+            tint = CraveInk,
+            modifier = Modifier.size(22.dp)
         )
     }
 }

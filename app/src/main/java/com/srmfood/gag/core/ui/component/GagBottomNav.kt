@@ -5,6 +5,9 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.ui.draw.drawBehind
+import com.srmfood.gag.core.ui.theme.CraveInk
+import com.srmfood.gag.core.ui.theme.CraveOrange
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -91,11 +94,14 @@ fun GagBottomNavBar(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface)
-            .border(
-                width = 0.5.dp,
-                color = MaterialTheme.colorScheme.outlineVariant,
-                shape = RoundedCornerShape(0.dp)
-            )
+            .drawBehind {
+                drawLine(
+                    color = CraveInk,
+                    start = androidx.compose.ui.geometry.Offset(0f, 0f),
+                    end = androidx.compose.ui.geometry.Offset(size.width, 0f),
+                    strokeWidth = 1.dp.toPx()
+                )
+            }
     ) {
         NavigationBar(
             containerColor = Color.Transparent,
@@ -109,12 +115,12 @@ fun GagBottomNavBar(
                 val baseRoute = currentRoute?.substringBefore("?")
                 val selected = baseRoute == item.route
                 val iconTint by animateColorAsState(
-                    targetValue = if (selected) OrbitLime else MaterialTheme.colorScheme.onSurfaceVariant,
+                    targetValue = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                     animationSpec = tween(200),
                     label = "icon_tint_${item.route}"
                 )
                 val indicatorWidth by animateDpAsState(
-                    targetValue = if (selected) 20.dp else 0.dp,
+                    targetValue = if (selected) 22.dp else 0.dp,
                     animationSpec = tween(200),
                     label = "indicator_${item.route}"
                 )
@@ -127,9 +133,9 @@ fun GagBottomNavBar(
                             Box(
                                 modifier = Modifier
                                     .width(indicatorWidth)
-                                    .height(2.5.dp)
+                                    .height(3.dp)
                                     .clip(RoundedCornerShape(2.dp))
-                                    .background(OrbitLime)
+                                    .background(CraveOrange)
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Icon(

@@ -103,7 +103,7 @@ fun FavoritesScreen(
                             Text(
                                 "Your all-time cravings",
                                 style = MaterialTheme.typography.titleMedium,
-                                color = GagPink
+                                color = CraveOrangeDeep
                             )
                         }
 

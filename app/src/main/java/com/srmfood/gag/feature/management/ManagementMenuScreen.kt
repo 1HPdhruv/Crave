@@ -1,5 +1,11 @@
 package com.srmfood.gag.feature.management
 
+import com.srmfood.gag.core.ui.theme.OrbitSuccess
+
+import com.srmfood.gag.core.ui.theme.OrbitError
+
+import com.srmfood.gag.core.ui.theme.OrbitLimeDark
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -67,7 +73,7 @@ fun ManagementMenuScreen(
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     text = "CRAVE | MANAGEMENT",
-                    color = OrbitLime,
+                    color = OrbitLimeDark,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp
@@ -84,9 +90,9 @@ fun ManagementMenuScreen(
                 enabled = !isRefreshing
             ) {
                 if (isRefreshing) {
-                    CircularProgressIndicator(color = OrbitLime, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                    CircularProgressIndicator(color = OrbitLimeDark, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                 } else {
-                    Icon(imageVector = Icons.Filled.Refresh, contentDescription = "Refresh", tint = OrbitLime)
+                    Icon(imageVector = Icons.Filled.Refresh, contentDescription = "Refresh", tint = OrbitLimeDark)
                 }
             }
         }
@@ -99,7 +105,7 @@ fun ManagementMenuScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
             placeholder = { Text("Search food...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "Search", tint = OrbitLime) },
+            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "Search", tint = OrbitLimeDark) },
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
                     IconButton(onClick = {
@@ -225,7 +231,7 @@ fun ManagementMenuScreen(
         when (val state = menuState) {
             is UiState.Loading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = OrbitLime)
+                    CircularProgressIndicator(color = OrbitLimeDark)
                 }
             }
             is UiState.Error -> {
@@ -366,7 +372,7 @@ private fun ManagementFoodCard(
                     )
                     Text(
                         text = "₹${foodItem.price.toInt()}",
-                        color = OrbitLime,
+                        color = OrbitLimeDark,
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleMedium
                     )
@@ -382,9 +388,9 @@ private fun ManagementFoodCard(
                 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 4.dp)) {
                     if (foodItem.isVeg) {
-                        StatusBadge("VEG", Color(0xFF4CAF50))
+                        StatusBadge("VEG", OrbitSuccess)
                     } else {
-                        StatusBadge("NON-VEG", Color(0xFFF44336))
+                        StatusBadge("NON-VEG", OrbitError)
                     }
 
                     if (foodItem.isAvailable) {

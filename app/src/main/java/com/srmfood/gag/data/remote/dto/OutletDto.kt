@@ -25,7 +25,8 @@ data class OutletDto(
     @SerialName("total_reviews") val totalReviews: Int = 0,
     @SerialName("vendor_id") val vendorId: String? = null,
     @SerialName("is_active") val isActive: Boolean = true,
-    @SerialName("phone") val phone: String? = null
+    @SerialName("phone") val phone: String? = null,
+    @SerialName("ordering_status") val orderingStatus: String? = null
 )
 
 @Serializable

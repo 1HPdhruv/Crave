@@ -94,10 +94,18 @@ class OrderDetailViewModel @Inject constructor(
         }
     }
 
+    private val _cancelError = MutableStateFlow<String?>(null)
+    val cancelError: StateFlow<String?> = _cancelError.asStateFlow()
+    fun dismissCancelError() { _cancelError.value = null }
+
     fun cancelOrder(orderId: String) {
         viewModelScope.launch {
-            val result = cancelOrderUseCase(orderId)
-            result.onSuccess { loadOrder(orderId) }
+            cancelOrderUseCase(orderId)
+                .onSuccess { loadOrder(orderId) }
+                .onFailure {
+                    _cancelError.value = it.message ?: "Couldn't cancel this order. Please try again."
+                    loadOrder(orderId) // show the order's real current status
+                }
         }
     }
 }
@@ -110,12 +118,22 @@ fun OrderDetailScreen(
     onBack: () -> Unit,
     onTrackOrder: (String) -> Unit,
     onShowQR: (String) -> Unit,
+    onReportProblem: (String) -> Unit = {},
     viewModel: OrderDetailViewModel = hiltViewModel()
 ) {
     LaunchedEffect(orderId) { viewModel.loadOrder(orderId) }
     val orderState by viewModel.order.collectAsState()
     val reviewStates by viewModel.itemReviewStates.collectAsState()
     val outletReviewState by viewModel.outletReviewState.collectAsState()
+    val cancelError by viewModel.cancelError.collectAsState()
+    cancelError?.let { msg ->
+        AlertDialog(
+            onDismissRequest = viewModel::dismissCancelError,
+            title = { Text("Order not cancelled") },
+            text = { Text(msg) },
+            confirmButton = { TextButton(onClick = viewModel::dismissCancelError) { Text("OK") } }
+        )
+    }
 
     data class ReviewComposerArgs(
         val orderItemId: String,
@@ -149,6 +167,7 @@ fun OrderDetailScreen(
                 onBack = onBack,
                 onTrack = { onTrackOrder(orderId) },
                 onShowQR = { onShowQR(orderId) },
+                onReportProblem = { onReportProblem(orderId) },
                 onCancel = { viewModel.cancelOrder(orderId) },
                 onRateItem = { orderItemId, foodItemId, existingReviewId, existingRating, existingText ->
                     composerArgs = ReviewComposerArgs(orderItemId, foodItemId, existingReviewId, existingRating, existingText)
@@ -200,6 +219,7 @@ private fun OrderDetailContent(
     onBack: () -> Unit, 
     onTrack: () -> Unit, 
     onShowQR: () -> Unit, 
+    onReportProblem: () -> Unit,
     onCancel: () -> Unit, 
     onRateItem: (String, String, String?, Int?, String?) -> Unit,
     outletReviewState: com.srmfood.gag.domain.model.OutletReview?,
@@ -239,7 +259,7 @@ private fun OrderDetailContent(
                     Text(order.outletName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     order.pickupSlot?.let {
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text("Scheduled: ${it.displayTime}", style = MaterialTheme.typography.bodySmall, color = OrbitLime, fontWeight = FontWeight.SemiBold)
+                        Text("Scheduled: ${it.displayTime}", style = MaterialTheme.typography.bodySmall, color = CraveOrangeDeep, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -272,6 +292,13 @@ private fun OrderDetailContent(
                         border = androidx.compose.foundation.BorderStroke(2.dp, GagError)
                     ) { Text("Cancel Order", color = GagError, fontWeight = FontWeight.Bold) }
                 }
+                // Backend validates ownership; a cancelled/unpaid order can still have a payment complaint.
+                OutlinedButton(
+                    onClick = onReportProblem,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    contentPadding = PaddingValues(14.dp)
+                ) { Text("Report a Problem", fontWeight = FontWeight.Bold) }
             }
         }
 
@@ -366,7 +393,7 @@ private fun OrderDetailContent(
                                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                                         modifier = Modifier.height(32.dp)
                                     ) {
-                                        Text("Edit Review", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = GagPink)
+                                        Text("Edit Review", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = CraveOrangeDeep)
                                     }
                                 }
                             } else {
@@ -381,7 +408,7 @@ private fun OrderDetailContent(
                                         shape = RoundedCornerShape(8.dp),
                                         border = androidx.compose.foundation.BorderStroke(1.dp, GagPink)
                                     ) {
-                                        Text("Rate this food", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = GagPink)
+                                        Text("Rate this food", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = CraveOrangeDeep)
                                     }
                                 }
                             }
@@ -418,7 +445,7 @@ private fun OrderDetailContent(
                                         onRateOutlet(order.outletId, outletReviewState.id, outletReviewState.rating, outletReviewState.reviewText)
                                     }
                                 ) {
-                                    Text("Edit Review", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = GagPink)
+                                    Text("Edit Review", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = CraveOrangeDeep)
                                 }
                             }
                             Spacer(modifier = Modifier.height(8.dp))
@@ -469,7 +496,7 @@ private fun OrderDetailContent(
                     Column(modifier = Modifier.padding(20.dp)) {
                         Text("Special Instructions", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(order.specialInstructions, style = MaterialTheme.typography.bodyMedium, color = GagOrange)
+                        Text(order.specialInstructions, style = MaterialTheme.typography.bodyMedium, color = CraveOrangeDeep)
                     }
                 }
             }
@@ -505,7 +532,7 @@ private fun OrderDetailContent(
                     
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Text("Total", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
-                        Text("₹${order.total.toInt()}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = GagPink)
+                        Text("₹${order.total.toInt()}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = CraveOrangeDeep)
                     }
                 }
             }

@@ -212,7 +212,7 @@ class SupabaseCartRepository @Inject constructor(
         
         Result.success(cartId)
     } catch (e: Exception) {
-        android.util.Log.e("SupabaseCartRepository", "syncCart error", e)
+        com.srmfood.gag.core.common.SafeLog.e("SupabaseCartRepository", "syncCart error", e)
         Result.failure(e)
     }
 }
@@ -265,8 +265,8 @@ class SupabaseCartRepository @Inject constructor(
         try {
             trySyncCartToBackend()
         } catch (e: Exception) {
-            e.printStackTrace()
-            android.util.Log.e("SupabaseCartRepository", "Failed background sync", e)
+            com.srmfood.gag.core.common.SafeLog.w("CRAVE", "unexpected error", e)
+            com.srmfood.gag.core.common.SafeLog.e("SupabaseCartRepository", "Failed background sync", e)
         }
         
         getCartSnapshot() ?: throw Exception("Cart empty after add")
@@ -285,8 +285,8 @@ class SupabaseCartRepository @Inject constructor(
         try {
             trySyncCartToBackend()
         } catch (e: Exception) {
-            e.printStackTrace()
-            android.util.Log.e("SupabaseCartRepository", "Failed background sync", e)
+            com.srmfood.gag.core.common.SafeLog.w("CRAVE", "unexpected error", e)
+            com.srmfood.gag.core.common.SafeLog.e("SupabaseCartRepository", "Failed background sync", e)
         }
         getCartSnapshot() ?: throw Exception("Cart empty")
     }
@@ -296,8 +296,8 @@ class SupabaseCartRepository @Inject constructor(
         try {
             trySyncCartToBackend()
         } catch (e: Exception) {
-            e.printStackTrace()
-            android.util.Log.e("SupabaseCartRepository", "Failed background sync", e)
+            com.srmfood.gag.core.common.SafeLog.w("CRAVE", "unexpected error", e)
+            com.srmfood.gag.core.common.SafeLog.e("SupabaseCartRepository", "Failed background sync", e)
         }
         getCartSnapshot() ?: throw Exception("Cart empty")
     }
@@ -338,7 +338,7 @@ class SupabaseCartRepository @Inject constructor(
                     filter { eq("user_id", userId) }
                 }
             } catch (e: Exception) {
-                android.util.Log.e("SyncDiag", "Failed to delete remote cart (empty cart scenario)", e)
+                com.srmfood.gag.core.common.SafeLog.e("SyncDiag", "Failed to delete remote cart (empty cart scenario)", e)
             }
             throw Exception("Cart is empty")
         }
@@ -350,7 +350,7 @@ class SupabaseCartRepository @Inject constructor(
                 order("updated_at", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
             }.decodeList<SupabaseCart>()
         } catch (e: Exception) {
-            android.util.Log.e("SyncDiag", "Failed to fetch existingCarts for user=$userId", e)
+            com.srmfood.gag.core.common.SafeLog.e("SyncDiag", "Failed to fetch existingCarts for user=$userId", e)
             throw Exception("Failed to fetch existing carts: ${e.message}", e)
         }
         
@@ -363,7 +363,7 @@ class SupabaseCartRepository @Inject constructor(
                     try {
                         postgrest["carts"].delete { filter { eq("id", it.id) } }
                     } catch (e: Exception) {
-                        android.util.Log.e("SyncDiag", "Failed to delete cart ${it.id} during outlet mismatch", e)
+                        com.srmfood.gag.core.common.SafeLog.e("SyncDiag", "Failed to delete cart ${it.id} during outlet mismatch", e)
                     }
                 }
                 createRemoteCart(userId, snapshot)
@@ -389,7 +389,7 @@ class SupabaseCartRepository @Inject constructor(
                 filter { eq("id", cartId) }
             }
         } catch (e: Exception) {
-            android.util.Log.e("SyncDiag", "Failed to update carts table. cartId=$cartId", e)
+            com.srmfood.gag.core.common.SafeLog.e("SyncDiag", "Failed to update carts table. cartId=$cartId", e)
             throw Exception("Failed to update cart totals: ${e.message}", e)
         }
         
@@ -400,7 +400,7 @@ class SupabaseCartRepository @Inject constructor(
                 filter { eq("cart_id", cartId) }
             }
         } catch (e: Exception) {
-            android.util.Log.e("SyncDiag", "Failed to delete cart_items for cartId=$cartId", e)
+            com.srmfood.gag.core.common.SafeLog.e("SyncDiag", "Failed to delete cart_items for cartId=$cartId", e)
             throw Exception("Failed to delete cart_items: ${e.message}", e)
         }
         
@@ -421,7 +421,7 @@ class SupabaseCartRepository @Inject constructor(
                 android.util.Log.d("SyncDiag", "Inserting ${remoteItems.size} cart_items")
                 postgrest["cart_items"].insert(remoteItems)
             } catch (e: Exception) {
-                android.util.Log.e("SyncDiag", "Failed to insert cart_items. Items: $remoteItems", e)
+                com.srmfood.gag.core.common.SafeLog.e("SyncDiag", "Failed to insert cart_items. Items: $remoteItems", e)
                 throw Exception("Failed to insert cart_items: ${e.message}", e)
             }
             
@@ -441,7 +441,7 @@ class SupabaseCartRepository @Inject constructor(
                     android.util.Log.d("SyncDiag", "Inserting ${remoteCustomizations.size} cart_item_customizations")
                     postgrest["cart_item_customizations"].insert(remoteCustomizations)
                 } catch (e: Exception) {
-                    android.util.Log.e("SyncDiag", "Failed to insert customizations", e)
+                    com.srmfood.gag.core.common.SafeLog.e("SyncDiag", "Failed to insert customizations", e)
                     throw Exception("Failed to insert customizations: ${e.message}", e)
                 }
             }
@@ -466,7 +466,7 @@ class SupabaseCartRepository @Inject constructor(
             postgrest["carts"].insert(newCart)
             return newCartId
         } catch (e: Exception) {
-            android.util.Log.e("SyncDiag", "Failed to insert new cart", e)
+            com.srmfood.gag.core.common.SafeLog.e("SyncDiag", "Failed to insert new cart", e)
             throw Exception("Failed to create remote cart: ${e.message}", e)
         }
     }

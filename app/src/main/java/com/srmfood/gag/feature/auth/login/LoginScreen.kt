@@ -85,8 +85,9 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(48.dp))
 
             // Logo
+            com.srmfood.gag.core.ui.component.CraveBrandMark()
             Text(
-                text = "GaG",
+                text = "",
                 style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.Bold,
                 color = GagOrange
@@ -106,9 +107,9 @@ fun LoginScreen(
 
             // Login Card
             Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = GagSurface,
-                tonalElevation = 1.dp,
+                shape = RoundedCornerShape(22.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = androidx.compose.foundation.BorderStroke(1.dp, com.srmfood.gag.core.ui.theme.CraveInk),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(

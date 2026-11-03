@@ -1,5 +1,9 @@
 package com.srmfood.gag.feature.management
 
+import com.srmfood.gag.core.ui.theme.OrbitSuccess
+
+import com.srmfood.gag.core.ui.theme.OrbitLimeDark
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -62,7 +66,7 @@ fun ManagementPaymentsScreen(
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     text = "CRAVE | MANAGEMENT",
-                    color = OrbitLime,
+                    color = OrbitLimeDark,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp
@@ -79,9 +83,9 @@ fun ManagementPaymentsScreen(
                 enabled = !isRefreshing
             ) {
                 if (isRefreshing) {
-                    CircularProgressIndicator(color = OrbitLime, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                    CircularProgressIndicator(color = OrbitLimeDark, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                 } else {
-                    Icon(imageVector = Icons.Filled.Refresh, contentDescription = "Refresh", tint = OrbitLime)
+                    Icon(imageVector = Icons.Filled.Refresh, contentDescription = "Refresh", tint = OrbitLimeDark)
                 }
             }
         }
@@ -94,7 +98,7 @@ fun ManagementPaymentsScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
             placeholder = { Text("Search by Order or Payment ID...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "Search", tint = OrbitLime) },
+            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "Search", tint = OrbitLimeDark) },
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
                     IconButton(onClick = {
@@ -177,7 +181,7 @@ fun ManagementPaymentsScreen(
         when (val state = paymentsState) {
             is UiState.Loading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = OrbitLime)
+                    CircularProgressIndicator(color = OrbitLimeDark)
                 }
             }
             is UiState.Error -> {
@@ -249,7 +253,7 @@ private fun RevenueSummaryCard(data: ManagementPaymentsData) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Column {
                 Text("Total Captured", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-                Text("₹${data.totalRevenue.toInt()}", color = OrbitLime, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                Text("₹${data.totalRevenue.toInt()}", color = OrbitLimeDark, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text("Refunded", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
@@ -304,13 +308,13 @@ private fun PaymentCard(payment: PaymentRecord, onClick: () -> Unit) {
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     text = "₹${payment.amount.toInt()}",
-                    color = OrbitLime,
+                    color = OrbitLimeDark,
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleMedium
                 )
                 
                 val statusColor = when (payment.status.uppercase()) {
-                    "PAID", "CAPTURED" -> Color(0xFF4CAF50)
+                    "PAID", "CAPTURED" -> OrbitSuccess
                     "FAILED", "REFUNDED" -> MaterialTheme.colorScheme.error
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 }

@@ -35,7 +35,8 @@ data class OutletDto(
     val longitude: Double? = null,
     val operating_hours: OperatingHoursDto? = null,
     val rating: Double = 0.0,
-    val total_reviews: Int = 0
+    val total_reviews: Int = 0,
+    val ordering_status: String? = null
 )
 
 @Serializable
@@ -72,17 +73,20 @@ class SupabaseOutletRepository @Inject constructor(
         
         outlets
     }.onFailure {
-        android.util.Log.e("SupabaseOutletRepo", "refreshOutlets: Failed to retrieve outlets from Supabase", it)
+        com.srmfood.gag.core.common.SafeLog.e("SupabaseOutletRepo", "refreshOutlets: Failed to retrieve outlets from Supabase", it)
     }
 
-    override suspend fun getOutletById(outletId: String): Result<Outlet> = runCatching {
-        val local = outletDao.getOutletById(outletId)
-        if (local != null) return@runCatching local.toDomain()
+    /** Server first (so suspension/status changes are never hidden by a stale cache), cache as offline fallback. */
+    override suspend fun getOutletById(outletId: String): Result<Outlet> =
+        fetchOutlet(outletId).recoverCatching { e ->
+            outletDao.getOutletById(outletId)?.toDomain() ?: throw e
+        }
 
+    override suspend fun fetchOutlet(outletId: String): Result<Outlet> = runCatching {
         val dto = postgrest["outlets"].select {
             filter { eq("id", outletId) }
         }.decodeSingle<OutletDto>()
-        
+
         val outlet: Outlet = dto.toDomain()
         outletDao.insertAll(listOf(outlet.toEntity()))
         outlet
@@ -156,7 +160,8 @@ class SupabaseOutletRepository @Inject constructor(
             totalReviews = total_reviews,
             vendorId = vendor_id ?: "",
             isActive = is_active,
-            phone = phone
+            phone = phone,
+            orderingStatus = com.srmfood.gag.domain.model.OutletOrderingStatus.fromString(ordering_status)
         )
     }
 
@@ -180,6 +185,7 @@ class SupabaseOutletRepository @Inject constructor(
             vendorId = vendorId,
             isActive = isActive,
             phone = phone,
+            orderingStatus = orderingStatus.name,
             categories = Json.encodeToString(categories),
             currentQueueSize = currentQueueSize,
             estimatedWaitMinutes = estimatedWaitMinutes

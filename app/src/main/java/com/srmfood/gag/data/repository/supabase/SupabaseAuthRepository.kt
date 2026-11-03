@@ -15,6 +15,7 @@ import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.github.jan.supabase.exceptions.RestException
 import io.github.jan.supabase.exceptions.HttpRequestException
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
@@ -54,7 +55,11 @@ class SupabaseAuthRepository @Inject constructor(
     private val auth: Auth,
     private val postgrest: Postgrest,
     private val userDao: UserDao,
-    private val tokenManager: TokenManager
+    private val orderDao: com.srmfood.gag.data.local.dao.OrderDao,
+    private val cartDao: com.srmfood.gag.data.local.dao.CartDao,
+    private val foodDao: com.srmfood.gag.data.local.dao.FoodItemDao,
+    private val tokenManager: TokenManager,
+    private val pushTokens: com.srmfood.gag.domain.repository.PushTokenRepository
 ) : AuthRepository {
 
     private val TAG = "SupabaseAuthRepository"
@@ -69,16 +74,7 @@ class SupabaseAuthRepository @Inject constructor(
                 this.password = password
             }
         } catch (e: RestException) {
-            val errorBody = e.error.lowercase()
-            when {
-                errorBody.contains("invalid login credentials") ->
-                    throw Exception("Invalid email or password.")
-                errorBody.contains("email not confirmed") ->
-                    throw Exception("Please verify your email before logging in. Check your inbox.")
-                errorBody.contains("too many requests") ->
-                    throw Exception("Too many login attempts. Please wait a moment and try again.")
-                else -> throw Exception(e.error)
-            }
+            throw Exception(authErrorMessage(e))
         } catch (e: HttpRequestTimeoutException) {
             throw Exception("Network timeout. Please check your connection.")
         } catch (e: HttpRequestException) {
@@ -103,7 +99,7 @@ class SupabaseAuthRepository @Inject constructor(
                 filter { eq("id", userId) }
             }.decodeSingleOrNull<ProfileDto>()
         } catch (e: Exception) {
-            Log.w(TAG, "PROFILE_NOT_FOUND (query error: ${e.message})")
+            com.srmfood.gag.core.common.SafeLog.w(TAG, "PROFILE_NOT_FOUND (query error: ${e.message})")
             null
         }
 
@@ -146,7 +142,7 @@ class SupabaseAuthRepository @Inject constructor(
                 Log.i(TAG, "PROFILE_INSERT_SUCCESS")
             } catch (e: Exception) {
                 val errorCode = if (e is RestException) e.error else e.javaClass.simpleName
-                Log.e(TAG, "PROFILE_INSERT_FAILED: $errorCode - ${e.message}")
+                com.srmfood.gag.core.common.SafeLog.e(TAG, "PROFILE_INSERT_FAILED: $errorCode - ${e.message}")
                 throw Exception("Could not create your profile. Ensure the INSERT RLS policy is applied.")
             }
 
@@ -175,6 +171,9 @@ class SupabaseAuthRepository @Inject constructor(
             createdAt = profile.created_at
         )
 
+        // A different account signing in on the same device must not inherit the previous account's cache.
+        val previousUserId = userDao.observeCurrentUser().firstOrNull()?.id
+        if (previousUserId != null && previousUserId != domainUser.id) clearPerUserCaches()
         userDao.clearAll()
 
         userDao.insertUser(UserEntity(
@@ -218,12 +217,7 @@ class SupabaseAuthRepository @Inject constructor(
                 }
             }
         } catch (e: RestException) {
-            val errorBody = e.error.lowercase()
-            when {
-                errorBody.contains("already registered") || errorBody.contains("user already registered") ->
-                    throw Exception("An account with this email already exists.")
-                else -> throw Exception(e.error)
-            }
+            throw Exception(authErrorMessage(e))
         } catch (e: HttpRequestTimeoutException) {
             throw Exception("Network timeout. Please check your connection.")
         } catch (e: HttpRequestException) {
@@ -239,9 +233,23 @@ class SupabaseAuthRepository @Inject constructor(
 
 
     override suspend fun logout() {
-        runCatching { auth.signOut() }
-        tokenManager.clearTokens()
-        userDao.clearAll()
+        // NonCancellable: navigating away clears the calling ViewModel, which must not abort a half-finished sign-out.
+        kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+            // Detach this device from the account while we still have a session, so the next user on this phone
+            // never receives the previous user's notifications.
+            runCatching { pushTokens.unregisterCurrent() }
+            runCatching { auth.signOut() }
+            tokenManager.clearTokens()
+            userDao.clearAll()
+            clearPerUserCaches()
+        }
+    }
+
+    /** Orders, cart rows and favourite flags are cached device-wide; the next account must not see them. */
+    private suspend fun clearPerUserCaches() {
+        runCatching { orderDao.clearAll() }
+        runCatching { cartDao.clearCart() }
+        runCatching { foodDao.clearAll() }
     }
 
     override fun getCurrentUser(): Flow<User?> {
@@ -264,23 +272,59 @@ class SupabaseAuthRepository @Inject constructor(
 
     override suspend fun isLoggedIn(): Boolean {
         if (!tokenManager.isLoggedIn()) return false
-        
-        if (auth.currentSessionOrNull() != null) return true
 
-        val accessToken = tokenManager.getAccessToken()
-        val refreshToken = tokenManager.getRefreshToken()
-        
-        if (accessToken != null && refreshToken != null) {
-            try {
-                auth.importAuthToken(accessToken, refreshToken)
-                return true
-            } catch (e: Exception) {
-                tokenManager.clearTokens()
-                return false
+        // 1. Let supabase-kt finish restoring (and refreshing) its own stored session first; racing it would replay
+        //    the same refresh token twice.
+        val status: io.github.jan.supabase.gotrue.SessionStatus? = runCatching {
+            kotlinx.coroutines.withTimeoutOrNull(10_000L) {
+                auth.sessionStatus.first { s: io.github.jan.supabase.gotrue.SessionStatus ->
+                    s !is io.github.jan.supabase.gotrue.SessionStatus.LoadingFromStorage
+                }
             }
+        }.getOrNull()
+        val restored = auth.currentSessionOrNull()
+        if (status is io.github.jan.supabase.gotrue.SessionStatus.Authenticated && restored != null) {
+            tokenManager.saveTokens(restored.accessToken, restored.refreshToken)   // keep the rotated pair
+            return true
         }
-        
-        return false
+
+        // 2. No valid restored session: validate the app's stored refresh token WITH THE SERVER. (importAuthToken alone
+        //    only stores tokens, so a revoked or other-project token used to count as "logged in": Home then loaded
+        //    with every request silently running as the anonymous role.)
+        val refreshToken = tokenManager.getRefreshToken()
+        if (refreshToken.isNullOrBlank()) { clearLocalSession(); return false }
+        return try {
+            val fresh = auth.refreshSession(refreshToken)
+            auth.importSession(fresh)
+            tokenManager.saveTokens(fresh.accessToken, fresh.refreshToken)
+            true
+        } catch (e: io.github.jan.supabase.exceptions.RestException) {
+            if (e.statusCode in 400..499) {
+                Log.w(TAG, "Stored session rejected by the server (HTTP ${e.statusCode}); signing out locally")
+                clearLocalSession()
+                false
+            } else keepOfflineSession()                    // server-side failure: keep the user signed in
+        } catch (e: Exception) {
+            Log.w(TAG, "Session check skipped (${e.javaClass.simpleName}); keeping the saved session")
+            keepOfflineSession()                           // offline / timeout: don't log the user out
+        }
+    }
+
+    /** Offline start: keep using the saved tokens; the next successful request/refresh revalidates them. */
+    private suspend fun keepOfflineSession(): Boolean {
+        val access = tokenManager.getAccessToken(); val refresh = tokenManager.getRefreshToken()
+        if (auth.currentSessionOrNull() == null && access != null && refresh != null) {
+            runCatching { auth.importAuthToken(access, refresh) }
+        }
+        return true
+    }
+
+    /** Forget a session the server no longer accepts, without a network call. */
+    private suspend fun clearLocalSession() {
+        runCatching { auth.clearSession() }
+        tokenManager.clearTokens()
+        userDao.clearAll()
+        clearPerUserCaches()
     }
 
     override suspend fun getUserRole(): UserRole? {
@@ -383,5 +427,26 @@ class SupabaseAuthRepository @Inject constructor(
             isActive = is_active,
             createdAt = created_at
         )
+    }
+}
+
+/**
+ * Maps a Supabase Auth failure to text for the login/registration screens. In supabase-kt 2.x [RestException.error]
+ * is GoTrue's machine error CODE (e.g. "invalid_credentials"), not the message text the old checks compared it with,
+ * so every failure used to fall through and show the raw code. Never returns the raw code or server text.
+ */
+internal fun authErrorMessage(e: RestException): String {
+    val code = e.error.lowercase()
+    val text = (e.message ?: "").lowercase()
+    return when {
+        code == "invalid_credentials" || "invalid login credentials" in text -> "Invalid email or password."
+        code == "email_not_confirmed" || "email not confirmed" in text -> "Please verify your email before logging in. Check your inbox."
+        code == "user_already_exists" || code == "email_exists" || "already registered" in text -> "An account with this email already exists."
+        code == "weak_password" -> "That password is too weak. Use at least 8 characters with letters and numbers."
+        code == "signup_disabled" || code == "email_provider_disabled" -> "New sign-ups are currently disabled."
+        code == "user_banned" -> "This account has been disabled. Please contact support."
+        code.startsWith("over_") || "too many" in text || e.statusCode == 429 -> "Too many attempts. Please wait a moment and try again."
+        e.statusCode in 500..599 -> "CRAVE's sign-in service is unavailable right now. Please try again shortly."
+        else -> "Sign-in failed. Please try again."
     }
 }

@@ -5,62 +5,73 @@ import androidx.compose.ui.graphics.Color
 // ─── CRAVE ORBIT Design System ─────────────────────────────────────────────────
 // Visual direction: ivory/charcoal neutral surfaces · lime/chartreuse accent · editorial typography
 
-// ─── Orbit Accent: Lime / Chartreuse ──────────────────────────────
-val OrbitLime             = Color(0xFFCDEA45)    // Primary lime accent — active states, CTAs
-val OrbitLimeDark         = Color(0xFF9DB520)    // Darker lime for light mode primary
-val OrbitLimeContainer    = Color(0xFF2A3300)    // Lime container on dark
-val OrbitOnLime           = Color(0xFF1A1F00)    // Text on lime buttons
+// ─── Crave website palette (paper · ink · orange · chartreuse · lavender) ───────
+val CravePaper            = Color(0xFFF5F1EA)
+val CravePaperDeep        = Color(0xFFE9E1D5)
+val CraveInk              = Color(0xFF1C1B1A)
+val CraveMuted            = Color(0xFF77716B)
+val CraveLine             = Color(0xFFD8D0C6)
+val CraveOrange           = Color(0xFFFF5C35)
+val CraveOrangeDeep       = Color(0xFFD94120)
+val CraveChartreuse       = Color(0xFFD8FF44)
+val CraveLavender         = Color(0xFFC5B5FF)
+val CraveAqua             = Color(0xFF8FE8DD)
+val CraveSun              = Color(0xFFFFD44F)
+val CraveWhite            = Color(0xFFFFFDF9)
+val CraveRedSoft          = Color(0xFFFFE3E0)
 
-// ─── Orbit Dark Theme Surfaces ────────────────────────────────────
-// Deep charcoal near-black base
-val OrbitDarkBackground   = Color(0xFF0E0E0E)    // Near-black screen bg
-val OrbitDarkSurface      = Color(0xFF181818)    // Cards, nav bars
-val OrbitDarkSurfaceVar   = Color(0xFF242424)    // Input fields, chips
-val OrbitDarkSurfaceHigh  = Color(0xFF2E2E2E)    // Elevated sheets
-val OrbitDarkOutline      = Color(0xFF383838)    // Borders
-val OrbitDarkOutlineVar   = Color(0xFF2A2A2A)    // Subtle dividers
+// ─── Primary accent (kept under the legacy Orbit* names so existing screens re-theme) ──
+val OrbitLime             = CraveOrange          // Primary accent — CTAs, active states
+val OrbitLimeDark         = CraveOrangeDeep      // Accent for text on light surfaces
+val OrbitLimeContainer    = Color(0xFFFFE0D6)    // Accent container on dark
+val OrbitOnLime           = CraveInk             // Text on accent buttons
 
-// ─── Orbit Dark Text ──────────────────────────────────────────────
-val OrbitDarkOnBg         = Color(0xFFF5F0E8)    // Warm white — primary text
-val OrbitDarkOnSurface    = Color(0xFFEDE8E0)    // On cards
-val OrbitDarkOnSurfaceVar = Color(0xFF8A8580)    // Secondary text
-val OrbitDarkOnSurfaceDim = Color(0xFF555050)    // Disabled / dimmed
+// ─── Dark theme surfaces (warm ink) ───────────────────────────────
+val OrbitDarkBackground   = Color(0xFF141312)
+val OrbitDarkSurface      = Color(0xFF1E1C1A)
+val OrbitDarkSurfaceVar   = Color(0xFF2A2724)
+val OrbitDarkSurfaceHigh  = Color(0xFF353230)
+val OrbitDarkOutline      = Color(0xFF4A4540)
+val OrbitDarkOutlineVar   = Color(0xFF33302C)
 
-// ─── Orbit Light Theme Surfaces ───────────────────────────────────
-// Warm ivory / off-white base
-val OrbitLightBackground  = Color(0xFFF5F2EC)    // Warm ivory screen bg
-val OrbitLightSurface     = Color(0xFFFFFFFB)    // Cards, nav bars
-val OrbitLightSurfaceVar  = Color(0xFFEDEAE4)    // Input fields, chips
-val OrbitLightSurfaceHigh = Color(0xFFE4E0D9)    // Elevated elements
-val OrbitLightOutline     = Color(0xFFCECBC4)    // Borders
-val OrbitLightOutlineVar  = Color(0xFFE0DDD6)    // Subtle dividers
+val OrbitDarkOnBg         = CravePaper
+val OrbitDarkOnSurface    = Color(0xFFEFE9E0)
+val OrbitDarkOnSurfaceVar = Color(0xFFA39C93)
+val OrbitDarkOnSurfaceDim = Color(0xFF6B655E)
 
-// ─── Orbit Light Text ─────────────────────────────────────────────
-val OrbitLightOnBg        = Color(0xFF111111)    // Near-black primary text
-val OrbitLightOnSurface   = Color(0xFF1A1A1A)    // On cards
-val OrbitLightOnSurfaceVar= Color(0xFF6B6762)    // Secondary text
-val OrbitLightOnSurfaceDim= Color(0xFF9E9A94)    // Dimmed / disabled
+// ─── Light theme surfaces (paper) ─────────────────────────────────
+val OrbitLightBackground  = CravePaper
+val OrbitLightSurface     = CraveWhite
+val OrbitLightSurfaceVar  = CravePaperDeep
+val OrbitLightSurfaceHigh = Color(0xFFDDD4C6)
+val OrbitLightOutline     = CraveLine
+val OrbitLightOutlineVar  = Color(0xFFE6DFD4)
+
+val OrbitLightOnBg        = CraveInk
+val OrbitLightOnSurface   = CraveInk
+val OrbitLightOnSurfaceVar= CraveMuted
+val OrbitLightOnSurfaceDim= Color(0xFFA69E95)
 
 // ─── Semantic Colors ──────────────────────────────────────────────
-val OrbitSuccess          = Color(0xFF22C55E)    // Green — success/ready
-val OrbitSuccessContainer = Color(0xFF0A3D22)
-val OrbitWarning          = Color(0xFFFF8C00)    // Orange — limited/warning
-val OrbitError            = Color(0xFFEF4444)    // Red — error
-val OrbitErrorContainer   = Color(0xFF4D0000)
-val OrbitBlue             = Color(0xFF60A5FA)    // Info blue
+val OrbitSuccess          = Color(0xFF4E8A1E)    // Olive green — readable on paper
+val OrbitSuccessContainer = Color(0xFFE8F7B8)
+val OrbitWarning          = Color(0xFFD98A00)
+val OrbitError            = Color(0xFFC92A2A)
+val OrbitErrorContainer   = CraveRedSoft
+val OrbitBlue             = Color(0xFF6C5CE7)    // Lavender-deep info
 
 // ─── Semantic Dietary ─────────────────────────────────────────────
-val VegGreen              = Color(0xFF22C55E)
-val NonVegRed             = Color(0xFFEF4444)
+val VegGreen              = Color(0xFF3F9B2B)
+val NonVegRed             = Color(0xFFC92A2A)
 
 // ─── Rating ───────────────────────────────────────────────────────
-val GagStarYellow         = Color(0xFFFBBF24)    // Star rating amber
+val GagStarYellow         = Color(0xFFF5A400)
 
 // ─── Order/Slot Status ────────────────────────────────────────────
 val StatusCreated         = Color(0xFF8A8580)
 val StatusPlaced          = OrbitBlue
-val StatusAccepted        = Color(0xFFA78BFA)
-val StatusPreparing       = Color(0xFFFBBF24)
+val StatusAccepted        = Color(0xFF8E7BE8)
+val StatusPreparing       = Color(0xFFE09A00)
 val StatusReady           = OrbitSuccess
 val StatusPickedUp        = OrbitSuccess
 val StatusCancelled       = OrbitError
@@ -78,9 +89,9 @@ val SlotFull              = OrbitError
 val GagPink               = OrbitLime
 val GagPinkLight          = OrbitLimeDark
 val GagPinkContainer      = OrbitLimeContainer
-val GagPinkContainerLight = Color(0xFFEEF7B0)
+val GagPinkContainerLight = CraveChartreuse
 val GagOnPinkContainer    = OrbitOnLime
-val GagOnPinkContainerLight = Color(0xFF1A1F00)
+val GagOnPinkContainerLight = CraveInk
 
 val GagSecondaryDark      = Color(0xFF383838)
 val GagSecondaryLight     = Color(0xFF6B6762)
@@ -88,16 +99,16 @@ val GagSecondaryContainerDark  = OrbitDarkSurfaceVar
 val GagSecondaryContainerLight = OrbitLightSurfaceVar
 
 val GagAccent             = OrbitWarning
-val GagAccentContainer    = Color(0xFF3A2000)
-val GagOnAccentContainer  = Color(0xFFFFDBC8)
+val GagAccentContainer    = Color(0xFFFFE9C2)
+val GagOnAccentContainer  = CraveInk
 
 val GagBlue               = OrbitBlue
-val GagBlueContainer      = Color(0xFF1B3A62)
-val GagOnBlueContainer    = Color(0xFFD6E8FF)
+val GagBlueContainer      = Color(0xFFDCD4FF)
+val GagOnBlueContainer    = CraveInk
 
 val GagYellow             = Color(0xFFFBBF24)
-val GagYellowContainer    = Color(0xFF4D3500)
-val GagOnYellowContainer  = Color(0xFFFFDC73)
+val GagYellowContainer    = Color(0xFFFFF1BF)
+val GagOnYellowContainer  = CraveInk
 val GagGreen              = OrbitSuccess
 val GagGreenContainer     = OrbitSuccessContainer
 val GagOrangeBrand        = GagAccent

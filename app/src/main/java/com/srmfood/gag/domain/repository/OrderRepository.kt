@@ -8,6 +8,9 @@ import kotlinx.coroutines.flow.Flow
 
 interface OrderRepository {
     fun getOrders(): Flow<List<Order>>
+
+    /** Pulls the caller's orders from the server into the cache; failures are returned, never swallowed. */
+    suspend fun refreshOrders(): Result<Unit>
     suspend fun getAdminOrders(
         statusFilter: String? = null,
         searchQuery: String? = null

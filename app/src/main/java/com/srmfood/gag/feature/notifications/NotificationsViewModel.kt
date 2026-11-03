@@ -27,8 +27,16 @@ class NotificationsViewModel @Inject constructor(
         loadNotifications()
     }
 
+    private var loadJob: kotlinx.coroutines.Job? = null
+
+    fun retry() {
+        _notifications.value = UiState.Loading
+        loadNotifications()
+    }
+
     private fun loadNotifications() {
-        viewModelScope.launch {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             getNotificationsUseCase()
                 .catch { e ->
                     _notifications.value = UiState.Error(e.message ?: "Failed to load notifications")

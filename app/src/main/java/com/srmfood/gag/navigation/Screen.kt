@@ -49,6 +49,15 @@ sealed class Screen(val route: String) {
         const val ARG_ORDER_ID    = "orderId"
         const val ARG_FROM_CHECKOUT = "fromCheckout"
     }
+    object MyTickets : Screen("support/tickets")
+    object StudentTicket : Screen("support/ticket/{ticketId}") {
+        fun createRoute(ticketId: String) = "support/ticket/$ticketId"
+        const val ARG_TICKET_ID = "ticketId"
+    }
+    object ReportProblem : Screen("support/report/{orderId}") {
+        fun createRoute(orderId: String) = "support/report/$orderId"
+        const val ARG_ORDER_ID = "orderId"
+    }
     object LiveOrderTracking : Screen("track_order/{orderId}") {
         fun createRoute(orderId: String) = "track_order/$orderId"
         const val ARG_ORDER_ID = "orderId"
@@ -91,6 +100,8 @@ sealed class Screen(val route: String) {
         const val ARG_FOOD_ID = "foodId"
     }
     object VendorAnalytics  : Screen("vendor/analytics")
+    object VendorInventory  : Screen("vendor/inventory")
+    object VendorOutlet     : Screen("vendor/outlet")
     object VendorProfile    : Screen("vendor/profile")
     object QRScanner        : Screen("vendor/qr_scanner")
     /** Shown to PENDING_VENDOR users while awaiting admin approval. */
@@ -119,6 +130,10 @@ sealed class Screen(val route: String) {
     object ManagementReviews    : Screen("management/reviews")
     object ManagementNotifications : Screen("management/notifications")
     object ManagementSupport    : Screen("management/support")
+    object ManagementSupportTicket : Screen("management/support/{ticketId}") {
+        fun createRoute(ticketId: String) = "management/support/$ticketId"
+        const val ARG_TICKET_ID = "ticketId"
+    }
     object ManagementVendors    : Screen("management/vendors")
     object ManagementVendorDetail: Screen("management/vendor/{vendorId}") {
         fun createRoute(vendorId: String) = "management/vendor/$vendorId"

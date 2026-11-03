@@ -1,5 +1,9 @@
 package com.srmfood.gag.feature.management
 
+import com.srmfood.gag.core.ui.theme.OrbitSuccess
+
+import com.srmfood.gag.core.ui.theme.OrbitError
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -57,7 +61,7 @@ fun ManagementLiveCampusScreen(
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             if (uiState.isLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else if (uiState.error != null) {
+            } else if (uiState.error != null && !uiState.hasData) {
                 Column(
                     modifier = Modifier.align(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -74,6 +78,11 @@ fun ManagementLiveCampusScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
+                    uiState.error?.let { msg ->
+                        item {
+                            Text(msg, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
                     item {
                         Card(
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -225,7 +234,7 @@ fun OrderItem(order: Order) {
 @Composable
 fun OutletItem(outlet: Outlet) {
     val statusText = if (!outlet.isActive) "INACTIVE" else if (outlet.isOpen) "OPEN" else "CLOSED"
-    val color = if (!outlet.isActive) Color.Gray else if (outlet.isOpen) Color(0xFF4CAF50) else Color(0xFFF44336)
+    val color = if (!outlet.isActive) Color.Gray else if (outlet.isOpen) OrbitSuccess else OrbitError
     
     Card(
         modifier = Modifier.fillMaxWidth(),

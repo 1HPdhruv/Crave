@@ -1,5 +1,11 @@
 package com.srmfood.gag.feature.management
 
+import com.srmfood.gag.core.ui.theme.OrbitSuccess
+
+import com.srmfood.gag.core.ui.theme.OrbitWarning
+
+import com.srmfood.gag.core.ui.theme.OrbitLimeDark
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -60,7 +66,7 @@ fun ManagementInventoryDetailScreen(
             when (val state = uiState) {
                 is UiState.Loading -> {
                     CircularProgressIndicator(
-                        color = OrbitLime,
+                        color = OrbitLimeDark,
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
@@ -164,8 +170,8 @@ fun ManagementInventoryDetailScreen(
                                     ManagementInventoryItem.StockStatus.OUT_OF_STOCK -> "Out of Stock"
                                 }
                                 val statusColor = when (item.stockStatus) {
-                                    ManagementInventoryItem.StockStatus.IN_STOCK -> Color(0xFF4CAF50)
-                                    ManagementInventoryItem.StockStatus.LOW_STOCK -> Color(0xFFFFA000)
+                                    ManagementInventoryItem.StockStatus.IN_STOCK -> OrbitSuccess
+                                    ManagementInventoryItem.StockStatus.LOW_STOCK -> OrbitWarning
                                     ManagementInventoryItem.StockStatus.OUT_OF_STOCK -> MaterialTheme.colorScheme.error
                                 }
                                 

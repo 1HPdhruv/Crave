@@ -1,5 +1,7 @@
 package com.srmfood.gag.feature.management
 
+import com.srmfood.gag.core.ui.theme.OrbitLimeDark
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -58,7 +60,7 @@ fun ManagementOutletsScreen(
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     text = "CRAVE | MANAGEMENT",
-                    color = OrbitLime,
+                    color = OrbitLimeDark,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp
@@ -75,9 +77,9 @@ fun ManagementOutletsScreen(
                 enabled = !isRefreshing
             ) {
                 if (isRefreshing) {
-                    CircularProgressIndicator(color = OrbitLime, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                    CircularProgressIndicator(color = OrbitLimeDark, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                 } else {
-                    Icon(imageVector = Icons.Filled.Refresh, contentDescription = "Refresh", tint = OrbitLime)
+                    Icon(imageVector = Icons.Filled.Refresh, contentDescription = "Refresh", tint = OrbitLimeDark)
                 }
             }
         }
@@ -90,7 +92,7 @@ fun ManagementOutletsScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
             placeholder = { Text("Search outlets...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "Search", tint = OrbitLime) },
+            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "Search", tint = OrbitLimeDark) },
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
                     IconButton(onClick = {
@@ -147,7 +149,7 @@ fun ManagementOutletsScreen(
         when (val state = outletsState) {
             is UiState.Loading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = OrbitLime)
+                    CircularProgressIndicator(color = OrbitLimeDark)
                 }
             }
             is UiState.Error -> {
@@ -238,8 +240,10 @@ private fun ManagementOutletCard(
             
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "Vendor: ${outlet.vendorId.take(8)}...", // Placeholder for vendor name if we don't have it explicitly
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = "Vendor: ${outlet.vendorId.take(8)}..." + // vendor name is not joined in this query
+                        if (outlet.orderingStatus != com.srmfood.gag.domain.model.OutletOrderingStatus.ACTIVE) " · ${outlet.orderingStatus.managementLabel()}" else "",
+                    color = if (outlet.orderingStatus.acceptsOrders && outlet.orderingStatus != com.srmfood.gag.domain.model.OutletOrderingStatus.FLAGGED)
+                        MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.labelSmall
                 )
                 

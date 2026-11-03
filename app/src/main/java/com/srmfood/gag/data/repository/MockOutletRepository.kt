@@ -45,6 +45,12 @@ class MockOutletRepository @Inject constructor(
         remote.toDomain()
     }
 
+    override suspend fun fetchOutlet(outletId: String): Result<Outlet> = runCatching {
+        val remote = api.getOutletById(outletId)
+        outletDao.insertAll(listOf(remote.toEntity()))
+        remote.toDomain()
+    }
+
     override suspend fun getNearbyOutlets(lat: Double, lng: Double): Result<List<Outlet>> = runCatching {
         // Mocking nearby logic for now, usually the API would handle this
         val response = api.getOutlets()

@@ -1,5 +1,7 @@
 package com.srmfood.gag.feature.management
 
+import com.srmfood.gag.core.ui.theme.OrbitLimeDark
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,6 +31,7 @@ fun ManagementOutletDetailScreen(
     viewModel: ManagementOutletDetailViewModel = hiltViewModel()
 ) {
     val detailState by viewModel.detailState.collectAsState()
+    val ordering by viewModel.ordering.collectAsState()
 
     Scaffold(
         topBar = {
@@ -51,7 +54,7 @@ fun ManagementOutletDetailScreen(
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {
             when (val state = detailState) {
                 is UiState.Loading -> {
-                    CircularProgressIndicator(color = OrbitLime, modifier = Modifier.align(Alignment.Center))
+                    CircularProgressIndicator(color = OrbitLimeDark, modifier = Modifier.align(Alignment.Center))
                 }
                 is UiState.Error -> {
                     Column(
@@ -102,6 +105,19 @@ fun ManagementOutletDetailScreen(
                                 }
                                 Spacer(modifier = Modifier.height(12.dp))
                                 InfoRow("Outlet ID", outlet.id)
+                            }
+                        }
+
+                        // Ordering controls (flag / suspend / deactivate / reactivate)
+                        item {
+                            SectionTitle("ORDERING STATUS")
+                            BaseCard {
+                                OutletOrderingControls(
+                                    outlet = outlet, state = ordering, history = ordering.history,
+                                    onStart = viewModel::startAction, onCancel = viewModel::cancelAction,
+                                    onReasonChange = viewModel::setReason, onConfirmNameChange = viewModel::setConfirmName,
+                                    onSubmit = viewModel::submitAction, onDismissError = viewModel::dismissOrderingError
+                                )
                             }
                         }
 

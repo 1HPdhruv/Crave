@@ -40,13 +40,21 @@ object SupabaseModule {
         Log.i(TAG, "Key prefix: ${key.take(4)}***")
         Log.i(TAG, "====================")
 
+        // Fail closed: a flavor with a pinned project ref may only talk to that project
+        // (staging must never silently reach production, and vice versa).
+        val expectedRef = BuildConfig.EXPECTED_SUPABASE_REF
+        if (expectedRef.isNotEmpty() && hostname != "$expectedRef.supabase.co") {
+            error("Refusing to start: ${BuildConfig.FLAVOR} build requires project '$expectedRef' " +
+                "but SUPABASE_URL host is '$hostname'. Set SUPABASE_URL/SUPABASE_ANON_KEY (or STAGING_SUPABASE_URL/" +
+                "STAGING_SUPABASE_ANON_KEY) in local.properties to that project and rebuild.")
+        }
+
         // Runtime guard: legacy anon JWTs always start with "eyJ"
         if (key.isBlank()) {
             error("SUPABASE_ANON_KEY is empty. Add it to local.properties.")
         }
-        if (!key.startsWith("eyJ")) {
-            Log.w(TAG, "SUPABASE_ANON_KEY does not appear to be a legacy JWT (should start with 'eyJ'). " +
-                    "Go to Supabase Dashboard → Project Settings → API → 'anon public' and copy the full JWT.")
+        if (!key.startsWith("eyJ") && !key.startsWith("sb_publishable_")) {
+            Log.w(TAG, "SUPABASE_ANON_KEY is neither a legacy anon JWT nor an sb_publishable_ key; requests will likely be rejected.")
         }
 
         return createSupabaseClient(

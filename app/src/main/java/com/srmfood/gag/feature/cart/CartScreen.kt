@@ -1,5 +1,6 @@
 package com.srmfood.gag.feature.cart
 
+import com.srmfood.gag.domain.usecase.outlet.studentMessage
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,8 +28,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
-import com.srmfood.gag.core.ui.component.GagPrimaryButton
-import com.srmfood.gag.core.ui.component.QuantitySelector
+import com.srmfood.gag.core.ui.component.*
+import androidx.compose.material.icons.outlined.ShoppingBag
+import androidx.compose.ui.text.withStyle
 import com.srmfood.gag.core.ui.theme.*
 import com.srmfood.gag.domain.model.Cart
 import com.srmfood.gag.domain.model.CartItem
@@ -54,16 +56,40 @@ class CartViewModel @Inject constructor(
     private val syncCartUseCase: SyncCartUseCase,
     private val updateCartItemUseCase: UpdateCartItemUseCase,
     private val removeCartItemUseCase: RemoveCartItemUseCase,
-    private val clearCartUseCase: ClearCartUseCase
+    private val clearCartUseCase: ClearCartUseCase,
+    private val checkOutletAvailability: com.srmfood.gag.domain.usecase.outlet.CheckOutletAvailabilityUseCase
 ) : ViewModel() {
 
     private val _cart = MutableStateFlow<Cart?>(null)
     val cart: StateFlow<Cart?> = _cart.asStateFlow()
 
+    /** Non-null message while the cart's outlet is suspended/deactivated (checked against the server, not the cache). */
+    private val _outletBlock = MutableStateFlow<String?>(null)
+    val outletBlock: StateFlow<String?> = _outletBlock.asStateFlow()
+    private var checkedOutletId: String? = null
+
     init {
         viewModelScope.launch {
             syncCartUseCase()
-            getCartUseCase().collectLatest { _cart.value = it }
+            getCartUseCase().collectLatest {
+                _cart.value = it
+                // Re-check whenever the cart's outlet changes; cart contents themselves are preserved.
+                if (it != null && !it.isEmpty && it.outletId != checkedOutletId) refreshOutletAvailability()
+                if (it == null || it.isEmpty) { checkedOutletId = null; _outletBlock.value = null }
+            }
+        }
+    }
+
+    /** Also called from the screen on resume so a suspension that happened while the app was idle is noticed. */
+    fun refreshOutletAvailability() {
+        val outletId = _cart.value?.outletId ?: return
+        checkedOutletId = outletId
+        viewModelScope.launch {
+            _outletBlock.value = when (val a = checkOutletAvailability(outletId)) {
+                is com.srmfood.gag.domain.usecase.outlet.OutletAvailability.Unavailable ->
+                    a.status.studentMessage(a.outletName)
+                is com.srmfood.gag.domain.usecase.outlet.OutletAvailability.Available -> null
+            }
         }
     }
 
@@ -89,6 +115,11 @@ fun CartScreen(
     viewModel: CartViewModel = hiltViewModel()
 ) {
     val cart by viewModel.cart.collectAsState()
+    val outletBlock by viewModel.outletBlock.collectAsState()
+    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+        viewModel.refreshOutletAvailability()
+        onPauseOrDispose { }
+    }
     val fmt = NumberFormat.getInstance(Locale("en", "IN"))
 
     Scaffold(
@@ -100,9 +131,7 @@ fun CartScreen(
                 Surface(
                     color = MaterialTheme.colorScheme.surface,
                     shadowElevation = 0.dp,
-                    border = androidx.compose.foundation.BorderStroke(
-                        0.5.dp, MaterialTheme.colorScheme.outlineVariant
-                    ),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, CraveInk),
                     shape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp)
                 ) {
                     Column(
@@ -117,33 +146,18 @@ fun CartScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Total",
-                                style = MaterialTheme.typography.bodyLarge,
+                                text = "TOTAL",
+                                style = GagEyebrowStyle,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Text(
-                                text = "₹${fmt.format(safeCart.total)}",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Black,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
+                            CraveMono("₹${fmt.format(safeCart.total)}", fontSize = 18f)
                         }
                         Spacer(modifier = Modifier.height(12.dp))
-                        Button(
-                            onClick = onCheckout,
-                            modifier = Modifier.fillMaxWidth().height(52.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = OrbitLime,
-                                contentColor = OrbitOnLime
-                            ),
-                            shape = RoundedCornerShape(14.dp)
-                        ) {
-                            Text(
-                                "Proceed to Checkout",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
-                            )
+                        outletBlock?.let { msg ->
+                            Text(msg, style = MaterialTheme.typography.bodySmall, color = GagError)
+                            Spacer(modifier = Modifier.height(8.dp))
                         }
+                        GagPrimaryButton(text = "Checkout  ↗", onClick = onCheckout, enabled = outletBlock == null)
                     }
                 }
             }
@@ -155,34 +169,28 @@ fun CartScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding),
+                    .padding(padding)
+                    .padding(horizontal = 32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
+                CraveBlob(size = 76.dp, container = CraveChartreuse) {
+                    Icon(Icons.Outlined.ShoppingBag, null, tint = CraveInk, modifier = Modifier.size(34.dp))
+                }
+                Spacer(modifier = Modifier.height(20.dp))
                 Text(
-                    text = "Your cart is empty",
+                    text = "Your bag is empty",
                     style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Black,
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "Find something good on campus.",
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.height(32.dp))
-                Button(
-                    onClick = onBrowseFood,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = OrbitLime,
-                        contentColor = OrbitOnLime
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.height(48.dp)
-                ) {
-                    Text("Explore food", fontWeight = FontWeight.Bold)
-                }
+                Spacer(modifier = Modifier.height(24.dp))
+                GagPrimaryButton(text = "Explore food  ↗", onClick = onBrowseFood, modifier = Modifier.width(220.dp))
             }
         } else {
             LazyColumn(
@@ -196,30 +204,32 @@ fun CartScreen(
                 item {
                     Column(
                         modifier = Modifier
-                            .padding(horizontal = GagSpacing.Large, vertical = GagSpacing.Medium)
+                            .padding(horizontal = 17.dp, vertical = GagSpacing.Medium)
                             .statusBarsPadding()
                     ) {
-                        IconButton(
-                            onClick = onBack,
-                            modifier = Modifier.offset(x = (-12).dp)
+                        Row(
+                            modifier = Modifier.clickableNoRipple(onBack),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Go back",
-                                tint = MaterialTheme.colorScheme.onBackground
-                            )
+                            Text("←", color = CraveOrange, fontSize = 19.sp)
+                            Spacer(Modifier.width(7.dp))
+                            Text("back", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
+                        CraveEyebrow("Your bag")
                         Text(
-                            text = "Cart",
-                            style = MaterialTheme.typography.displaySmall,
-                            fontWeight = FontWeight.Black,
-                            color = MaterialTheme.colorScheme.onBackground
+                            text = androidx.compose.ui.text.buildAnnotatedString {
+                                append("Ready to ")
+                                withStyle(androidx.compose.ui.text.SpanStyle(color = CraveOrange)) { append("order?") }
+                            },
+                            style = MaterialTheme.typography.displayLarge.copy(fontSize = 40.sp, lineHeight = 40.sp),
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.padding(top = 4.dp)
                         )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "${safeCart.items.size} item${if (safeCart.items.size != 1) "s" else ""}",
-                            style = MaterialTheme.typography.bodyMedium,
+                        Spacer(modifier = Modifier.height(10.dp))
+                        CraveMono(
+                            text = "${safeCart.items.size} item${if (safeCart.items.size != 1) "s" else ""} in your bag",
+                            fontSize = 10f,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -227,46 +237,28 @@ fun CartScreen(
 
                 // Outlet context
                 item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = GagSpacing.Large, vertical = 4.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    CravePanel(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 17.dp, vertical = 4.dp)
                     ) {
-                        Icon(
-                            Icons.Outlined.Storefront,
-                            contentDescription = null,
-                            tint = OrbitLime,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = safeCart.outletName,
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Outlined.LocationOn, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(12.dp))
-                                Spacer(Modifier.width(3.dp))
-                                Text("SRM KTR", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Outlined.Storefront, null, tint = CraveOrangeDeep, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = safeCart.outletName,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                                CraveMono("SRM KTR", fontSize = 9f, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
                     Spacer(modifier = Modifier.height(GagSpacing.Medium))
-                }
-
-                // Divider
-                item {
                     HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = GagSpacing.Large),
-                        color = MaterialTheme.colorScheme.outlineVariant
+                        modifier = Modifier.padding(horizontal = 17.dp),
+                        color = MaterialTheme.colorScheme.outline
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
                 }
 
                 // Cart items
@@ -277,44 +269,26 @@ fun CartScreen(
                         onRemove = { viewModel.removeItem(item.id) }
                     )
                     HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = GagSpacing.Large),
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        modifier = Modifier.padding(horizontal = 17.dp),
+                        color = MaterialTheme.colorScheme.outline
                     )
                 }
 
-                // Bill Summary
+                // Bill Summary (website `.checkout-summary`)
                 item {
                     Spacer(modifier = Modifier.height(GagSpacing.Large))
-                    Text(
-                        text = "Bill Details",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.padding(horizontal = GagSpacing.Large)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Column(
-                        modifier = Modifier
-                            .padding(horizontal = GagSpacing.Large)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                            .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
-                            .padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    CravePanel(
+                        modifier = Modifier.padding(horizontal = 17.dp).fillMaxWidth(),
+                        borderColor = CraveInk,
+                        shape = RoundedCornerShape(15.dp)
                     ) {
-                        Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                            Text("Item total", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("₹${fmt.format(safeCart.subtotal)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                        }
-                        Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                            Text("Tax", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("₹${fmt.format(safeCart.tax)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                        }
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                        Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                            Text("Total", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                            Text("₹${fmt.format(safeCart.total)}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onBackground)
+                        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            CraveEyebrow("Order summary")
+                            Spacer(Modifier.height(4.dp))
+                            CravePriceRow("Item total", "₹${fmt.format(safeCart.subtotal)}")
+                            CravePriceRow("Tax", "₹${fmt.format(safeCart.tax)}")
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                            CravePriceRow("Total", "₹${fmt.format(safeCart.total)}", isTotal = true)
                         }
                     }
                     Spacer(modifier = Modifier.height(GagSpacing.Large))
@@ -333,19 +307,26 @@ private fun OrbitCartItemRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = GagSpacing.Large, vertical = 14.dp),
+            .padding(horizontal = 17.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Food image
-        AsyncImage(
-            model = item.foodImageUrl,
-            contentDescription = item.foodName,
+        // Food image on tone block
+        Box(
             modifier = Modifier
-                .size(64.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentScale = ContentScale.Crop
-        )
+                .size(80.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(craveToneFor(item.id))
+                .border(1.dp, CraveInk, RoundedCornerShape(14.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            if (item.foodImageUrl.isNullOrBlank()) Text("🍽", fontSize = 36.sp)
+            else AsyncImage(
+                model = item.foodImageUrl,
+                contentDescription = item.foodName,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        }
 
         Spacer(modifier = Modifier.width(14.dp))
 
@@ -354,7 +335,7 @@ private fun OrbitCartItemRow(
             Text(
                 text = item.foodName,
                 style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 2
             )
@@ -368,12 +349,7 @@ private fun OrbitCartItemRow(
                 )
             }
             Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = "₹${item.itemTotal.toInt()}",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
+            CraveMono("₹${item.itemTotal.toInt()}")
         }
 
         Spacer(modifier = Modifier.width(10.dp))

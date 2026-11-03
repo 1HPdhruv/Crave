@@ -39,6 +39,7 @@ data class OutletEntity(
     val vendorId: String,
     val isActive: Boolean,
     val phone: String?,
+    val orderingStatus: String = "ACTIVE",
     val cachedAt: Long = System.currentTimeMillis()
 )
 

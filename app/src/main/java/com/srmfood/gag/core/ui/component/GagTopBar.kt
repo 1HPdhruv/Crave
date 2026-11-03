@@ -48,7 +48,7 @@ fun GagTopBar(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.Bold
             )
         },
         navigationIcon = if (onBack != null) {{
@@ -56,15 +56,15 @@ fun GagTopBar(
                 Icon(
                     imageVector = Icons.Default.ArrowBack,
                     contentDescription = stringResource(R.string.cd_back_button),
-                    tint = GagOnBackground
+                    tint = MaterialTheme.colorScheme.onBackground
                 )
             }
         }} else {{}},
         actions = { actions() },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = GagBackground,
-            titleContentColor = GagOnBackground,
-            navigationIconContentColor = GagOnBackground
+            containerColor = MaterialTheme.colorScheme.background,
+            titleContentColor = MaterialTheme.colorScheme.onBackground,
+            navigationIconContentColor = MaterialTheme.colorScheme.onBackground
         )
     )
 }
@@ -81,7 +81,7 @@ fun GagCenterTopBar(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.Bold
             )
         },
         navigationIcon = if (onBack != null) {{
@@ -94,8 +94,8 @@ fun GagCenterTopBar(
         }} else {{}},
         actions = { actions() },
         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-            containerColor = GagBackground,
-            titleContentColor = GagOnBackground
+            containerColor = MaterialTheme.colorScheme.background,
+            titleContentColor = MaterialTheme.colorScheme.onBackground
         )
     )
 }
@@ -111,7 +111,7 @@ fun CartIconButton(
                 if (cartCount > 0) {
                     Badge(
                         containerColor = GagOrange,
-                        contentColor = Color.White
+                        contentColor = com.srmfood.gag.core.ui.theme.CraveInk
                     ) {
                         Text(text = cartCount.toString())
                     }
@@ -121,7 +121,7 @@ fun CartIconButton(
             Icon(
                 imageVector = Icons.Outlined.ShoppingCart,
                 contentDescription = stringResource(R.string.cd_cart_button),
-                tint = GagOnBackground
+                tint = MaterialTheme.colorScheme.onBackground
             )
         }
     }

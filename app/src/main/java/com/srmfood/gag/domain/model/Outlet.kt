@@ -18,8 +18,30 @@ data class Outlet(
     val totalReviews: Int,
     val vendorId: String,
     val isActive: Boolean,
-    val phone: String?
-)
+    val phone: String?,
+    /** Management-controlled ordering state; independent of [isOpen] (hours) and [isActive]. */
+    val orderingStatus: OutletOrderingStatus = OutletOrderingStatus.ACTIVE
+) {
+    /** True when students may add items / check out. Opening hours are checked separately. */
+    val acceptsOrders: Boolean get() = isActive && orderingStatus.acceptsOrders
+}
+
+enum class OutletOrderingStatus {
+    ACTIVE, FLAGGED, SUSPENDED, DEACTIVATED,
+    /** Unrecognised server value: treated as unavailable (fail safe), never as ACTIVE. */
+    UNKNOWN;
+
+    /** FLAGGED is an internal monitoring marker; students can still order. */
+    val acceptsOrders: Boolean get() = this == ACTIVE || this == FLAGGED
+
+    companion object {
+        /** A missing value (column not deployed yet) means ACTIVE; an unknown string does not. */
+        fun fromString(value: String?): OutletOrderingStatus = when {
+            value == null -> ACTIVE
+            else -> entries.firstOrNull { it.name == value.uppercase() } ?: UNKNOWN
+        }
+    }
+}
 
 data class OutletLocation(
     val building: String,

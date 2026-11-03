@@ -1,5 +1,9 @@
 package com.srmfood.gag.feature.management
 
+import com.srmfood.gag.core.ui.theme.OrbitSuccess
+
+import com.srmfood.gag.core.ui.theme.OrbitLimeDark
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -57,7 +61,7 @@ fun ManagementPaymentDetailScreen(
         ) {
             when (val state = paymentState) {
                 is UiState.Loading -> {
-                    CircularProgressIndicator(color = OrbitLime, modifier = Modifier.align(Alignment.Center))
+                    CircularProgressIndicator(color = OrbitLimeDark, modifier = Modifier.align(Alignment.Center))
                 }
                 is UiState.Error -> {
                     Column(
@@ -100,10 +104,10 @@ private fun PaymentDetailContent(payment: PaymentRecord) {
                     Text("STATUS", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
                 }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("₹${payment.amount.toInt()} ${payment.currency}", color = OrbitLime, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                    Text("₹${payment.amount.toInt()} ${payment.currency}", color = OrbitLimeDark, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                     
                     val statusColor = when (payment.status.uppercase()) {
-                        "PAID", "CAPTURED" -> Color(0xFF4CAF50)
+                        "PAID", "CAPTURED" -> OrbitSuccess
                         "FAILED", "REFUNDED" -> MaterialTheme.colorScheme.error
                         else -> MaterialTheme.colorScheme.onSurfaceVariant
                     }

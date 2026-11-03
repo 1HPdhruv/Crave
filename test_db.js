@@ -1,3 +1,4 @@
+throw new Error("BLOCKED: this script targets PRODUCTION (btdmhveaqssuuhyoyanz). Remove this guard only with explicit approval.");
 const { Client } = require('pg');
 
 async function check() {

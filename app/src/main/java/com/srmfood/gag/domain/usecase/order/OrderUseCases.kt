@@ -8,6 +8,12 @@ import com.srmfood.gag.domain.repository.OrderRepository
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
+class RefreshOrdersUseCase @Inject constructor(
+    private val orderRepository: OrderRepository
+) {
+    suspend operator fun invoke(): Result<Unit> = orderRepository.refreshOrders()
+}
+
 class GetOrdersUseCase @Inject constructor(
     private val orderRepository: OrderRepository
 ) {

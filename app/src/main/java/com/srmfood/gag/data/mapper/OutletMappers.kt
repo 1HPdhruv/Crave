@@ -33,7 +33,8 @@ fun OutletDto.toDomain(): Outlet = Outlet(
     totalReviews = totalReviews,
     vendorId = vendorId ?: "",
     isActive = isActive,
-    phone = phone
+    phone = phone,
+    orderingStatus = com.srmfood.gag.domain.model.OutletOrderingStatus.fromString(orderingStatus)
 )
 
 fun OutletDto.toEntity(): OutletEntity = OutletEntity(
@@ -57,7 +58,8 @@ fun OutletDto.toEntity(): OutletEntity = OutletEntity(
     totalReviews = totalReviews,
     vendorId = vendorId ?: "",
     isActive = isActive,
-    phone = phone
+    phone = phone,
+    orderingStatus = orderingStatus ?: "ACTIVE"
 )
 
 fun OutletEntity.toDomain(): Outlet = Outlet(
@@ -85,5 +87,6 @@ fun OutletEntity.toDomain(): Outlet = Outlet(
     totalReviews = totalReviews,
     vendorId = vendorId,
     isActive = isActive,
-    phone = phone
+    phone = phone,
+    orderingStatus = com.srmfood.gag.domain.model.OutletOrderingStatus.fromString(orderingStatus)
 )

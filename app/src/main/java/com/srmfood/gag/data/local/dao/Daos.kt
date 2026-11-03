@@ -115,6 +115,13 @@ interface OrderDao {
     @Query("SELECT * FROM orders ORDER BY createdAt DESC")
     fun observeOrders(): Flow<List<OrderEntity>>
 
+    /** The cache is shared by every account that logs in on this device, so reads must be user-scoped. */
+    @Query("SELECT * FROM orders WHERE userId = :userId ORDER BY createdAt DESC")
+    fun observeOrdersForUser(userId: String): Flow<List<OrderEntity>>
+
+    @Query("DELETE FROM orders")
+    suspend fun clearAll(): Int
+
     @Query("SELECT * FROM orders WHERE id = :id")
     suspend fun getOrderById(id: String): OrderEntity?
 

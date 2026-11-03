@@ -55,10 +55,20 @@ class VendorOrderDetailViewModel @Inject constructor(
         }
     }
 
-    fun accept() { viewModelScope.launch { acceptOrderUseCase(orderId); loadOrder() } }
-    fun reject() { viewModelScope.launch { rejectOrderUseCase(orderId, "Rejected"); loadOrder() } }
-    fun startPreparing() { viewModelScope.launch { startPreparingUseCase(orderId); loadOrder() } }
-    fun markReady() { viewModelScope.launch { markReadyUseCase(orderId); loadOrder() } }
+    private val _actionError = MutableStateFlow<String?>(null)
+    val actionError: StateFlow<String?> = _actionError.asStateFlow()
+    fun dismissActionError() { _actionError.value = null }
+
+    private fun act(block: suspend () -> Result<Order>) {
+        viewModelScope.launch {
+            block().onFailure { _actionError.value = it.message ?: "That action couldn't be completed. The order may have changed." }
+            loadOrder() // show the real state either way
+        }
+    }
+    fun accept() = act { acceptOrderUseCase(orderId) }
+    fun reject() = act { rejectOrderUseCase(orderId, "Rejected") }
+    fun startPreparing() = act { startPreparingUseCase(orderId) }
+    fun markReady() = act { markReadyUseCase(orderId) }
 }
 
 @Composable
@@ -68,6 +78,15 @@ fun VendorOrderDetailScreen(
     viewModel: VendorOrderDetailViewModel = hiltViewModel()
 ) {
     val orderState by viewModel.order.collectAsState()
+    val actionError by viewModel.actionError.collectAsState()
+    actionError?.let { msg ->
+        AlertDialog(
+            onDismissRequest = viewModel::dismissActionError,
+            title = { Text("Action not completed") },
+            text = { Text(msg) },
+            confirmButton = { TextButton(onClick = viewModel::dismissActionError) { Text("OK") } }
+        )
+    }
 
     Scaffold(
         topBar = { GagTopBar(title = "Order Details", onBack = onBack) },

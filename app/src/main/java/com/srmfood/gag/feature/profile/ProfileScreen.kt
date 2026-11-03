@@ -25,7 +25,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.srmfood.gag.core.ui.component.GagTopBar
+import com.srmfood.gag.core.ui.component.*
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
 import com.srmfood.gag.core.ui.theme.*
 import com.srmfood.gag.domain.model.User
 import com.srmfood.gag.domain.usecase.auth.GetCurrentUserUseCase
@@ -92,6 +96,7 @@ fun ProfileScreen(
     onNavigateToOrders: () -> Unit,
     onNavigateToFavorites: () -> Unit,
     onNavigateToNotifications: () -> Unit,
+    onNavigateToTickets: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val user by viewModel.user.collectAsState()
@@ -111,87 +116,73 @@ fun ProfileScreen(
         ) {
             item { Spacer(modifier = Modifier.height(8.dp).statusBarsPadding()) }
 
-            // Profile Header
+            // Profile Header — website `.profile-hero` (lavender brutal card)
             item {
-                Surface(
-                    shape = RoundedCornerShape(24.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    shadowElevation = 6.dp,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(28.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        // Avatar with pink ring
-                        Box(contentAlignment = Alignment.Center) {
-                            Box(
-                                modifier = Modifier
-                                    .size(104.dp)
-                                    .background(OrbitLime.copy(alpha = 0.12f), CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
+                val roleLabel = when (user?.role) {
+                    com.srmfood.gag.domain.model.UserRole.ADMIN -> "Management"
+                    com.srmfood.gag.domain.model.UserRole.VENDOR -> "Vendor"
+                    com.srmfood.gag.domain.model.UserRole.PENDING_VENDOR -> "Vendor (pending)"
+                    else -> "Student"
+                }
+                val initials = (user?.name ?: "").trim().split(" ").filter { it.isNotBlank() }
+                    .take(2).joinToString("") { it.first().uppercase() }.ifBlank { "C" }
+                Column(modifier = Modifier.padding(horizontal = 17.dp)) {
+                    CraveEyebrow("Your profile")
+                    Spacer(Modifier.height(10.dp))
+                    CraveBrutalCard(modifier = Modifier.fillMaxWidth(), container = CraveLavender) {
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
                                 Box(
                                     modifier = Modifier
-                                        .size(88.dp)
-                                        .background(OrbitLime.copy(alpha = 0.2f), CircleShape),
+                                        .size(72.dp)
+                                        .clip(RoundedCornerShape(22.dp))
+                                        .background(CraveLavender)
+                                        .border(2.dp, CraveInk, RoundedCornerShape(22.dp)),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(
-                                        Icons.Outlined.Person,
-                                        contentDescription = "Profile avatar",
-                                        tint = OrbitLime,
-                                        modifier = Modifier.size(44.dp)
+                                    Text(initials, style = MaterialTheme.typography.headlineSmall, color = CraveInk)
+                                }
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    CraveStateBadge(roleLabel, container = CraveChartreuse)
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(
+                                        text = user?.name ?: "Loading...",
+                                        style = MaterialTheme.typography.titleLarge,
+                                        color = CraveInk,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = user?.email ?: "",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color(0xFF514A70),
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                     )
                                 }
                             }
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = user?.name ?: "Loading...",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = user?.email ?: "",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        if (!user?.phone.isNullOrBlank()) {
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = user?.phone ?: "",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        if (!user?.registrationNumber.isNullOrBlank()) {
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Surface(
-                                shape = RoundedCornerShape(20.dp),
-                                color = OrbitLime.copy(alpha = 0.08f)
-                            ) {
+                            if (!user?.phone.isNullOrBlank() || !user?.registrationNumber.isNullOrBlank()) {
+                                Spacer(Modifier.height(12.dp))
                                 Text(
-                                    text = user?.registrationNumber ?: "",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = GagPink,
-                                    fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                    text = listOfNotNull(user?.phone?.takeIf { it.isNotBlank() }, user?.registrationNumber?.takeIf { it.isNotBlank() }).joinToString("  ·  "),
+                                    style = GagMonoStyle.copy(fontSize = 11.sp),
+                                    color = Color(0xFF514A70)
                                 )
                             }
-                        }
-                        Spacer(modifier = Modifier.height(20.dp))
-                        OutlinedButton(
-                            onClick = { showEditDialog = true },
-                            shape = RoundedCornerShape(16.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.5.dp, OrbitLime)
-                        ) {
-                            Icon(Icons.Outlined.Edit, contentDescription = "Edit profile", modifier = Modifier.size(18.dp), tint = OrbitLime)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Edit Profile", color = GagPink, fontWeight = FontWeight.SemiBold)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Row(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(CraveInk)
+                                    .clickable { showEditDialog = true }
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Outlined.Edit, contentDescription = "Edit profile", modifier = Modifier.size(16.dp), tint = CravePaper)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Edit profile", color = CravePaper, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                            }
                         }
                     }
                 }
@@ -200,20 +191,20 @@ fun ProfileScreen(
             // Quick Actions
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 17.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     QuickActionCard(
-                        title = "My Orders",
+                        title = "My orders",
                         icon = Icons.Default.ShoppingBag,
-                        tint = OrbitLime,
+                        tint = CraveInk,
                         onClick = onNavigateToOrders,
                         modifier = Modifier.weight(1f)
                     )
                     QuickActionCard(
-                        title = "Favorites",
+                        title = "Saved bites",
                         icon = Icons.Outlined.FavoriteBorder,
-                        tint = OrbitLime,
+                        tint = CraveInk,
                         onClick = onNavigateToFavorites,
                         modifier = Modifier.weight(1f)
                     )
@@ -223,10 +214,10 @@ fun ProfileScreen(
             // Menu Options
             item {
                 Surface(
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(17.dp),
                     color = MaterialTheme.colorScheme.surface,
-                    shadowElevation = 2.dp,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 17.dp)
                 ) {
                     Column {
                         ProfileMenuItem(
@@ -235,19 +226,26 @@ fun ProfileScreen(
                             subtitle = "Theme, notifications",
                             onClick = onNavigateToSettings
                         )
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                         ProfileMenuItem(
                             icon = Icons.Filled.Notifications,
                             title = "Notifications",
                             subtitle = "Order updates & alerts",
                             onClick = onNavigateToNotifications
                         )
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                         ProfileMenuItem(
                             icon = Icons.Outlined.HelpOutline,
                             title = "Help & Support",
                             subtitle = "FAQs, contact us",
                             onClick = onNavigateToHelp
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                        ProfileMenuItem(
+                            icon = Icons.Outlined.HelpOutline,
+                            title = "My support tickets",
+                            subtitle = "Track problems you've reported",
+                            onClick = onNavigateToTickets
                         )
                     }
                 }
@@ -255,11 +253,12 @@ fun ProfileScreen(
 
             item {
                 Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f),
+                    shape = RoundedCornerShape(12.dp),
+                    color = CraveRedSoft,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 8.dp)
+                        .padding(horizontal = 17.dp, vertical = 8.dp)
                         .clickable { showLogoutDialog = true }
                 ) {
                     Row(
@@ -293,8 +292,8 @@ fun ProfileScreen(
             confirmButton = {
                 Button(
                     onClick = { showLogoutDialog = false; viewModel.logout(); onLogoutSuccess() },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                    shape = RoundedCornerShape(12.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = Color.White),
+                    shape = RoundedCornerShape(10.dp)
                 ) { Text("Log Out", fontWeight = FontWeight.Bold) }
             },
             dismissButton = {
@@ -361,7 +360,10 @@ fun ProfileScreen(
             confirmButton = {
                 Button(
                     onClick = { viewModel.updateProfile(editName, editPhone.ifBlank { null }, editReg.ifBlank { null }) },
-                    enabled = updateState !is UpdateState.Loading && editName.isNotBlank()
+                    enabled = updateState !is UpdateState.Loading && editName.isNotBlank(),
+                    colors = ButtonDefaults.buttonColors(containerColor = CraveOrange, contentColor = CraveInk),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, CraveInk),
+                    shape = RoundedCornerShape(10.dp)
                 ) {
                     Text("Save Changes")
                 }
@@ -390,26 +392,20 @@ private fun QuickActionCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 2.dp,
-        modifier = modifier.clickable(onClick = onClick)
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+    CravePanel(modifier = modifier.clickable(onClick = onClick), shape = RoundedCornerShape(13.dp)) {
+        Column(modifier = Modifier.padding(17.dp)) {
             Box(
                 modifier = Modifier
-                    .size(52.dp)
-                    .background(tint.copy(alpha = 0.12f), CircleShape),
+                    .size(38.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(CraveChartreuse)
+                    .border(1.dp, CraveInk, RoundedCornerShape(10.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, contentDescription = title, tint = tint, modifier = Modifier.size(26.dp))
+                Icon(icon, contentDescription = title, tint = tint, modifier = Modifier.size(20.dp))
             }
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -426,13 +422,15 @@ private fun ProfileMenuItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 14.dp),
+            .padding(horizontal = 17.dp, vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .size(40.dp)
-                .background(tint.copy(alpha = 0.08f), RoundedCornerShape(12.dp)),
+                .size(36.dp)
+                .clip(RoundedCornerShape(9.dp))
+                .background(CraveWhite)
+                .border(1.dp, CraveInk, RoundedCornerShape(9.dp)),
             contentAlignment = Alignment.Center
         ) {
             Icon(icon, contentDescription = title, tint = tint, modifier = Modifier.size(20.dp))

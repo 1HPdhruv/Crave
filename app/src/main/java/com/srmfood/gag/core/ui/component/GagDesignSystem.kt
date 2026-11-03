@@ -24,7 +24,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.srmfood.gag.core.ui.theme.CraveInk
+import com.srmfood.gag.core.ui.theme.CraveChartreuse
+import com.srmfood.gag.core.ui.theme.CraveLavender
+import com.srmfood.gag.core.ui.theme.CraveOrange
+import com.srmfood.gag.core.ui.theme.GagMonoStyle
 import com.srmfood.gag.core.ui.theme.GagSpacing
 
 // ─── Search Bar ───────────────────────────────────────────────────
@@ -47,14 +53,10 @@ fun GagSearchBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(54.dp)                           // Slightly taller for premium feel
-            .clip(RoundedCornerShape(14.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                shape = RoundedCornerShape(14.dp)
-            )
+            .height(50.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, CraveInk, RoundedCornerShape(10.dp))
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -62,7 +64,7 @@ fun GagSearchBar(
         Icon(
             imageVector = Icons.Default.Search,
             contentDescription = "Search",
-            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(20.dp)
         )
         Spacer(modifier = Modifier.width(12.dp))
@@ -93,24 +95,17 @@ fun GagCategoryChip(
     Box(
         modifier = modifier
             .clip(CircleShape)
-            .background(
-                if (isSelected) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.surfaceVariant
-            )
-            .border(
-                width = if (isSelected) 0.dp else 1.dp,
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
-                shape = CircleShape
-            )
+            .background(if (isSelected) CraveInk else MaterialTheme.colorScheme.surface)
+            .border(1.dp, if (isSelected) CraveInk else MaterialTheme.colorScheme.outline, CircleShape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 14.dp, vertical = 9.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+            color = if (isSelected) MaterialTheme.colorScheme.background
                     else MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -139,13 +134,18 @@ fun GagSectionHeader(
             color = MaterialTheme.colorScheme.onBackground
         )
         if (actionText != null && onActionClick != null) {
-            Text(
-                text = actionText,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.clickable(onClick = onActionClick)
-            )
+            Row(
+                modifier = Modifier.clickable(onClick = onActionClick),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = actionText,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(" ↗", color = CraveOrange, style = MaterialTheme.typography.labelLarge)
+            }
         }
     }
 }
@@ -161,14 +161,14 @@ fun GagBadge(
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(6.dp))          // 6dp — softer than old 4dp
+            .clip(RoundedCornerShape(5.dp))
             .background(containerColor)
-            .padding(horizontal = GagSpacing.Small, vertical = 2.dp)
+            .border(1.dp, color.copy(alpha = 0.55f), RoundedCornerShape(5.dp))
+            .padding(horizontal = GagSpacing.Small, vertical = 3.dp)
     ) {
         Text(
             text = text.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
+            style = com.srmfood.gag.core.ui.theme.GagEyebrowStyle.copy(fontSize = 9.sp, letterSpacing = 0.3.sp),
             color = color
         )
     }
@@ -189,9 +189,8 @@ fun GagPrice(
     ) {
         Text(
             text = "₹${price.toInt()}",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary    // Primary color for price emphasis
+            style = GagMonoStyle.copy(fontSize = 15.sp),
+            color = MaterialTheme.colorScheme.onSurface
         )
         if (originalPrice != null && originalPrice > price) {
             Text(
@@ -211,15 +210,15 @@ fun GagIconButton(
     icon: ImageVector,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    containerColor: Color = MaterialTheme.colorScheme.surfaceVariant,
+    containerColor: Color = MaterialTheme.colorScheme.surface,
     contentColor: Color = MaterialTheme.colorScheme.onSurface
 ) {
     Box(
         modifier = modifier
-            .size(40.dp)
-            .clip(CircleShape)
+            .size(44.dp)
+            .clip(RoundedCornerShape(10.dp))
             .background(containerColor)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
@@ -244,20 +243,21 @@ fun GagQuantitySelector(
 ) {
     Row(
         modifier = modifier
-            .height(38.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp)),
+            .height(44.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp)),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .size(38.dp)
+                .size(44.dp)
                 .clickable(onClick = onDecrease),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 Icons.Default.Remove,
-                contentDescription = "Decrease quantity",
+                contentDescription = if (quantity <= minQuantity) "Remove item" else "Decrease quantity",
                 tint = if (quantity <= 1) MaterialTheme.colorScheme.onSurfaceVariant
                        else MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(18.dp)
@@ -265,22 +265,21 @@ fun GagQuantitySelector(
         }
         Text(
             text = quantity.toString(),
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
+            style = GagMonoStyle,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(horizontal = GagSpacing.Medium)
         )
         Box(
             modifier = Modifier
-                .size(38.dp)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                .size(44.dp)
+                .background(CraveChartreuse)
                 .clickable(onClick = onIncrease),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 Icons.Default.Add,
                 contentDescription = "Increase quantity",
-                tint = MaterialTheme.colorScheme.primary,
+                tint = CraveInk,
                 modifier = Modifier.size(18.dp)
             )
         }
@@ -301,7 +300,7 @@ fun GagCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = androidx.compose.foundation.BorderStroke(
             width = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant
+            color = MaterialTheme.colorScheme.outline
         )
     ) {
         content()
@@ -343,18 +342,12 @@ fun GagEmptyState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Box(
-            modifier = Modifier
-                .size(112.dp)                        // Enlarged from 100dp
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)),
-            contentAlignment = Alignment.Center
-        ) {
+        CraveBlob(size = 76.dp, container = CraveChartreuse) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                modifier = Modifier.size(34.dp),
+                tint = CraveInk
             )
         }
         Spacer(modifier = Modifier.height(GagSpacing.ExtraLarge))

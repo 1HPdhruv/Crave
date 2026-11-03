@@ -17,7 +17,7 @@ import androidx.core.view.WindowCompat
 private val OrbitDarkColorScheme = darkColorScheme(
     primary             = OrbitLime,              // #CDEA45 lime accent
     onPrimary           = OrbitOnLime,            // #1A1F00 near-black on lime
-    primaryContainer    = OrbitLimeContainer,     // #2A3300
+    primaryContainer    = Color(0xFF3A1409),
     onPrimaryContainer  = OrbitLime,
     secondary           = Color(0xFF9E9A94),      // Muted warm gray
     onSecondary         = OrbitDarkBackground,
@@ -39,7 +39,7 @@ private val OrbitDarkColorScheme = darkColorScheme(
     // Error
     error               = OrbitError,
     onError             = Color(0xFFFFFFF0),
-    errorContainer      = OrbitErrorContainer,
+    errorContainer      = Color(0xFF4D0000),
     onErrorContainer    = Color(0xFFFFB3B3),
     // Scrim / inverse
     scrim               = Color(0x99000000),
@@ -51,17 +51,17 @@ private val OrbitDarkColorScheme = darkColorScheme(
 // ─── CRAVE ORBIT Light Color Scheme ───────────────────────────────
 // Primary: #9DB520 (dark lime) on warm ivory background #F5F2EC
 private val OrbitLightColorScheme = lightColorScheme(
-    primary             = OrbitLimeDark,          // #9DB520 darker lime for light bg
-    onPrimary           = Color(0xFFFFFFFF),
+    primary             = CraveOrange,            // website orange
+    onPrimary           = CraveInk,
     primaryContainer    = GagPinkContainerLight,  // #EEF7B0
     onPrimaryContainer  = OrbitOnLime,
-    secondary           = Color(0xFF6B6762),
-    onSecondary         = Color(0xFFFFFFFF),
-    secondaryContainer  = OrbitLightSurfaceVar,
+    secondary           = CraveInk,
+    onSecondary         = CravePaper,
+    secondaryContainer  = CraveLavender,
     onSecondaryContainer= OrbitLightOnSurface,
-    tertiary            = OrbitWarning,
-    onTertiary          = Color(0xFFFFFFFF),
-    tertiaryContainer   = Color(0xFFFFDBC8),
+    tertiary            = CraveChartreuse,
+    onTertiary          = CraveInk,
+    tertiaryContainer   = CraveSun,
     onTertiaryContainer = Color(0xFF3A1200),
     // Surfaces — warm ivory steps
     background          = OrbitLightBackground,   // #F5F2EC
@@ -75,7 +75,7 @@ private val OrbitLightColorScheme = lightColorScheme(
     // Error
     error               = OrbitError,
     onError             = Color(0xFFFFFFFF),
-    errorContainer      = Color(0xFFFFDAD6),
+    errorContainer      = CraveRedSoft,
     onErrorContainer    = Color(0xFF410002),
     // Scrim / inverse
     scrim               = Color(0x66000000),

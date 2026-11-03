@@ -89,7 +89,7 @@ fun PickupQRCodeScreen(
                     Surface(
                         shape = RoundedCornerShape(20.dp),
                         color = Color.White,
-                        shadowElevation = 8.dp
+                        border = androidx.compose.foundation.BorderStroke(2.dp, com.srmfood.gag.core.ui.theme.CraveInk)
                     ) {
                         Column(
                             modifier = Modifier.padding(24.dp),

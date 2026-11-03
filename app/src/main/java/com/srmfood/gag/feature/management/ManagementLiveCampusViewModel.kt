@@ -19,6 +19,8 @@ import javax.inject.Inject
 data class LiveCampusUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
+    /** True once at least one section loaded, so a later partial failure keeps the page and shows a banner. */
+    val hasData: Boolean = false,
     
     // Order State
     val totalActiveOrders: Int = 0,
@@ -72,8 +74,12 @@ class ManagementLiveCampusViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
             
             try {
+                // A failed section must NOT be shown as zeros: it keeps its previous values and is reported.
+                val failed = mutableListOf<String>()
+                val previous = _uiState.value
                 // Fetch Orders
                 val ordersResult = orderRepository.getAdminOrders()
+                if (ordersResult.isFailure) failed += "orders"
                 val orders = ordersResult.getOrNull() ?: emptyList()
                 
                 val activeStatuses = listOf(
@@ -92,6 +98,7 @@ class ManagementLiveCampusViewModel @Inject constructor(
 
                 // Fetch Outlets
                 val outletsResult = outletRepository.getAdminOutlets()
+                if (outletsResult.isFailure) failed += "outlets"
                 val outlets = outletsResult.getOrNull() ?: emptyList()
                 
                 val openOutlets = outlets.count { it.isActive && it.isOpen }
@@ -106,6 +113,7 @@ class ManagementLiveCampusViewModel @Inject constructor(
                 val todayStr = sdf.format(cal.time)
                 
                 val slotsResult = orderRepository.getAdminPickupSlots(todayStr)
+                if (slotsResult.isFailure) failed += "pickup slots"
                 val slots = slotsResult.getOrNull() ?: emptyList()
                 
                 val totalCapacity = slots.sumOf { it.capacity }
@@ -115,6 +123,7 @@ class ManagementLiveCampusViewModel @Inject constructor(
 
                 // Fetch Inventory
                 val inventoryResult = adminRepository.getInventory()
+                if (inventoryResult.isFailure) failed += "inventory"
                 val inventoryItems = inventoryResult.getOrNull() ?: emptyList()
                 
                 val outOfStock = inventoryItems.count { it.stockStatus == com.srmfood.gag.domain.usecase.admin.ManagementInventoryItem.StockStatus.OUT_OF_STOCK }
@@ -123,39 +132,45 @@ class ManagementLiveCampusViewModel @Inject constructor(
 
                 // Generate Alerts neutrally
                 val generatedAlerts = mutableListOf<String>()
+                val suspended = outlets.count { !it.orderingStatus.acceptsOrders && it.isActive }
+                if (suspended > 0) generatedAlerts.add("$suspended outlets are suspended or deactivated for ordering.")
                 if (closedOutlets > 0) generatedAlerts.add("$closedOutlets outlets are currently closed.")
                 if (fullSlots > 0) generatedAlerts.add("$fullSlots pickup slots are full.")
                 if (outOfStock > 0) generatedAlerts.add("$outOfStock tracked items are out of stock.")
                 if (lowStock > 0) generatedAlerts.add("$lowStock tracked items are running low on stock.")
 
+                val okO = "orders" !in failed; val okOu = "outlets" !in failed
+                val okS = "pickup slots" !in failed; val okI = "inventory" !in failed
                 _uiState.update { 
                     it.copy(
                         isLoading = false,
-                        totalActiveOrders = activeOrders.size,
-                        placedOrders = placed,
-                        acceptedOrders = accepted,
-                        preparingOrders = preparing,
-                        readyOrders = ready,
-                        recentActiveOrders = recentQueue,
+                        hasData = previous.hasData || failed.size < 4,
+                        error = if (failed.isEmpty()) null else "Couldn't load ${failed.joinToString(", ")}. Those figures are not up to date.",
+                        totalActiveOrders = if (okO) activeOrders.size else previous.totalActiveOrders,
+                        placedOrders = if (okO) placed else previous.placedOrders,
+                        acceptedOrders = if (okO) accepted else previous.acceptedOrders,
+                        preparingOrders = if (okO) preparing else previous.preparingOrders,
+                        readyOrders = if (okO) ready else previous.readyOrders,
+                        recentActiveOrders = if (okO) recentQueue else previous.recentActiveOrders,
                         
-                        totalOutlets = outlets.size,
-                        openOutlets = openOutlets,
-                        closedOutlets = closedOutlets,
-                        inactiveOutlets = inactiveOutlets,
-                        outletList = outlets,
+                        totalOutlets = if (okOu) outlets.size else previous.totalOutlets,
+                        openOutlets = if (okOu) openOutlets else previous.openOutlets,
+                        closedOutlets = if (okOu) closedOutlets else previous.closedOutlets,
+                        inactiveOutlets = if (okOu) inactiveOutlets else previous.inactiveOutlets,
+                        outletList = if (okOu) outlets else previous.outletList,
                         
-                        totalSlotsToday = slots.size,
-                        totalCapacityToday = totalCapacity,
-                        totalBookedToday = totalBooked,
-                        remainingCapacityToday = remainingCapacity,
-                        fullSlotsCount = fullSlots,
+                        totalSlotsToday = if (okS) slots.size else previous.totalSlotsToday,
+                        totalCapacityToday = if (okS) totalCapacity else previous.totalCapacityToday,
+                        totalBookedToday = if (okS) totalBooked else previous.totalBookedToday,
+                        remainingCapacityToday = if (okS) remainingCapacity else previous.remainingCapacityToday,
+                        fullSlotsCount = if (okS) fullSlots else previous.fullSlotsCount,
                         
-                        totalTrackedItems = inventoryItems.size,
-                        outOfStockItems = outOfStock,
-                        lowStockItems = lowStock,
-                        availableItems = available,
+                        totalTrackedItems = if (okI) inventoryItems.size else previous.totalTrackedItems,
+                        outOfStockItems = if (okI) outOfStock else previous.outOfStockItems,
+                        lowStockItems = if (okI) lowStock else previous.lowStockItems,
+                        availableItems = if (okI) available else previous.availableItems,
                         
-                        alerts = generatedAlerts
+                        alerts = if (failed.isEmpty()) generatedAlerts else previous.alerts
                     )
                 }
             } catch (e: Exception) {

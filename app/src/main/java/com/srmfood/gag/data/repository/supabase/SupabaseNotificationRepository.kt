@@ -46,7 +46,9 @@ class SupabaseNotificationRepository @Inject constructor(
                 
                 trySend(initialDtos.map { it.toDomain() }.sortedByDescending { it.createdAt })
             } catch (e: Exception) {
-                e.printStackTrace()
+                // Surface the failure so the screen shows an error with Retry instead of loading forever.
+                com.srmfood.gag.core.common.SafeLog.w("SupabaseNotificationRepo", "initial load failed: ${e.message}")
+                close(e)
             }
         }
 
@@ -68,7 +70,7 @@ class SupabaseNotificationRepository @Inject constructor(
                     
                     trySend(dtos.map { it.toDomain() }.sortedByDescending { it.createdAt })
                 } catch (e: Exception) {
-                    e.printStackTrace()
+                    com.srmfood.gag.core.common.SafeLog.w("CRAVE", "unexpected error", e)
                 }
             }
         }

@@ -1,5 +1,6 @@
 package com.srmfood.gag.feature.vendor.dashboard
 
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -25,6 +26,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.srmfood.gag.core.common.UiState
 import com.srmfood.gag.core.ui.component.GagLoadingScreen
+import com.srmfood.gag.core.ui.component.*
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.width
 import com.srmfood.gag.core.ui.theme.*
 import com.srmfood.gag.domain.model.Order
 import com.srmfood.gag.domain.model.OrderStatus
@@ -56,13 +60,20 @@ class VendorDashboardViewModel @Inject constructor(
 
     init { loadOrders() }
 
-    fun loadOrders() {
+    /** Set when an accept/reject/prepare/ready action failed (e.g. the order changed meanwhile). */
+    private val _actionError = MutableStateFlow<String?>(null)
+    val actionError: StateFlow<String?> = _actionError.asStateFlow()
+    fun dismissActionError() { _actionError.value = null }
+
+    /** [silent] = background refresh: keep the list on screen and don't blank it on a transient failure. */
+    fun loadOrders(silent: Boolean = false) {
         viewModelScope.launch {
-            _orders.value = UiState.Loading
+            val hadData = _orders.value is UiState.Success
+            if (!silent || !hadData) _orders.value = UiState.Loading
             val result = getVendorOrdersUseCase()
-            _orders.value = result.fold(
-                onSuccess = { if (it.isEmpty()) UiState.Empty else UiState.Success(it) },
-                onFailure = { UiState.Error(it.message ?: "Failed") }
+            result.fold(
+                onSuccess = { _orders.value = if (it.isEmpty()) UiState.Empty else UiState.Success(it) },
+                onFailure = { if (!(silent && hadData)) _orders.value = UiState.Error(it.message ?: "Failed") }
             )
         }
     }
@@ -73,7 +84,10 @@ class VendorDashboardViewModel @Inject constructor(
     fun markReady(orderId: String) = doAction { markReadyUseCase(orderId) }
 
     private fun doAction(action: suspend () -> Result<Order>) {
-        viewModelScope.launch { action(); loadOrders() }
+        viewModelScope.launch {
+            action().onFailure { _actionError.value = it.message ?: "That action couldn't be completed. The order may have changed." }
+            loadOrders(silent = true) // always show the order's real state afterwards
+        }
     }
 }
 
@@ -86,9 +100,24 @@ fun VendorDashboardScreen(
     onReviews: () -> Unit,
     onMenu: () -> Unit,
     onLogout: () -> Unit,
+    onInventory: () -> Unit = {},
+    onOutlet: () -> Unit = {},
+    onAnalytics: () -> Unit = {},
+    onProfile: () -> Unit = {},
     viewModel: VendorDashboardViewModel = hiltViewModel()
 ) {
     val ordersState by viewModel.orders.collectAsState()
+    val actionError by viewModel.actionError.collectAsState()
+    // New paid orders appear server-side only: poll while the dashboard is on screen.
+    LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(15_000); viewModel.loadOrders(silent = true) } }
+    actionError?.let { msg ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = viewModel::dismissActionError,
+            title = { androidx.compose.material3.Text("Action not completed") },
+            text = { androidx.compose.material3.Text(msg) },
+            confirmButton = { androidx.compose.material3.TextButton(onClick = viewModel::dismissActionError) { androidx.compose.material3.Text("OK") } }
+        )
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -96,15 +125,25 @@ fun VendorDashboardScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Vendor Dashboard", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Text("SRM KTR", style = MaterialTheme.typography.bodySmall, color = GagOrange)
+                        CraveEyebrow("Vendor workspace · SRMIST", color = CraveOrangeDeep)
+                        Text("Order board", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                     }
                 },
                 actions = {
                     IconButton(onClick = onMenu) { Icon(Icons.Outlined.MenuBook, "Menu", tint = MaterialTheme.colorScheme.onSurface) }
                     IconButton(onClick = onAllOrders) { Icon(Icons.Outlined.Assignment, "Orders", tint = MaterialTheme.colorScheme.onSurface) }
                     IconButton(onClick = onReviews) { Icon(Icons.Filled.Star, "Reviews", tint = MaterialTheme.colorScheme.onSurface) }
-                    IconButton(onClick = onLogout) { Icon(Icons.Outlined.Logout, "Logout", tint = GagError) }
+                    var more by remember { mutableStateOf(false) }
+                    Box {
+                        IconButton(onClick = { more = true }) { Icon(Icons.Filled.MoreVert, "More", tint = MaterialTheme.colorScheme.onSurface) }
+                        DropdownMenu(expanded = more, onDismissRequest = { more = false }) {
+                            DropdownMenuItem(text = { Text("Inventory") }, onClick = { more = false; onInventory() })
+                            DropdownMenuItem(text = { Text("Outlet & pickup slots") }, onClick = { more = false; onOutlet() })
+                            DropdownMenuItem(text = { Text("Analytics") }, onClick = { more = false; onAnalytics() })
+                            DropdownMenuItem(text = { Text("Profile") }, onClick = { more = false; onProfile() })
+                            DropdownMenuItem(text = { Text("Log out", color = GagError) }, onClick = { more = false; onLogout() })
+                        }
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
@@ -112,8 +151,10 @@ fun VendorDashboardScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onScanQR,
-                containerColor = GagOrange,
-                contentColor = androidx.compose.ui.graphics.Color.White,
+                containerColor = CraveOrange,
+                contentColor = CraveInk,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.border(1.5.dp, CraveInk, RoundedCornerShape(12.dp)),
                 icon = { Icon(Icons.Filled.QrCodeScanner, "Scan QR") },
                 text = { Text("Scan Pickup", fontWeight = FontWeight.SemiBold) }
             )
@@ -126,18 +167,18 @@ fun VendorDashboardScreen(
                 val activeOrders = state.data.filter { it.status.isActive }
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
+                    contentPadding = PaddingValues(17.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     item {
                         // Stats row
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            StatCard("Pending", state.data.count { it.status == OrderStatus.PLACED }.toString(), GagInfo, modifier = Modifier.weight(1f))
-                            StatCard("Preparing", state.data.count { it.status == OrderStatus.PREPARING }.toString(), GagAmber, modifier = Modifier.weight(1f))
-                            StatCard("Ready", state.data.count { it.status == OrderStatus.READY }.toString(), GagSuccess, modifier = Modifier.weight(1f))
+                            StatCard("New", state.data.count { it.status == OrderStatus.PLACED }.toString(), CraveOrange, modifier = Modifier.weight(1f))
+                            StatCard("Cooking", state.data.count { it.status == OrderStatus.PREPARING }.toString(), CraveAqua, modifier = Modifier.weight(1f))
+                            StatCard("Ready", state.data.count { it.status == OrderStatus.READY }.toString(), CraveChartreuse, modifier = Modifier.weight(1f))
                         }
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("Incoming Orders", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                        CraveHeading(eyebrow = "Right now", title = "Incoming orders")
                     }
                     items(activeOrders, key = { it.id }) { order ->
                         VendorOrderCard(
@@ -161,14 +202,14 @@ fun VendorDashboardScreen(
             is UiState.Empty -> {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
+                    contentPadding = PaddingValues(17.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     item {
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            StatCard("Pending", "0", GagInfo, modifier = Modifier.weight(1f))
-                            StatCard("Preparing", "0", GagAmber, modifier = Modifier.weight(1f))
-                            StatCard("Ready", "0", GagSuccess, modifier = Modifier.weight(1f))
+                            StatCard("New", "0", CraveOrange, modifier = Modifier.weight(1f))
+                            StatCard("Cooking", "0", CraveAqua, modifier = Modifier.weight(1f))
+                            StatCard("Ready", "0", CraveChartreuse, modifier = Modifier.weight(1f))
                         }
                         Spacer(modifier = Modifier.height(32.dp))
                     }
@@ -184,12 +225,7 @@ fun VendorDashboardScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("Unable to load your dashboard.", style = MaterialTheme.typography.titleMedium, color = GagError)
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(
-                            onClick = { viewModel.loadOrders() },
-                            colors = ButtonDefaults.buttonColors(containerColor = GagOrange)
-                        ) {
-                            Text("Retry")
-                        }
+                        GagPrimaryButton(text = "Retry", onClick = { viewModel.loadOrders() }, modifier = Modifier.width(160.dp))
                     }
                 }
             }
@@ -205,10 +241,16 @@ fun VendorDashboardScreen(
 
 @Composable
 private fun StatCard(label: String, value: String, color: androidx.compose.ui.graphics.Color, modifier: Modifier = Modifier) {
-    Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceVariant, modifier = modifier) {
-        Column(modifier = Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(value, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = color)
-            Text(label, style = MaterialTheme.typography.labelSmall, color = GagOnSurfaceVariant)
+    Surface(
+        shape = RoundedCornerShape(15.dp),
+        color = color,
+        border = androidx.compose.foundation.BorderStroke(1.dp, CraveInk),
+        modifier = modifier
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            CraveMono(value, fontSize = 30f, color = CraveInk)
+            Spacer(Modifier.height(4.dp))
+            Text(label, style = MaterialTheme.typography.labelMedium, color = CraveInk)
         }
     }
 }
@@ -224,34 +266,39 @@ private fun VendorOrderCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = GagSurface),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(order.orderNumber, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                Surface(shape = RoundedCornerShape(20.dp), color = order.status.color().copy(0.15f)) {
-                    Text(order.status.displayName, style = MaterialTheme.typography.labelSmall, color = order.status.color(),
-                        fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
-                }
+                CraveMono(order.orderNumber, fontSize = 12f)
+                CraveStateBadge(
+                    order.status.displayName,
+                    container = when (order.status) {
+                        OrderStatus.PLACED -> CraveOrange
+                        OrderStatus.ACCEPTED, OrderStatus.PREPARING -> CraveAqua
+                        else -> CraveChartreuse
+                    }
+                )
             }
             Spacer(modifier = Modifier.height(4.dp))
             Text("${order.items.size} item(s)  ·  ₹${order.total.toInt()}", style = MaterialTheme.typography.bodySmall, color = GagOnSurfaceVariant)
             order.pickupSlot?.let { Text("Pickup: ${it.displayTime}", style = MaterialTheme.typography.bodySmall, color = GagInfo) }
-            order.specialInstructions?.let { Text("Note: $it", style = MaterialTheme.typography.bodySmall, color = GagAmber) }
+            order.specialInstructions?.let { Text("Note: $it", style = MaterialTheme.typography.bodySmall, color = CraveOrangeDeep) }
             Spacer(modifier = Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 when (order.status) {
                     OrderStatus.PLACED -> {
-                        Button(onClick = onAccept, colors = ButtonDefaults.buttonColors(containerColor = GagSuccess), shape = RoundedCornerShape(8.dp), modifier = Modifier.weight(1f)) { Text("Accept") }
+                        Button(onClick = onAccept, colors = ButtonDefaults.buttonColors(containerColor = CraveChartreuse, contentColor = CraveInk), shape = RoundedCornerShape(8.dp), border = androidx.compose.foundation.BorderStroke(1.dp, CraveInk), modifier = Modifier.weight(1f)) { Text("Accept") }
                         OutlinedButton(onClick = onReject, border = androidx.compose.foundation.BorderStroke(1.dp, GagError), shape = RoundedCornerShape(8.dp), modifier = Modifier.weight(1f)) { Text("Reject", color = GagError) }
                     }
                     OrderStatus.ACCEPTED -> {
-                        Button(onClick = onStartPreparing, colors = ButtonDefaults.buttonColors(containerColor = GagAmber), shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) { Text("Start Preparing") }
+                        Button(onClick = onStartPreparing, colors = ButtonDefaults.buttonColors(containerColor = CraveAqua, contentColor = CraveInk), shape = RoundedCornerShape(8.dp), border = androidx.compose.foundation.BorderStroke(1.dp, CraveInk), modifier = Modifier.fillMaxWidth()) { Text("Start Preparing") }
                     }
                     OrderStatus.PREPARING -> {
-                        Button(onClick = onMarkReady, colors = ButtonDefaults.buttonColors(containerColor = GagOrange), shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) { Text("Mark Ready") }
+                        Button(onClick = onMarkReady, colors = ButtonDefaults.buttonColors(containerColor = CraveChartreuse, contentColor = CraveInk), shape = RoundedCornerShape(8.dp), border = androidx.compose.foundation.BorderStroke(1.dp, CraveInk), modifier = Modifier.fillMaxWidth()) { Text("Mark Ready") }
                     }
                     else -> {}
                 }

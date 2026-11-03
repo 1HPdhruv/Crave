@@ -44,6 +44,9 @@ private data class CategoryDto(
     val image_url: String? = null
 )
 
+@Serializable
+private data class UpdatedIdDto(val id: String)
+
 // ─── Column selection string for food_items with variants ─────────────────────
 // PostgREST embeds related rows when referenced with relationship syntax.
 private const val FOOD_COLUMNS =
@@ -160,7 +163,7 @@ class SupabaseFoodRepository @Inject constructor(
         }
         sorted.map { it.toDomain().copy(isFavorite = it.id in favIds) }
     }.onFailure {
-        android.util.Log.e("SupabaseFoodRepo", "searchFood: Failed to search catalogue", it)
+        com.srmfood.gag.core.common.SafeLog.e("SupabaseFoodRepo", "searchFood: Failed to search catalogue", it)
     }
 
     override suspend fun getFoodById(foodId: String): Result<FoodItem> = runCatching {
@@ -193,7 +196,7 @@ class SupabaseFoodRepository @Inject constructor(
         foodDao.insertAll(domains.map { it.toEntity() })
         domains
     }.onFailure {
-        android.util.Log.e("SupabaseFoodRepo", "getMenuByOutlet: Failed to retrieve menu for outlet=$outletId", it)
+        com.srmfood.gag.core.common.SafeLog.e("SupabaseFoodRepo", "getMenuByOutlet: Failed to retrieve menu for outlet=$outletId", it)
     }
 
     override suspend fun getPopularFood(): Result<List<FoodItem>> = runCatching {
@@ -343,19 +346,24 @@ class SupabaseFoodRepository @Inject constructor(
     }
 
     override suspend fun updateFoodAvailability(foodId: String, isAvailable: Boolean): Result<Unit> = runCatching {
-        postgrest["food_items"].update(
+        val rows = postgrest["food_items"].update(
             { set("is_available", isAvailable) }
         ) {
+            select(Columns.raw("id"))
             filter { eq("id", foodId) }
-        }
+        }.decodeList<UpdatedIdDto>()
+        // RLS silently filters rows the caller doesn't own: zero rows means nothing changed.
+        if (rows.isEmpty()) throw SecurityException("Nothing was changed: the item wasn't found or isn't yours.")
     }
 
     override suspend fun updateFoodPrice(foodId: String, price: Double): Result<Unit> = runCatching {
-        postgrest["food_items"].update(
+        val rows = postgrest["food_items"].update(
             { set("price", price) }
         ) {
+            select(Columns.raw("id"))
             filter { eq("id", foodId) }
-        }
+        }.decodeList<UpdatedIdDto>()
+        if (rows.isEmpty()) throw SecurityException("Nothing was changed: the item wasn't found or isn't yours.")
     }
 
     override suspend fun getAdminFoodItems(

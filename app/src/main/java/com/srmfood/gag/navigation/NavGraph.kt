@@ -88,6 +88,7 @@ private val ORBIT_TOP_LEVEL_ROUTES = setOf(
 fun GagNavGraph() {
     val navController = rememberNavController()
     val splashViewModel: SplashViewModel = hiltViewModel()
+    val sessionViewModel: com.srmfood.gag.feature.auth.session.SessionViewModel = hiltViewModel()
     val splashState by splashViewModel.splashState.collectAsState()
 
     if (!splashState.isReady) {
@@ -108,6 +109,17 @@ fun GagNavGraph() {
         }
     }
 
+    // Notification deep links open student screens only for a signed-in student (never before login, never for other roles).
+    val studentLinksEnabled = splashState.isLoggedIn && (splashState.userRole == null || splashState.userRole == UserRole.STUDENT)
+
+    // A tap on a notification while the app is already open arrives as a new intent.
+    val activity = androidx.compose.ui.platform.LocalContext.current as? androidx.activity.ComponentActivity
+    androidx.compose.runtime.DisposableEffect(activity, navController) {
+        val listener = androidx.core.util.Consumer<android.content.Intent> { intent -> navController.handleDeepLink(intent) }
+        activity?.addOnNewIntentListener(listener)
+        onDispose { activity?.removeOnNewIntentListener(listener) }
+    }
+
     NavHost(
         navController       = navController,
         startDestination    = startDestination,
@@ -120,8 +132,10 @@ fun GagNavGraph() {
         composable(Screen.Onboarding.route) {
             OnboardingScreen(
                 onComplete = {
-                    navController.navigate(Screen.Login.createRoute()) {
-                        popUpTo(Screen.Onboarding.route) { inclusive = true }
+                    splashViewModel.completeOnboarding {
+                        navController.navigate(Screen.Login.createRoute()) {
+                            popUpTo(Screen.Onboarding.route) { inclusive = true }
+                        }
                     }
                 }
             )
@@ -165,7 +179,10 @@ fun GagNavGraph() {
         composable(Screen.Home.route) {
             StudentShell(navController = navController, currentRoute = Screen.Home.route) {
                 HomeScreen(
-                    onSearchClick    = { navController.navigate(Screen.Explore.createRoute()) {
+                    onSearchClick    = { navController.navigate(Screen.Search.createRoute()) {
+                        launchSingleTop = true
+                    }},
+                    onBrowseClick    = { navController.navigate(Screen.Explore.createRoute()) {
                         launchSingleTop = true
                     }},
                     onCategoryClick  = { navController.navigate(Screen.Explore.createRoute(it)) {
@@ -183,6 +200,22 @@ fun GagNavGraph() {
                     onSeeAllOutlets  = { navController.navigate(Screen.OutletList.route) },
                 )
             }
+        }
+
+        // Full-screen search (own back button + filter sheets), opened from the Home search bar.
+        composable(
+            route = Screen.Search.route,
+            arguments = listOf(
+                navArgument(Screen.Search.ARG_QUERY) { type = NavType.StringType; defaultValue = "" },
+                navArgument(Screen.Search.ARG_CATEGORY) { type = NavType.StringType; nullable = true }
+            )
+        ) {
+            com.srmfood.gag.feature.search.SearchScreen(
+                onBack = { navController.popBackStack() },
+                onFoodClick = { navController.navigate(Screen.FoodDetail.createRoute(it)) },
+                onOutletClick = { navController.navigate(Screen.OutletDetail.createRoute(it)) },
+                onAddToCart = { navController.navigate(Screen.Cart.route) { launchSingleTop = true } }
+            )
         }
 
         composable(
@@ -233,6 +266,7 @@ fun GagNavGraph() {
                     },
                     onNavigateToSettings  = { navController.navigate(Screen.Settings.route) },
                     onNavigateToHelp      = { navController.navigate(Screen.HelpSupport.route) },
+                    onNavigateToTickets   = { navController.navigate(Screen.MyTickets.route) },
                     onNavigateToOrders    = { navController.navigate(Screen.OrderHistory.route) {
                         launchSingleTop = true; popUpTo(Screen.Home.route) { saveState = true }; restoreState = true
                     }},
@@ -295,6 +329,7 @@ fun GagNavGraph() {
 
         composable(
             route     = Screen.OrderDetail.route,
+            deepLinks = if (studentLinksEnabled) listOf(androidx.navigation.navDeepLink { uriPattern = "gag://orders/{orderId}" }) else emptyList(),
             arguments = listOf(
                 navArgument(Screen.OrderDetail.ARG_ORDER_ID) { type = NavType.StringType },
                 navArgument(Screen.OrderDetail.ARG_FROM_CHECKOUT) {
@@ -319,6 +354,38 @@ fun GagNavGraph() {
                 },
                 onTrackOrder = { navController.navigate(Screen.LiveOrderTracking.createRoute(it)) },
                 onShowQR     = { navController.navigate(Screen.PickupQRCode.createRoute(it)) },
+                onReportProblem = { navController.navigate(Screen.ReportProblem.createRoute(it)) },
+            )
+        }
+
+        composable(
+            route     = Screen.ReportProblem.route,
+            arguments = listOf(navArgument(Screen.ReportProblem.ARG_ORDER_ID) { type = NavType.StringType })
+        ) { entry ->
+            com.srmfood.gag.feature.support.ReportProblemScreen(
+                orderId = entry.arguments?.getString(Screen.ReportProblem.ARG_ORDER_ID) ?: "",
+                onBack = { navController.popBackStack() },
+                onViewTicket = { id ->
+                    navController.navigate(Screen.StudentTicket.createRoute(id)) {
+                        popUpTo(Screen.ReportProblem.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+        composable(Screen.MyTickets.route) {
+            com.srmfood.gag.feature.support.MyTicketsScreen(
+                onBack = { navController.popBackStack() },
+                onOpenTicket = { navController.navigate(Screen.StudentTicket.createRoute(it)) }
+            )
+        }
+        composable(
+            route     = Screen.StudentTicket.route,
+            deepLinks = if (studentLinksEnabled) listOf(androidx.navigation.navDeepLink { uriPattern = "gag://tickets/{ticketId}" }) else emptyList(),
+            arguments = listOf(navArgument(Screen.StudentTicket.ARG_TICKET_ID) { type = NavType.StringType })
+        ) { entry ->
+            com.srmfood.gag.feature.support.StudentTicketScreen(
+                ticketId = entry.arguments?.getString(Screen.StudentTicket.ARG_TICKET_ID) ?: "",
+                onBack = { navController.popBackStack() }
             )
         }
 
@@ -353,6 +420,7 @@ fun GagNavGraph() {
             NotificationsScreen(
                 onBack       = { navController.popBackStack() },
                 onOrderClick = { navController.navigate(Screen.OrderDetail.createRoute(it, fromCheckout = false)) },
+                onTicketClick = { navController.navigate(Screen.StudentTicket.createRoute(it)) },
             )
         }
 
@@ -372,9 +440,15 @@ fun GagNavGraph() {
                 onAllOrders  = { navController.navigate(Screen.VendorOrders.route) },
                 onReviews    = { navController.navigate(Screen.VendorReviews.route) },
                 onMenu       = { navController.navigate(Screen.VendorMenu.route) },
+                onInventory  = { navController.navigate(Screen.VendorInventory.route) },
+                onOutlet     = { navController.navigate(Screen.VendorOutlet.route) },
+                onAnalytics  = { navController.navigate(Screen.VendorAnalytics.route) },
+                onProfile    = { navController.navigate(Screen.VendorProfile.route) },
                 onLogout     = {
-                    navController.navigate(Screen.Login.createRoute("vendor")) {
-                        popUpTo(0) { inclusive = true }
+                    sessionViewModel.logout {
+                        navController.navigate(Screen.Login.createRoute("vendor")) {
+                            popUpTo(0) { inclusive = true }
+                        }
                     }
                 }
             )
@@ -397,8 +471,43 @@ fun GagNavGraph() {
             val orderId = entry.arguments?.getString(Screen.VendorOrderDetail.ARG_ORDER_ID) ?: ""
             VendorOrderDetailScreen(orderId = orderId, onBack = { navController.popBackStack() })
         }
-        composable(Screen.VendorMenu.route) {
-            VendorMenuScreen(onBack = { navController.popBackStack() })
+        composable(Screen.VendorMenu.route) { entry ->
+            val msg by entry.savedStateHandle.getStateFlow<String?>("vendorMessage", null).collectAsState()
+            VendorMenuScreen(
+                onBack = { navController.popBackStack() },
+                onAddItem = { navController.navigate(Screen.VendorFoodEdit.createRoute(com.srmfood.gag.feature.vendor.catalog.NEW_FOOD_ID)) },
+                onEditItem = { navController.navigate(Screen.VendorFoodEdit.createRoute(it)) },
+                externalMessage = msg,
+                onMessageShown = { entry.savedStateHandle["vendorMessage"] = null }
+            )
+        }
+        composable(
+            route = Screen.VendorFoodEdit.route,
+            arguments = listOf(navArgument(Screen.VendorFoodEdit.ARG_FOOD_ID) { type = NavType.StringType })
+        ) {
+            com.srmfood.gag.feature.vendor.catalog.VendorFoodEditScreen(
+                onBack = { navController.popBackStack() },
+                onSaved = { message ->
+                    navController.previousBackStackEntry?.savedStateHandle?.set("vendorMessage", message)
+                    navController.popBackStack()
+                }
+            )
+        }
+        composable(Screen.VendorInventory.route) {
+            com.srmfood.gag.feature.vendor.catalog.VendorInventoryScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Screen.VendorOutlet.route) {
+            com.srmfood.gag.feature.vendor.catalog.VendorOutletScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Screen.VendorProfile.route) {
+            com.srmfood.gag.feature.vendor.catalog.VendorProfileScreen(
+                onBack = { navController.popBackStack() },
+                onLogout = {
+                    sessionViewModel.logout {
+                        navController.navigate(Screen.Login.createRoute("vendor")) { popUpTo(0) { inclusive = true } }
+                    }
+                }
+            )
         }
         composable(Screen.QRScanner.route) {
             QRScannerScreen(onBack = { navController.popBackStack() })
@@ -411,8 +520,10 @@ fun GagNavGraph() {
         composable(Screen.VendorPending.route) {
             VendorPendingScreen(
                 onLogout = {
-                    navController.navigate(Screen.Login.createRoute()) {
-                        popUpTo(0) { inclusive = true }
+                    sessionViewModel.logout {
+                        navController.navigate(Screen.Login.createRoute()) {
+                            popUpTo(0) { inclusive = true }
+                        }
                     }
                 }
             )
@@ -615,8 +726,10 @@ fun GagNavGraph() {
                         
                         androidx.compose.material3.Button(
                             onClick = {
-                                navController.navigate(Screen.Login.createRoute("admin")) {
-                                    popUpTo(0) { inclusive = true }
+                                sessionViewModel.logout {
+                                    navController.navigate(Screen.Login.createRoute("admin")) {
+                                        popUpTo(0) { inclusive = true }
+                                    }
                                 }
                             },
                             modifier = Modifier.padding(top = 16.dp)
@@ -629,7 +742,18 @@ fun GagNavGraph() {
         }
         composable(Screen.ManagementSupport.route) {
             com.srmfood.gag.feature.management.ManagementSupportScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onOpenTicket = { navController.navigate(Screen.ManagementSupportTicket.createRoute(it)) }
+            )
+        }
+        composable(
+            route     = Screen.ManagementSupportTicket.route,
+            arguments = listOf(navArgument(Screen.ManagementSupportTicket.ARG_TICKET_ID) { type = NavType.StringType })
+        ) { entry ->
+            com.srmfood.gag.feature.management.ManagementTicketDetailScreen(
+                ticketId = entry.arguments?.getString(Screen.ManagementSupportTicket.ARG_TICKET_ID) ?: "",
+                onNavigateBack = { navController.popBackStack() },
+                onOpenOrder = { navController.navigate(Screen.ManagementOrderDetail.createRoute(it)) }
             )
         }
         composable(Screen.ManagementLiveCampus.route) {

@@ -17,12 +17,31 @@ sealed class UiState<out T> {
     /** No data found. */
     object Empty : UiState<Nothing>()
 
-    /** An error occurred. */
-    data class Error(
-        val message: String,
+    /**
+     * An error occurred. [message] is shown to users, so it is sanitised here once for every screen: supabase-kt
+     * exception messages append "URL: …", "Headers: [Authorization=[Bearer <token>]…]" and "Http Method: …" lines,
+     * and several ViewModels pass `exception.message` straight through.
+     */
+    class Error(
+        message: String,
         val errorType: ErrorType = ErrorType.GENERIC,
         val cause: Throwable? = null
-    ) : UiState<Nothing>()
+    ) : UiState<Nothing>() {
+        val message: String = userFacing(message)
+
+        override fun equals(other: Any?): Boolean =
+            other is Error && other.message == message && other.errorType == errorType && other.cause == cause
+        override fun hashCode(): Int = (message.hashCode() * 31 + errorType.hashCode()) * 31 + (cause?.hashCode() ?: 0)
+        override fun toString(): String = "Error(message=$message, errorType=$errorType)"
+
+        companion object {
+            /** Keeps only the human part of a message: drops request dumps and redacts any credential that remains. */
+            fun userFacing(raw: String): String {
+                val head = raw.substringBefore("\nURL:").substringBefore("\nHeaders:").substringBefore("\nHttp Method:").trim()
+                return SafeLog.redact(head).take(300).ifBlank { "Something went wrong. Please try again." }
+            }
+        }
+    }
 }
 
 enum class ErrorType {

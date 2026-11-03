@@ -23,7 +23,7 @@ import com.srmfood.gag.data.local.entity.UserEntity
         CartItemEntity::class,
         OrderEntity::class
     ],
-    version = 1,
+    version = 2, // v2: outlets.orderingStatus (cache only; destructive fallback is configured)
     exportSchema = false
 )
 @TypeConverters(RoomConverters::class)

@@ -91,22 +91,22 @@ class SupabaseOrderRepository @Inject constructor(
     private val cartDao: CartDao
 ) : OrderRepository {
 
+    override suspend fun refreshOrders(): Result<Unit> = runCatching {
+        val userId = auth.currentSessionOrNull()?.user?.id ?: throw Exception("User not logged in")
+        val dtos = postgrest["orders"].select(Columns.raw("*, pickup_slots(*), items:order_items(*, order_item_customizations(*))")) {
+            filter { eq("user_id", userId) }
+        }.decodeList<OrderDto>()
+        orderDao.insertAll(dtos.map { it.toEntity() })
+    }.map { }
+
     override fun getOrders(): Flow<List<Order>> {
+        // Fire-and-forget refresh kept for existing callers (Home); the order history screen uses refreshOrders().
         GlobalScope.launch {
-            try {
-                val session = auth.currentSessionOrNull()
-                val userId = session?.user?.id
-                if (userId != null) {
-                    val dtos = postgrest["orders"].select(Columns.raw("*, pickup_slots(*), items:order_items(*, order_item_customizations(*))")) {
-                        filter { eq("user_id", userId) }
-                    }.decodeList<OrderDto>()
-                    orderDao.insertAll(dtos.map { it.toEntity() })
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            refreshOrders().onFailure { android.util.Log.w("SupabaseOrderRepo", "background order refresh failed: ${it.message}") }
         }
-        return orderDao.observeOrders().map { entities ->
+        // Scope to the signed-in user: the Room cache is device-wide.
+        val userId = auth.currentSessionOrNull()?.user?.id ?: return kotlinx.coroutines.flow.flowOf(emptyList())
+        return orderDao.observeOrdersForUser(userId).map { entities ->
             entities.map { it.toDomain() }
         }
     }
@@ -186,8 +186,14 @@ class SupabaseOrderRepository @Inject constructor(
         ) {
             filter { eq("id", orderId) }
         }
+        // RLS/state machine can make this a silent 0-row update (e.g. the vendor already accepted it).
+        // Re-read the server's truth instead of assuming success.
+        val fresh = getOrderById(orderId).getOrThrow()
+        if (fresh.status != OrderStatus.CANCELLED) {
+            throw Exception("This order can no longer be cancelled (it is now ${fresh.status.displayName.lowercase()}).")
+        }
         orderDao.updateStatus(orderId, "CANCELLED")
-        getOrderById(orderId).getOrThrow()
+        fresh
     }
 
     override suspend fun getPickupSlots(outletId: String, date: String): Result<List<PickupSlot>> = runCatching {
@@ -200,7 +206,7 @@ class SupabaseOrderRepository @Inject constructor(
         
         dtos.map { it.toDomain() }
     }.onFailure { e ->
-        android.util.Log.e("PickupSlotDebug", "Failed to fetch pickup slots for outlet $outletId", e)
+        com.srmfood.gag.core.common.SafeLog.e("PickupSlotDebug", "Failed to fetch pickup slots for outlet $outletId", e)
     }
 
     override suspend fun getAdminPickupSlots(date: String): Result<List<PickupSlot>> = runCatching {
@@ -241,9 +247,12 @@ class SupabaseOrderRepository @Inject constructor(
             changes.collect { action ->
                 val statusString = action.record["status"]?.toString()?.replace("\"", "")
                 if (statusString != null) {
-                    val newStatus = OrderStatus.valueOf(statusString)
-                    orderDao.updateStatus(orderId, newStatus.name)
-                    trySend(newStatus)
+                    // Unknown future statuses must not crash the tracking screen.
+                    val newStatus = OrderStatus.entries.firstOrNull { it.name == statusString }
+                    if (newStatus != null) {
+                        orderDao.updateStatus(orderId, newStatus.name)
+                        trySend(newStatus)
+                    }
                 }
             }
         }

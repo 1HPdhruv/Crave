@@ -1,5 +1,6 @@
 package com.srmfood.gag.feature.checkout
 
+import com.srmfood.gag.domain.usecase.outlet.studentMessage
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -29,7 +30,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.srmfood.gag.core.common.UiState
-import com.srmfood.gag.core.ui.component.GagLoadingScreen
+import com.srmfood.gag.core.ui.component.*
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.graphics.Color
 import com.srmfood.gag.core.ui.component.GagPrimaryButton
 import com.srmfood.gag.core.ui.component.HostelAddressBanner
 import com.srmfood.gag.core.ui.component.HostelAddressDialog
@@ -135,7 +140,8 @@ class CheckoutViewModel @Inject constructor(
     private val cartRepository: com.srmfood.gag.domain.repository.CartRepository,
     private val paymentRepository: PaymentRepository,
     private val razorpayManager: RazorpayManager,
-    private val orderingModeRepository: OrderingModeRepository
+    private val orderingModeRepository: OrderingModeRepository,
+    private val checkOutletAvailability: com.srmfood.gag.domain.usecase.outlet.CheckOutletAvailabilityUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CheckoutUiState())
@@ -183,7 +189,7 @@ class CheckoutViewModel @Inject constructor(
                         )
                     }
                     is RazorpayResult.Error -> {
-                        android.util.Log.e("Razorpay", "Payment Error: code=${result.code}, message=${result.message}")
+                        com.srmfood.gag.core.common.SafeLog.e("Razorpay", "Payment Error: code=${result.code}, message=${result.message}")
                         
                         var isCancelled = false
                         if (result.code == Checkout.PAYMENT_CANCELED) {
@@ -277,7 +283,7 @@ class CheckoutViewModel @Inject constructor(
                             }
                             keep
                         } catch (e: Exception) {
-                            android.util.Log.e("SlotFilter", "Parse error for slot date=\'${slot.date}\' startTime=\'${slot.startTime}\'", e)
+                            com.srmfood.gag.core.common.SafeLog.e("SlotFilter", "Parse error for slot date=\'${slot.date}\' startTime=\'${slot.startTime}\'", e)
                             false
                         }
                     }
@@ -286,7 +292,7 @@ class CheckoutViewModel @Inject constructor(
                     if (validSlots.isEmpty()) UiState.Empty else UiState.Success(validSlots)
                 },
                 onFailure = { e ->
-                    android.util.Log.e("SlotFilter", "Failed to fetch slots: ${e.message}", e)
+                    com.srmfood.gag.core.common.SafeLog.e("SlotFilter", "Failed to fetch slots: ${e.message}", e)
                     UiState.Error(e.message ?: "Failed to load slots")
                 }
             )
@@ -377,7 +383,7 @@ class CheckoutViewModel @Inject constructor(
 
             val syncResult = cartRepository.syncCart()
             val remoteCartId = syncResult.getOrElse { e ->
-                android.util.Log.e("PlaceOrderDiag", "syncCart failed", e)
+                com.srmfood.gag.core.common.SafeLog.e("PlaceOrderDiag", "syncCart failed", e)
                 _uiState.value = _uiState.value.copy(
                     orderState = UiState.Error("Cart sync failed: ${e.message}")
                 )
@@ -390,6 +396,15 @@ class CheckoutViewModel @Inject constructor(
             android.util.Log.d("PlaceOrderDiag", "Checkout Selected Slot ID: ${slot.id}")
             android.util.Log.d("PlaceOrderDiag", "Resolved Remote Cart ID: $remoteCartId")
             android.util.Log.d("PlaceOrderDiag", "=======================================")
+
+            // Fresh server check right before charging: stops a stale cart reaching payment for a suspended outlet.
+            val availability = checkOutletAvailability(cart.outletId)
+            if (availability is com.srmfood.gag.domain.usecase.outlet.OutletAvailability.Unavailable) {
+                _uiState.value = _uiState.value.copy(
+                    orderState = UiState.Error(availability.status.studentMessage(availability.outletName) + "\nYour cart has been kept; no payment was taken.")
+                )
+                return@launch
+            }
 
             val result = placeOrderUseCase(
                 cartId = remoteCartId,
@@ -409,7 +424,9 @@ class CheckoutViewModel @Inject constructor(
                 }
             }.onFailure { error ->
                 val errorMsg = error.message ?: "Failed"
-                val displayMsg = if (errorMsg.contains("Outlet is temporarily closed right now")) {
+                val displayMsg = if (com.srmfood.gag.domain.usecase.outlet.isOutletSuspendedError(errorMsg)) {
+                    "This outlet has stopped taking new orders. Your cart has been kept; no payment was taken.\nPlease try again later or choose another outlet."
+                } else if (errorMsg.contains("Outlet is temporarily closed right now")) {
                     "Outlet is temporarily closed right now.\nPlease select a pickup slot for tomorrow or a later date."
                 } else {
                     errorMsg
@@ -503,7 +520,7 @@ fun CheckoutScreen(
                         }
                         co.open(activity, options)
                     } catch (e: Exception) {
-                        e.printStackTrace()
+                        com.srmfood.gag.core.common.SafeLog.w("CRAVE", "unexpected error", e)
                     }
                 }
                 is CheckoutUiEvent.ShowError -> { /* handled via state */ }
@@ -538,9 +555,8 @@ fun CheckoutScreen(
                     (!isDelivery || uiState.hostelAddress.isComplete)
 
                 Surface(
-                    color = MaterialTheme.colorScheme.background,
-                    shadowElevation = 24.dp,
-                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                    color = MaterialTheme.colorScheme.surface,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, CraveInk)
                 ) {
                     Column(
                         modifier = Modifier
@@ -580,30 +596,39 @@ fun CheckoutScreen(
                 item {
                     Column(
                         modifier = Modifier
-                            .padding(horizontal = GagSpacing.Large, vertical = GagSpacing.Large)
+                            .padding(horizontal = 17.dp, vertical = GagSpacing.Large)
                             .statusBarsPadding()
                     ) {
-                        IconButton(onClick = onBack, modifier = Modifier.offset(x = (-12).dp)) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Go back", tint = MaterialTheme.colorScheme.onBackground)
+                        Row(
+                            modifier = Modifier.clickableNoRipple(onBack),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("←", color = CraveOrange, fontSize = 19.sp)
+                            Spacer(Modifier.width(7.dp))
+                            Text("back", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
+                        CraveEyebrow("Almost there")
                         Text(
-                            text = "CHECKOUT", 
-                            style = MaterialTheme.typography.displaySmall, 
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 2.sp
+                            text = androidx.compose.ui.text.buildAnnotatedString {
+                                append("Check")
+                                withStyle(androidx.compose.ui.text.SpanStyle(color = CraveOrange)) { append("out.") }
+                            },
+                            style = MaterialTheme.typography.displayLarge.copy(fontSize = 42.sp, lineHeight = 42.sp),
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.padding(top = 4.dp)
                         )
                     }
                 }
 
                 // 2. Order summary
                 item {
-                    CheckoutSectionTitle("YOUR ORDER")
+                    CheckoutSectionTitle("01 · Your order")
                     Surface(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = GagSpacing.Large),
-                        shape = RoundedCornerShape(20.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 17.dp),
+                        shape = RoundedCornerShape(15.dp),
                         color = MaterialTheme.colorScheme.surface,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        border = androidx.compose.foundation.BorderStroke(1.dp, CraveInk)
                     ) {
                         Column(modifier = Modifier.padding(20.dp)) {
                             cart.items.forEachIndexed { index, item ->
@@ -621,18 +646,18 @@ fun CheckoutScreen(
                                         if (item.selectedCustomizations.isNotEmpty()) {
                                             Spacer(modifier = Modifier.height(4.dp))
                                             val customText = item.selectedCustomizations.joinToString(", ") { it.optionName }
-                                            Text("+ $customText", style = MaterialTheme.typography.labelMedium, color = GagPink, fontWeight = FontWeight.Bold)
+                                            Text("+ $customText", style = MaterialTheme.typography.labelMedium, color = CraveOrangeDeep, fontWeight = FontWeight.Bold)
                                         }
                                         if (!item.specialInstructions.isNullOrBlank()) {
                                             Spacer(modifier = Modifier.height(4.dp))
-                                            Text("Note: ${item.specialInstructions}", style = MaterialTheme.typography.labelSmall, color = GagOrange, fontWeight = FontWeight.Bold)
+                                            Text("Note: ${item.specialInstructions}", style = MaterialTheme.typography.labelSmall, color = CraveOrangeDeep, fontWeight = FontWeight.Bold)
                                         }
                                     }
                                     Spacer(modifier = Modifier.width(16.dp))
                                     Text("₹${fmt.format(item.itemTotal)}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                                 }
                                 if (index < cart.items.size - 1) {
-                                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outline)
                                 }
                             }
                         }
@@ -643,21 +668,21 @@ fun CheckoutScreen(
                 // 3. Pickup location & 4/5. Date/Slot
                 item {
                     val isDelivery = uiState.orderingMode == OrderingMode.DELIVERY
-                    CheckoutSectionTitle(if (isDelivery) "DELIVERY DETAILS" else "PICKUP DETAILS")
+                    CheckoutSectionTitle(if (isDelivery) "02 · Delivery details" else "02 · Pickup details")
                     Surface(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = GagSpacing.Large),
-                        shape = RoundedCornerShape(20.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 17.dp),
+                        shape = RoundedCornerShape(15.dp),
                         color = MaterialTheme.colorScheme.surface,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        border = androidx.compose.foundation.BorderStroke(1.dp, CraveInk)
                     ) {
                         Column(modifier = Modifier.padding(20.dp)) {
                             // Location part
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Box(
-                                    modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(GagPinkContainer),
+                                    modifier = Modifier.size(34.dp).clip(RoundedCornerShape(9.dp)).background(CraveOrange).border(1.dp, CraveInk, RoundedCornerShape(9.dp)),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(Icons.Filled.Storefront, contentDescription = null, tint = GagPink, modifier = Modifier.size(20.dp))
+                                    Icon(Icons.Filled.Storefront, contentDescription = null, tint = CraveInk, modifier = Modifier.size(18.dp))
                                 }
                                 Spacer(modifier = Modifier.width(16.dp))
                                 Column {
@@ -675,7 +700,7 @@ fun CheckoutScreen(
                                 }
                             }
                             
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), color = MaterialTheme.colorScheme.outline)
 
                             // Time part (Trigger for BottomSheet)
                             Row(
@@ -685,10 +710,10 @@ fun CheckoutScreen(
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Box(
-                                        modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(GagPinkContainer),
+                                        modifier = Modifier.size(34.dp).clip(RoundedCornerShape(9.dp)).background(CraveOrange).border(1.dp, CraveInk, RoundedCornerShape(9.dp)),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(Icons.Filled.Schedule, contentDescription = null, tint = GagPink, modifier = Modifier.size(20.dp))
+                                        Icon(Icons.Filled.Schedule, contentDescription = null, tint = CraveInk, modifier = Modifier.size(18.dp))
                                     }
                                     Spacer(modifier = Modifier.width(16.dp))
                                     Column {
@@ -714,7 +739,7 @@ fun CheckoutScreen(
                                                 Text("$dateLabel · ${uiState.selectedSlot!!.displayTime}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
                                             }
                                             else -> {
-                                                Text("Select pickup time", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = GagPink)
+                                                Text("Select pickup time", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = CraveOrangeDeep)
                                             }
                                         }
                                     }
@@ -728,18 +753,18 @@ fun CheckoutScreen(
                 
                 // Special Instructions (Optional)
                 item {
-                    CheckoutSectionTitle("SPECIAL INSTRUCTIONS")
+                    CheckoutSectionTitle("03 · Special instructions")
                     OutlinedTextField(
                         value = uiState.specialInstructions,
                         onValueChange = viewModel::onInstructionsChanged,
                         placeholder = { Text("e.g. Less spice, extra sauce…", color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold) },
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = GagSpacing.Large),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 17.dp),
                         maxLines = 3,
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(10.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = GagPink,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                            cursorColor = GagPink,
+                            focusedBorderColor = CraveInk,
+                            unfocusedBorderColor = CraveInk,
+                            cursorColor = CraveOrange,
                             focusedContainerColor = MaterialTheme.colorScheme.surface,
                             unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                         ),
@@ -750,18 +775,21 @@ fun CheckoutScreen(
 
                 // 6. Payment
                 item {
-                    CheckoutSectionTitle("PAYMENT")
+                    CheckoutSectionTitle("04 · Payment")
                     Surface(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = GagSpacing.Large),
-                        shape = RoundedCornerShape(20.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 17.dp),
+                        shape = RoundedCornerShape(15.dp),
                         color = MaterialTheme.colorScheme.surface,
-                        border = androidx.compose.foundation.BorderStroke(2.dp, GagPink) // Always Razorpay for now, so highlighted
+                        border = androidx.compose.foundation.BorderStroke(1.dp, CraveInk) // Always Razorpay for now, so highlighted
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(20.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = GagPink, modifier = Modifier.size(24.dp))
+                            Box(
+                                modifier = Modifier.size(24.dp).clip(CircleShape).background(CraveChartreuse).border(1.dp, CraveInk, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) { Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = CraveInk, modifier = Modifier.size(16.dp)) }
                             Spacer(modifier = Modifier.width(16.dp))
                             Column {
                                 Text("Razorpay", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
@@ -774,15 +802,16 @@ fun CheckoutScreen(
 
                 // 7. Total
                 item {
-                    CheckoutSectionTitle("BILL DETAILS")
+                    CheckoutSectionTitle("05 · Bill details")
                     Surface(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = GagSpacing.Large),
-                        shape = RoundedCornerShape(20.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 17.dp),
+                        shape = RoundedCornerShape(18.dp),
+                        color = CraveOrange,
+                        border = androidx.compose.foundation.BorderStroke(2.dp, CraveInk)
                     ) {
                         Column(modifier = Modifier.padding(24.dp)) {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Item total", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                                Text("Item total", style = MaterialTheme.typography.bodyLarge, color = Color(0xFF653025), fontWeight = FontWeight.Bold)
                                 Text("₹${fmt.format(cart.subtotal)}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Black)
                             }
                             Spacer(modifier = Modifier.height(12.dp))
@@ -798,8 +827,8 @@ fun CheckoutScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("Total", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
-                                Text("₹${fmt.format(cart.total)}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = GagPink)
+                                Text("Total", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = CraveInk)
+                                CraveMono("₹${fmt.format(cart.total)}", fontSize = 20f, color = CraveInk)
                             }
                         }
                     }
@@ -810,8 +839,8 @@ fun CheckoutScreen(
                     item {
                         Spacer(modifier = Modifier.height(GagSpacing.ExtraLarge))
                         Surface(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = GagSpacing.Large),
-                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 17.dp),
+                            shape = RoundedCornerShape(12.dp),
                             color = GagErrorContainer
                         ) {
                             Text(
@@ -829,8 +858,8 @@ fun CheckoutScreen(
                     item {
                         Spacer(modifier = Modifier.height(GagSpacing.ExtraLarge))
                         Surface(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = GagSpacing.Large),
-                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 17.dp),
+                            shape = RoundedCornerShape(12.dp),
                             color = GagErrorContainer
                         ) {
                             Text(
@@ -852,12 +881,10 @@ fun CheckoutScreen(
 @Composable
 private fun CheckoutSectionTitle(title: String) {
     Text(
-        text = title, 
-        style = MaterialTheme.typography.labelLarge, 
-        fontWeight = FontWeight.Black,
-        letterSpacing = 1.sp,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(start = GagSpacing.Large, end = GagSpacing.Large, bottom = GagSpacing.Medium)
+        text = title.uppercase(),
+        style = GagEyebrowStyle,
+        color = CraveOrangeDeep,
+        modifier = Modifier.padding(start = 17.dp, end = 17.dp, bottom = GagSpacing.Medium)
     )
 }
 
@@ -919,7 +946,7 @@ private fun PickupScheduleBottomSheet(
                 text = "DATE",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.ExtraBold,
-                color = GagPink,
+                color = CraveOrangeDeep,
                 letterSpacing = 1.2.sp
             )
             Spacer(modifier = Modifier.height(12.dp))
@@ -938,9 +965,9 @@ private fun PickupScheduleBottomSheet(
 
                     Surface(
                         shape = RoundedCornerShape(16.dp),
-                        color = if (isSelected) GagPink else MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-                        border = if (!isSelected) androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null,
+                        color = if (isSelected) CraveChartreuse else MaterialTheme.colorScheme.surface,
+                        contentColor = CraveInk,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) CraveInk else MaterialTheme.colorScheme.outline),
                         modifier = Modifier.clickable { onDateSelected(date) }
                     ) {
                         Text(
@@ -960,7 +987,7 @@ private fun PickupScheduleBottomSheet(
                 text = "AVAILABLE SLOTS",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.ExtraBold,
-                color = GagPink,
+                color = CraveOrangeDeep,
                 letterSpacing = 1.2.sp
             )
             Spacer(modifier = Modifier.height(12.dp))
@@ -968,7 +995,7 @@ private fun PickupScheduleBottomSheet(
             when (val slotsState = uiState.availableSlots) {
                 is UiState.Loading -> {
                     Box(modifier = Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = GagPink, strokeWidth = 4.dp)
+                        CircularProgressIndicator(color = CraveOrange, strokeWidth = 4.dp)
                     }
                 }
                 is UiState.Empty -> {
@@ -1006,7 +1033,7 @@ private fun PickupScheduleBottomSheet(
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         TextButton(onClick = onRetrySlots) {
-                            Text("Try Again", color = GagPink, fontWeight = FontWeight.Black)
+                            Text("Try Again", color = CraveOrangeDeep, fontWeight = FontWeight.Black)
                         }
                     }
                 }
@@ -1027,14 +1054,14 @@ private fun PickupScheduleBottomSheet(
                                     Surface(
                                         shape = RoundedCornerShape(16.dp),
                                         color = when {
-                                            isSelected -> OrbitLime.copy(alpha = 0.12f)
+                                            isSelected -> CraveChartreuse
                                             isFull -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                                             else -> MaterialTheme.colorScheme.surfaceVariant
                                         },
                                         border = androidx.compose.foundation.BorderStroke(
                                             width = if (isSelected) 2.dp else 1.dp,
                                             color = when {
-                                                isSelected -> GagPink
+                                                isSelected -> CraveInk
                                                 isFull -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
                                                 else -> MaterialTheme.colorScheme.outlineVariant
                                             }
@@ -1053,7 +1080,7 @@ private fun PickupScheduleBottomSheet(
                                                 fontWeight = FontWeight.Black,
                                                 color = when {
                                                     isFull -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                                                    isSelected -> GagPink
+                                                    isSelected -> CraveInk
                                                     else -> MaterialTheme.colorScheme.onSurface
                                                 }
                                             )

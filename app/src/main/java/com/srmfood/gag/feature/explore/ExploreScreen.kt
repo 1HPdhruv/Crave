@@ -2,6 +2,13 @@ package com.srmfood.gag.feature.explore
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.FlowRow
+import com.srmfood.gag.core.ui.component.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -42,7 +49,7 @@ import com.srmfood.gag.domain.model.SortOption
 import com.srmfood.gag.feature.search.SearchUiEvent
 import com.srmfood.gag.feature.search.SearchViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun ExploreScreen(
     onFoodClick: (String) -> Unit,
@@ -77,7 +84,9 @@ fun ExploreScreen(
             confirmButton = {
                 Button(
                     onClick = { viewModel.onClearAndAddCart() },
-                    colors = ButtonDefaults.buttonColors(containerColor = GagPink)
+                    colors = ButtonDefaults.buttonColors(containerColor = CraveOrange, contentColor = CraveInk),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, CraveInk),
+                    shape = RoundedCornerShape(10.dp)
                 ) { Text("Clear & Add") }
             },
             dismissButton = {
@@ -96,82 +105,64 @@ fun ExploreScreen(
                     .background(MaterialTheme.colorScheme.background)
                     .statusBarsPadding()
             ) {
-                // Header (EXPLORE)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text(
-                            text = "EXPLORE",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Black,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                        Text(
-                            text = "Find your next bite.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                // Header (website PageHeading: eyebrow + "Find your bite.")
+                Column(modifier = Modifier.fillMaxWidth().padding(start = 17.dp, end = 17.dp, top = 12.dp)) {
+                    CraveEyebrow("Explore")
+                    Text(
+                        text = androidx.compose.ui.text.buildAnnotatedString {
+                            append("Find your ")
+                            withStyle(androidx.compose.ui.text.SpanStyle(color = CraveOrange)) { append("bite.") }
+                        },
+                        style = MaterialTheme.typography.displayMedium.copy(fontSize = 38.sp, lineHeight = 38.sp),
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
                 }
 
-                // Search Bar
-                Row(
+                // Search field: white, 1px ink border
+                OutlinedTextField(
+                    value = uiState.query,
+                    onValueChange = viewModel::onQueryChanged,
+                    placeholder = {
+                        Text(
+                            text = "Biryani, dosa, cold coffee…",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    trailingIcon = {
+                        if (uiState.query.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.onQueryChanged("") }) {
+                                Icon(Icons.Default.Close, "Clear", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(10.dp),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = {
+                        viewModel.search()
+                        keyboard?.hide()
+                    }),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = CraveInk,
+                        unfocusedBorderColor = CraveInk,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        cursorColor = CraveOrange
+                    ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    ) {
-                        OutlinedTextField(
-                            value = uiState.query,
-                            onValueChange = viewModel::onQueryChanged,
-                            placeholder = { 
-                                Text(
-                                    text = "Dish, mood, or place", 
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                ) 
-                            },
-                            leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                            trailingIcon = {
-                                if (uiState.query.isNotEmpty()) {
-                                    IconButton(onClick = { viewModel.onQueryChanged("") }) {
-                                        Icon(Icons.Default.Close, "Clear", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                }
-                            },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                            keyboardActions = KeyboardActions(onSearch = { 
-                                viewModel.search()
-                                keyboard?.hide() 
-                            }),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color.Transparent,
-                                unfocusedBorderColor = Color.Transparent,
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                                cursorColor = GagPink
-                            ),
-                            modifier = Modifier.focusRequester(focusRequester)
-                        )
-                    }
-                }
-                
+                        .padding(horizontal = 17.dp, vertical = 12.dp)
+                        .focusRequester(focusRequester)
+                )
+
                 // Horizontal Filter Row (Always visible)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(horizontal = 17.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     val hasFilters = uiState.filterVegOnly != null || uiState.filterMaxPrice != null || uiState.selectedCategory != null || uiState.sortBy != SortOption.RELEVANCE
@@ -218,7 +209,7 @@ fun ExploreScreen(
                         onClick = { showSortSheet = true }
                     )
                 }
-                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             }
         }
     ) { padding ->
@@ -228,74 +219,23 @@ fun ExploreScreen(
                     // ─── EXPLORE DISCOVERY HUB (IDLE STATE) ───
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        contentPadding = PaddingValues(top = 20.dp, bottom = 24.dp)
                     ) {
-                        // 1. Pick a Feeling
+                        // 1. Categories (wrap, like the website's category chips)
                         item {
-                            CraveSectionHeader(
-                                title = "Pick a Feeling",
-                                onSeeAll = null
+                            CraveHeading(
+                                eyebrow = "Start here",
+                                title = "What’s the vibe?",
+                                modifier = Modifier.padding(horizontal = 17.dp)
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            
-                            val moods = listOf("Comfort", "Bright", "Heat", "Plant")
-                            val moodColors = listOf(
-                                GagYellow.copy(alpha = 0.2f),
-                                GagBlue.copy(alpha = 0.2f),
-                                GagPink.copy(alpha = 0.2f),
-                                GagGreen.copy(alpha = 0.2f)
-                            )
-                            
-                            LazyRow(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                items(moods.size) { index ->
-                                    val mood = moods[index]
-                                    Box(
-                                        modifier = Modifier
-                                            .width(100.dp)
-                                            .height(80.dp)
-                                            .clip(RoundedCornerShape(16.dp))
-                                            .background(moodColors[index])
-                                            .clickable {
-                                                when (mood) {
-                                                    "Comfort" -> { viewModel.onQueryChanged(""); viewModel.onCategorySelected("Fast Food") }
-                                                    "Bright" -> { viewModel.onQueryChanged(""); viewModel.onCategorySelected("Beverages") }
-                                                    "Heat" -> { viewModel.onQueryChanged(""); viewModel.onCategorySelected("North Indian") }
-                                                    "Plant" -> { viewModel.onQueryChanged(""); viewModel.onVegFilterChanged(true); viewModel.search() }
-                                                }
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = mood,
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        // 2. Categories
-                        item {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            CraveSectionHeader(
-                                title = "Categories",
-                                onSeeAll = null
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            
-                            if (uiState.categories is UiState.Success) {
-                                val cats = (uiState.categories as UiState.Success).data
-                                LazyRow(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            Spacer(modifier = Modifier.height(14.dp))
+                            when (val cats = uiState.categories) {
+                                is UiState.Success -> FlowRow(
+                                    modifier = Modifier.padding(horizontal = 17.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    items(cats) { category ->
+                                    cats.data.forEach { category ->
                                         GagCategoryChip(
                                             label = category.name,
                                             isSelected = uiState.selectedCategory == category.name,
@@ -305,113 +245,58 @@ fun ExploreScreen(
                                         )
                                     }
                                 }
-                            } else if (uiState.categories is UiState.Loading) {
-                                LazyRow(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                is UiState.Loading -> FlowRow(
+                                    modifier = Modifier.padding(horizontal = 17.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    items(5) {
-                                        Box(
-                                            modifier = Modifier
-                                                .width(72.dp)
-                                                .height(96.dp)
-                                                .clip(RoundedCornerShape(36.dp))
-                                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                        )
+                                    repeat(6) {
+                                        GagLoadingSkeleton(Modifier.size(92.dp, 38.dp).clip(CircleShape))
                                     }
                                 }
+                                else -> {}
                             }
+                            Spacer(modifier = Modifier.height(32.dp))
+                            CraveHeading(
+                                eyebrow = "Campus favourites",
+                                title = "Popular right now",
+                                modifier = Modifier.padding(horizontal = 17.dp)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
                         }
 
-                        // 3. CAMPUS FAVORITES
-                        item {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Column {
-                                Text(
-                                    text = "CAMPUS FAVORITES",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Black,
-                                    color = MaterialTheme.colorScheme.onBackground
+                        // 2. Campus favourites — 2 per row
+                        when (val favs = uiState.campusFavorites) {
+                            is UiState.Loading -> craveGridItems(List(4) { it }) {
+                                GagLoadingSkeleton(Modifier.fillMaxWidth().height(250.dp).clip(RoundedCornerShape(16.dp)))
+                            }
+                            is UiState.Success -> craveGridItems(favs.data, key = { "fav_${it.id}" }) { food ->
+                                FoodItemCard(
+                                    foodItem = food,
+                                    onClick = { onFoodClick(food.id) },
+                                    onAddToCart = { viewModel.onAddToCartClicked(food) },
+                                    onFavoriteToggle = { viewModel.toggleFavorite(food.id) },
+                                    isFavorite = food.isFavorite,
+                                    modifier = Modifier.fillMaxWidth()
                                 )
+                            }
+                            is UiState.Empty -> item {
                                 Text(
-                                    text = "Popular around campus",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    text = "No popular picks yet. Try searching for a dish or category.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 17.dp)
                                 )
                             }
-                            Spacer(modifier = Modifier.height(12.dp))
-                        }
-
-                        when (uiState.campusFavorites) {
-                            is UiState.Loading -> {
-                                items(2) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .height(180.dp)
-                                                .clip(RoundedCornerShape(16.dp))
-                                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                        )
-                                        Box(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .height(180.dp)
-                                                .clip(RoundedCornerShape(16.dp))
-                                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                        )
-                                    }
-                                }
-                            }
-                            is UiState.Success -> {
-                                val favs = (uiState.campusFavorites as UiState.Success).data
-                                items(favs.chunked(2), key = { row -> "fav_${row.first().id}" }) { pair ->
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                    ) {
-                                        FoodItemCard(
-                                            foodItem = pair[0],
-                                            onClick = { onFoodClick(pair[0].id) },
-                                            onAddToCart = { viewModel.onAddToCartClicked(pair[0]) },
-                                            onFavoriteToggle = { viewModel.toggleFavorite(pair[0].id) },
-                                            isFavorite = pair[0].isFavorite,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        if (pair.size > 1) {
-                                            FoodItemCard(
-                                                foodItem = pair[1],
-                                                onClick = { onFoodClick(pair[1].id) },
-                                                onAddToCart = { viewModel.onAddToCartClicked(pair[1]) },
-                                                onFavoriteToggle = { viewModel.toggleFavorite(pair[1].id) },
-                                                isFavorite = pair[1].isFavorite,
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                        } else {
-                                            Spacer(modifier = Modifier.weight(1f))
-                                        }
-                                    }
-                                }
-                            }
-                            is UiState.Empty -> {
-                                item {
-                                    Text(
-                                        text = "No popular picks yet. Try searching for a dish or category.",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                            is UiState.Error -> {
-                                item {
+                            is UiState.Error -> item {
+                                Column(modifier = Modifier.padding(horizontal = 17.dp)) {
                                     Text(
                                         text = "Could not load campus favorites.",
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = GagError
                                     )
+                                    Spacer(Modifier.height(8.dp))
+                                    GagSecondaryButton(text = "Try again", onClick = viewModel::search, modifier = Modifier.width(140.dp))
                                 }
                             }
                             else -> {}
@@ -421,17 +306,10 @@ fun ExploreScreen(
                 is UiState.Loading -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        contentPadding = PaddingValues(top = 20.dp)
                     ) {
-                        items(4) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(140.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                            )
+                        craveGridItems(List(6) { it }) {
+                            GagLoadingSkeleton(Modifier.fillMaxWidth().height(250.dp).clip(RoundedCornerShape(16.dp)))
                         }
                     }
                 }
@@ -453,8 +331,7 @@ fun ExploreScreen(
                 is UiState.Success -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp)
                     ) {
                         item {
                             val headerText = if (uiState.query.isNotEmpty() && uiState.selectedCategory != null) {
@@ -464,24 +341,24 @@ fun ExploreScreen(
                             } else if (uiState.selectedCategory != null) {
                                 "Browsing ${uiState.selectedCategory}"
                             } else {
-                                "${results.data.size} items found"
+                                "${results.data.size} item${if (results.data.size == 1) "" else "s"} found"
                             }
-    
+
                             Text(
                                 text = headerText,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onBackground,
-                                modifier = Modifier.padding(bottom = 8.dp)
+                                style = GagMonoStyle.copy(fontSize = 11.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 17.dp).padding(bottom = 14.dp)
                             )
                         }
-                        items(results.data, key = { it.id }) { food ->
+                        craveGridItems(results.data, key = { it.id }) { food ->
                             FoodItemCard(
                                 foodItem = food,
                                 onClick = { onFoodClick(food.id) },
                                 onAddToCart = { viewModel.onAddToCartClicked(food) },
                                 onFavoriteToggle = { viewModel.toggleFavorite(food.id) },
-                                isFavorite = food.isFavorite
+                                isFavorite = food.isFavorite,
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
                     }
@@ -620,10 +497,15 @@ private fun FilterOptionRow(
             text = label, 
             style = MaterialTheme.typography.bodyLarge, 
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-            color = if (isSelected) GagPink else MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSurface
         )
         if (isSelected) {
-            Icon(Icons.Default.Check, "Selected", tint = GagPink, modifier = Modifier.size(20.dp))
+            Box(
+                modifier = Modifier.size(22.dp).clip(CircleShape).background(CraveChartreuse).border(1.dp, CraveInk, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Check, "Selected", tint = CraveInk, modifier = Modifier.size(14.dp))
+            }
         }
     }
 }

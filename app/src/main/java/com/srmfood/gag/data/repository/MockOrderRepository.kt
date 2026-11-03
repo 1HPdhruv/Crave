@@ -28,6 +28,8 @@ class MockOrderRepository @Inject constructor(
     private val orderDao: OrderDao
 ) : OrderRepository {
 
+    override suspend fun refreshOrders(): Result<Unit> = Result.success(Unit)
+
     override fun getOrders(): Flow<List<Order>> {
         return orderDao.observeOrders().map { entities ->
             entities.map { it.toDomain() }

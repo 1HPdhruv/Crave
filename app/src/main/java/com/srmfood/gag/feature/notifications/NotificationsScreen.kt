@@ -32,6 +32,7 @@ import com.srmfood.gag.domain.model.NotificationType
 fun NotificationsScreen(
     onBack: () -> Unit,
     onOrderClick: (String) -> Unit,
+    onTicketClick: (String) -> Unit = {},
     viewModel: NotificationsViewModel = hiltViewModel()
 ) {
     val state by viewModel.notifications.collectAsState()
@@ -45,7 +46,7 @@ fun NotificationsScreen(
 
             is UiState.Error -> GagErrorScreen(
                 message = uiState.message,
-                onRetry = { /* ViewModel reloads on init */ },
+                onRetry = viewModel::retry,
                 modifier = Modifier.padding(padding)
             )
 
@@ -89,17 +90,17 @@ fun NotificationsScreen(
                                         Text(
                                             "Stay up to date",
                                             style = MaterialTheme.typography.titleMedium,
-                                            color = GagPink
+                                            color = CraveOrangeDeep
                                         )
                                     }
                                     if (unreadCount > 0) {
                                         Surface(
                                             shape = RoundedCornerShape(20.dp),
-                                            color = GagPink
+                                            color = CraveOrangeDeep
                                         ) {
                                             Text(
                                                 text = "$unreadCount new",
-                                                color = androidx.compose.ui.graphics.Color.White,
+                                                color = CraveInk,
                                                 style = MaterialTheme.typography.labelMedium,
                                                 fontWeight = FontWeight.Bold,
                                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
@@ -115,7 +116,9 @@ fun NotificationsScreen(
                                 notification = notification,
                                 onClick = {
                                     if (!notification.isRead) viewModel.markAsRead(notification.id)
-                                    notification.orderId?.let { onOrderClick(it) }
+                                    val ticketId = com.srmfood.gag.feature.support.ticketIdFromDeepLink(notification.deepLink)
+                                    if (ticketId != null) onTicketClick(ticketId)
+                                    else notification.orderId?.let { onOrderClick(it) }
                                 }
                             )
                         }

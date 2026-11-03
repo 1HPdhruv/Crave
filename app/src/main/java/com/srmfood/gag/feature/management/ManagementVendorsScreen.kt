@@ -1,5 +1,7 @@
 package com.srmfood.gag.feature.management
 
+import com.srmfood.gag.core.ui.theme.OrbitLimeDark
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -59,7 +61,7 @@ fun ManagementVendorsScreen(
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     text = "CRAVE | MANAGEMENT",
-                    color = OrbitLime,
+                    color = OrbitLimeDark,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp
@@ -76,9 +78,9 @@ fun ManagementVendorsScreen(
                 enabled = !isRefreshing
             ) {
                 if (isRefreshing) {
-                    CircularProgressIndicator(color = OrbitLime, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                    CircularProgressIndicator(color = OrbitLimeDark, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                 } else {
-                    Icon(imageVector = Icons.Filled.Refresh, contentDescription = "Refresh", tint = OrbitLime)
+                    Icon(imageVector = Icons.Filled.Refresh, contentDescription = "Refresh", tint = OrbitLimeDark)
                 }
             }
         }
@@ -91,7 +93,7 @@ fun ManagementVendorsScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
             placeholder = { Text("Search vendors...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "Search", tint = OrbitLime) },
+            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "Search", tint = OrbitLimeDark) },
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
                     IconButton(onClick = {
@@ -148,7 +150,7 @@ fun ManagementVendorsScreen(
         when (val state = vendorsState) {
             is UiState.Loading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = OrbitLime)
+                    CircularProgressIndicator(color = OrbitLimeDark)
                 }
             }
             is UiState.Error -> {
@@ -288,7 +290,7 @@ private fun ManagementVendorCard(
                 if (isPending) {
                     Text(
                         text = "View Application",
-                        color = OrbitLime,
+                        color = OrbitLimeDark,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold
                     )

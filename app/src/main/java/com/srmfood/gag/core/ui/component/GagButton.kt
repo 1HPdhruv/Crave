@@ -4,7 +4,10 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.srmfood.gag.core.ui.theme.CraveInk
+import com.srmfood.gag.core.ui.theme.CraveLine
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -42,7 +45,7 @@ fun GagPrimaryButton(
         onClick = { if (!isLoading) onClick() },
         modifier = modifier
             .fillMaxWidth()
-            .height(56.dp)
+            .height(52.dp)
             .scale(scale),
         enabled = enabled && !isLoading,
         interactionSource = interactionSource,
@@ -52,8 +55,9 @@ fun GagPrimaryButton(
             disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
             disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
         ),
-        shape = CircleShape,
-        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp)
+        border = BorderStroke(1.dp, if (enabled && !isLoading) CraveInk else MaterialTheme.colorScheme.outline),
+        shape = RoundedCornerShape(10.dp),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp)
     ) {
         if (isLoading) {
             CircularProgressIndicator(
@@ -94,12 +98,10 @@ fun GagSecondaryButton(
             .height(52.dp),
         enabled = enabled,
         colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = MaterialTheme.colorScheme.primary
+            contentColor = MaterialTheme.colorScheme.onSurface
         ),
-        border = androidx.compose.foundation.BorderStroke(
-            1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-        ),
-        shape = CircleShape
+        border = BorderStroke(1.dp, CraveInk),
+        shape = RoundedCornerShape(10.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             icon?.let {
@@ -122,7 +124,7 @@ fun GagTextButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    color: Color = MaterialTheme.colorScheme.primary   // Token-based default
+    color: Color = MaterialTheme.colorScheme.onSurface   // Website text-button: ink
 ) {
     TextButton(
         onClick = onClick,
@@ -158,7 +160,8 @@ fun GagTonalButton(
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer
         ),
-        shape = CircleShape
+        border = BorderStroke(1.dp, CraveInk),
+        shape = RoundedCornerShape(10.dp)
     ) {
         if (isLoading) {
             CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)

@@ -1,5 +1,15 @@
 package com.srmfood.gag.feature.management
 
+import com.srmfood.gag.core.ui.theme.OrbitSuccess
+
+import com.srmfood.gag.core.ui.theme.StatusAccepted
+
+import com.srmfood.gag.core.ui.theme.OrbitWarning
+
+import com.srmfood.gag.core.ui.theme.GagOnSurfaceVariant
+
+import com.srmfood.gag.core.ui.theme.OrbitLimeDark
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -61,7 +71,7 @@ fun ManagementUserDetailScreen(
             when (val state = detailState) {
                 is UiState.Loading -> {
                     CircularProgressIndicator(
-                        color = OrbitLime,
+                        color = OrbitLimeDark,
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
@@ -145,9 +155,9 @@ private fun UserDetailContent(data: UserDetailData) {
         // Role Section
         DetailSection("ROLE & STATUS") {
             val roleColor = when (user.role) {
-                UserRole.ADMIN -> Color(0xFF9C27B0)
-                UserRole.VENDOR -> Color(0xFFFF9800)
-                UserRole.PENDING_VENDOR -> Color(0xFF607D8B)
+                UserRole.ADMIN -> StatusAccepted
+                UserRole.VENDOR -> OrbitWarning
+                UserRole.PENDING_VENDOR -> GagOnSurfaceVariant
                 UserRole.STUDENT -> OrbitLime
             }
             val roleDisplay = when (user.role) {
@@ -173,7 +183,7 @@ private fun UserDetailContent(data: UserDetailData) {
             DetailRow("Backend Enum", user.role.name)
             
             val statusText = if (user.isActive) "ACTIVE" else "SUSPENDED"
-            val statusColor = if (user.isActive) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error
+            val statusColor = if (user.isActive) OrbitSuccess else MaterialTheme.colorScheme.error
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Account Status:", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
                 Text(

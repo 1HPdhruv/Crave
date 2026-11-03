@@ -67,6 +67,8 @@ class SearchViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SearchUiState(
+        // the route's query argument used to be ignored: the field started empty while results used it
+        query = savedStateHandle.get<String>("query").orEmpty(),
         selectedCategory = savedStateHandle.get<String>("category")
     ))
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
@@ -116,8 +118,8 @@ class SearchViewModel @Inject constructor(
             }
         }
 
-        // If a category was passed initially, trigger a search immediately.
-        if (_uiState.value.selectedCategory != null) {
+        // A category or query passed through the route triggers a search immediately.
+        if (_uiState.value.selectedCategory != null || _uiState.value.query.trim().length >= MIN_QUERY) {
             search()
         }
 
@@ -127,9 +129,12 @@ class SearchViewModel @Inject constructor(
                 .distinctUntilChanged()
                 .collect { query ->
                     val hasCategory = _uiState.value.selectedCategory != null
-                    if (query.length >= 2 || (hasCategory && query.isBlank())) {
+                    val q = query.trim()
+                    if (q.length >= MIN_QUERY || (hasCategory && q.isBlank())) {
                         search()
-                    } else if (query.isBlank() && !hasCategory) {
+                    } else if (!hasCategory) {
+                        // Too short to search: drop any in-flight request so it can't resurrect old results.
+                        searchJob?.cancel()
                         _uiState.update { it.copy(results = UiState.Idle) }
                     }
                 }
@@ -141,23 +146,32 @@ class SearchViewModel @Inject constructor(
         _queryFlow.value = query
     }
 
-    fun onVegFilterChanged(vegOnly: Boolean?) = _uiState.update { it.copy(filterVegOnly = vegOnly) }
-    fun onMaxPriceChanged(price: Double?) = _uiState.update { it.copy(filterMaxPrice = price) }
-    fun onMaxPrepTimeChanged(mins: Int?) = _uiState.update { it.copy(filterMaxPrepTime = mins) }
-    fun onMinRatingChanged(rating: Double?) = _uiState.update { it.copy(filterMinRating = rating) }
+    /** Re-runs the current search after a filter/sort change, but only when a search is actually active. */
+    private fun researchIfActive() {
+        val s = _uiState.value
+        if (s.selectedCategory != null || s.query.trim().length >= MIN_QUERY) search()
+    }
+
+    fun onVegFilterChanged(vegOnly: Boolean?) { _uiState.update { it.copy(filterVegOnly = vegOnly) }; researchIfActive() }
+    fun onMaxPriceChanged(price: Double?) { _uiState.update { it.copy(filterMaxPrice = price) }; researchIfActive() }
+    fun onMaxPrepTimeChanged(mins: Int?) { _uiState.update { it.copy(filterMaxPrepTime = mins) }; researchIfActive() }
+    fun onMinRatingChanged(rating: Double?) { _uiState.update { it.copy(filterMinRating = rating) }; researchIfActive() }
     
     fun onCategorySelected(cat: String?) {
         _uiState.update { it.copy(selectedCategory = cat) }
         search() // Automatically trigger search when category changes
     }
     
-    fun onSortChanged(sort: SortOption) = _uiState.update { it.copy(sortBy = sort) }
+    fun onSortChanged(sort: SortOption) { _uiState.update { it.copy(sortBy = sort) }; researchIfActive() }
     fun toggleFilters() = _uiState.update { it.copy(showFilters = !it.showFilters) }
 
+    private var searchJob: kotlinx.coroutines.Job? = null
+
+    /** Latest request wins: starting a new search cancels the previous one, so a slow old response can't overwrite newer results. */
     fun search() {
         val state = _uiState.value
         val filter = FoodSearchFilter(
-            query = state.query,
+            query = state.query.trim(),
             category = state.selectedCategory,
             isVeg = state.filterVegOnly,
             maxPrice = state.filterMaxPrice,
@@ -165,7 +179,8 @@ class SearchViewModel @Inject constructor(
             minRating = state.filterMinRating,
             sortBy = state.sortBy
         )
-        viewModelScope.launch {
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
             _uiState.update { it.copy(results = UiState.Loading) }
             val result = searchFoodUseCase(filter)
             _uiState.update {
@@ -173,7 +188,7 @@ class SearchViewModel @Inject constructor(
                     results = result.fold(
                         onSuccess = { items -> if (items.isEmpty()) UiState.Empty else UiState.Success(items) },
                         onFailure = { err ->
-                            android.util.Log.e("SearchViewModel", "Search RPC failed. Reason: ${err.message}", err)
+                            com.srmfood.gag.core.common.SafeLog.e("SearchViewModel", "Search RPC failed. Reason: ${err.message}", err)
                             UiState.Error("Unable to search right now. Please try again.")
                         }
                     )
@@ -181,6 +196,8 @@ class SearchViewModel @Inject constructor(
             }
         }
     }
+
+    companion object { const val MIN_QUERY = 2 }
 
     fun onAddToCartClicked(foodItem: FoodItem) {
         viewModelScope.launch {
@@ -199,7 +216,9 @@ class SearchViewModel @Inject constructor(
             addToCartUseCase(foodItem, 1).onSuccess {
                 _events.emit(SearchUiEvent.ShowSnackbar("Added ${foodItem.name} to cart"))
             }.onFailure {
-                _events.emit(SearchUiEvent.ShowSnackbar("Failed to add: ${it.message}"))
+                _events.emit(SearchUiEvent.ShowSnackbar(
+                    if (it is com.srmfood.gag.domain.usecase.outlet.OutletUnavailableException) it.message ?: "This outlet can't take orders right now."
+                    else "Couldn't add to cart: " + com.srmfood.gag.core.common.UiState.Error.userFacing(it.message ?: "please try again")))
             }
             _uiState.update { it.copy(pendingAddFoodItem = null) }
         }

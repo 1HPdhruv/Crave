@@ -36,12 +36,15 @@ class VendorOrdersViewModel @Inject constructor(
     private val _orders = MutableStateFlow<UiState<List<Order>>>(UiState.Loading)
     val orders: StateFlow<UiState<List<Order>>> = _orders.asStateFlow()
 
-    init {
+    init { load() }
+
+    fun load(silent: Boolean = false) {
         viewModelScope.launch {
-            val result = getVendorOrdersUseCase()
-            _orders.value = result.fold(
-                onSuccess = { if (it.isEmpty()) UiState.Empty else UiState.Success(it) },
-                onFailure = { UiState.Error(it.message ?: "Failed") }
+            val hadData = _orders.value is UiState.Success
+            if (!silent || !hadData) _orders.value = UiState.Loading
+            getVendorOrdersUseCase().fold(
+                onSuccess = { _orders.value = if (it.isEmpty()) UiState.Empty else UiState.Success(it) },
+                onFailure = { if (!(silent && hadData)) _orders.value = UiState.Error(it.message ?: "Failed") }
             )
         }
     }
@@ -54,6 +57,7 @@ fun VendorOrdersScreen(
     viewModel: VendorOrdersViewModel = hiltViewModel()
 ) {
     val ordersState by viewModel.orders.collectAsState()
+    LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(15_000); viewModel.load(silent = true) } }
 
     Scaffold(
         topBar = { GagTopBar(title = "All Orders", onBack = onBack) },
@@ -61,6 +65,7 @@ fun VendorOrdersScreen(
     ) { padding ->
         when (val state = ordersState) {
             is UiState.Loading -> GagLoadingScreen(modifier = Modifier.padding(padding))
+            is UiState.Error -> com.srmfood.gag.core.ui.component.GagErrorScreen(message = state.message, onRetry = { viewModel.load() }, modifier = Modifier.padding(padding))
             is UiState.Empty -> GagEmptyScreen(title = "No orders found", modifier = Modifier.padding(padding))
             is UiState.Success -> {
                 LazyColumn(modifier = Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {

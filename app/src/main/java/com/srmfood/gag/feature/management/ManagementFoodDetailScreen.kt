@@ -1,5 +1,11 @@
 package com.srmfood.gag.feature.management
 
+import com.srmfood.gag.core.ui.theme.OrbitSuccess
+
+import com.srmfood.gag.core.ui.theme.OrbitError
+
+import com.srmfood.gag.core.ui.theme.OrbitLimeDark
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -53,7 +59,7 @@ fun ManagementFoodDetailScreen(
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {
             when (val state = detailState) {
                 is UiState.Loading -> {
-                    CircularProgressIndicator(color = OrbitLime, modifier = Modifier.align(Alignment.Center))
+                    CircularProgressIndicator(color = OrbitLimeDark, modifier = Modifier.align(Alignment.Center))
                 }
                 is UiState.Error -> {
                     Column(
@@ -94,7 +100,7 @@ fun ManagementFoodDetailScreen(
                                 }
                                 
                                 Text(foodItem.name, color = MaterialTheme.colorScheme.onBackground, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                                Text("₹${foodItem.price.toInt()}", color = OrbitLime, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                                Text("₹${foodItem.price.toInt()}", color = OrbitLimeDark, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                             }
                         }
 
@@ -104,9 +110,9 @@ fun ManagementFoodDetailScreen(
                             BaseCard {
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     if (foodItem.isVeg) {
-                                        StatusBadge("VEG", Color(0xFF4CAF50))
+                                        StatusBadge("VEG", OrbitSuccess)
                                     } else {
-                                        StatusBadge("NON-VEG", Color(0xFFF44336))
+                                        StatusBadge("NON-VEG", OrbitError)
                                     }
 
                                     if (foodItem.isAvailable) {

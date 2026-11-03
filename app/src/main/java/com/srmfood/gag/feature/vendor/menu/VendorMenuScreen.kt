@@ -1,5 +1,6 @@
 package com.srmfood.gag.feature.vendor.menu
 
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -56,11 +57,15 @@ class VendorMenuViewModel @Inject constructor(
         }
     }
 
+    private val _message = MutableStateFlow<String?>(null)
+    val message: StateFlow<String?> = _message.asStateFlow()
+    fun messageShown() { _message.value = null }
+
     fun toggleAvailability(foodId: String, currentVal: Boolean) {
         viewModelScope.launch {
-            // Optimistic UI update could go here
             updateFoodAvailabilityUseCase(foodId, !currentVal)
-            loadMenu()
+                .onFailure { _message.value = "Couldn't change availability. Please try again." }
+            loadMenu() // always show the server's truth
         }
     }
 }
@@ -68,15 +73,28 @@ class VendorMenuViewModel @Inject constructor(
 @Composable
 fun VendorMenuScreen(
     onBack: () -> Unit,
+    onAddItem: () -> Unit = {},
+    onEditItem: (String) -> Unit = {},
+    externalMessage: String? = null,
+    onMessageShown: () -> Unit = {},
     viewModel: VendorMenuViewModel = hiltViewModel()
 ) {
     val state by viewModel.foodItems.collectAsState()
+    val vmMessage by viewModel.message.collectAsState()
+    val snack = remember { SnackbarHostState() }
+    LaunchedEffect(externalMessage) { if (externalMessage != null) { viewModel.loadMenu(); snack.showSnackbar(externalMessage); onMessageShown() } }
+    LaunchedEffect(vmMessage) { vmMessage?.let { snack.showSnackbar(it); viewModel.messageShown() } }
 
-    Scaffold(topBar = { GagTopBar("Manage Menu", onBack = onBack) }, containerColor = MaterialTheme.colorScheme.background) { padding ->
+    Scaffold(
+        topBar = { GagTopBar("Manage Menu", onBack = onBack) },
+        snackbarHost = { SnackbarHost(snack) },
+        floatingActionButton = { ExtendedFloatingActionButton(onClick = onAddItem, text = { Text("Add item") }, icon = { Icon(androidx.compose.material.icons.Icons.Filled.Add, null) }) },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { padding ->
         when (val uiState = state) {
             is UiState.Loading -> GagLoadingScreen(modifier = Modifier.padding(padding))
-            is UiState.Empty -> GagEmptyScreen(title = "No menu items found.", modifier = Modifier.padding(padding))
-            is UiState.Error -> GagEmptyScreen(title = uiState.message, modifier = Modifier.padding(padding))
+            is UiState.Empty -> GagEmptyScreen(title = "No menu items yet", message = "Tap “Add item” to create your first dish.", modifier = Modifier.padding(padding))
+            is UiState.Error -> com.srmfood.gag.core.ui.component.GagErrorScreen(message = uiState.message, onRetry = viewModel::loadMenu, modifier = Modifier.padding(padding))
             is UiState.Success -> {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().padding(padding),
@@ -84,7 +102,7 @@ fun VendorMenuScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(uiState.data, key = { it.id }) { food ->
-                        VendorFoodCard(food = food, onToggleAvailability = { viewModel.toggleAvailability(food.id, food.isAvailable) })
+                        VendorFoodCard(food = food, onClick = { onEditItem(food.id) }, onToggleAvailability = { viewModel.toggleAvailability(food.id, food.isAvailable) })
                     }
                 }
             }
@@ -94,8 +112,9 @@ fun VendorMenuScreen(
 }
 
 @Composable
-private fun VendorFoodCard(food: FoodItem, onToggleAvailability: () -> Unit) {
+private fun VendorFoodCard(food: FoodItem, onClick: () -> Unit, onToggleAvailability: () -> Unit) {
     Card(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = GagSurface),

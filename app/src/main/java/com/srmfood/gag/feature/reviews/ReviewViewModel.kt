@@ -113,7 +113,7 @@ class ReviewViewModel @Inject constructor(
                             error = if (currentState.existingReviewId != null) "Unable to update your review." else "Unable to submit your review."
                         ) 
                     }
-                    android.util.Log.e("ReviewViewModel", "Submit review failed", e)
+                    com.srmfood.gag.core.common.SafeLog.e("ReviewViewModel", "Submit review failed", e)
                 }
             )
         }

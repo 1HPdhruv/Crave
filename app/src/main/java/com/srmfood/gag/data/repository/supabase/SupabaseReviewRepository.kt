@@ -67,7 +67,7 @@ class SupabaseReviewRepository @Inject constructor(
 
         page.toDomain()
     }.onFailure { e ->
-        android.util.Log.e(TAG, "getFoodReviews($foodItemId) failed", e)
+        com.srmfood.gag.core.common.SafeLog.e(TAG, "getFoodReviews($foodItemId) failed", e)
     }
 
     override suspend fun getReviewForOrderItem(orderItemId: String): Result<FoodReview?> =
@@ -86,7 +86,7 @@ class SupabaseReviewRepository @Inject constructor(
                 kotlinx.serialization.json.Json.decodeFromString<ReviewDto>(raw).toDomain()
             }
         }.onFailure { e ->
-            android.util.Log.e(TAG, "getReviewForOrderItem($orderItemId) failed", e)
+            com.srmfood.gag.core.common.SafeLog.e(TAG, "getReviewForOrderItem($orderItemId) failed", e)
         }
 
     // ─── Student — Mutating Reviews ───────────────────────────────────────────
@@ -116,7 +116,7 @@ class SupabaseReviewRepository @Inject constructor(
 
         dto.toDomain()
     }.onFailure { e ->
-        android.util.Log.e(TAG, "createReview failed for orderItem=$orderItemId", e)
+        com.srmfood.gag.core.common.SafeLog.e(TAG, "createReview failed for orderItem=$orderItemId", e)
     }
 
     override suspend fun updateReview(
@@ -135,7 +135,7 @@ class SupabaseReviewRepository @Inject constructor(
 
         dto.toDomain()
     }.onFailure { e ->
-        android.util.Log.e(TAG, "updateReview($reviewId) failed", e)
+        com.srmfood.gag.core.common.SafeLog.e(TAG, "updateReview($reviewId) failed", e)
     }
 
     override suspend fun deleteReview(reviewId: String): Result<Unit> = runCatching {
@@ -146,7 +146,7 @@ class SupabaseReviewRepository @Inject constructor(
         }
         Unit  // Explicitly return Unit; delete() returns PostgrestResult
     }.onFailure { e ->
-        android.util.Log.e(TAG, "deleteReview($reviewId) failed", e)
+        com.srmfood.gag.core.common.SafeLog.e(TAG, "deleteReview($reviewId) failed", e)
     }
 
     // ─── Vendor Operations ────────────────────────────────────────────────────
@@ -162,7 +162,7 @@ class SupabaseReviewRepository @Inject constructor(
 
         page.toDomain()
     }.onFailure { e ->
-        android.util.Log.e(TAG, "getVendorReviews failed", e)
+        com.srmfood.gag.core.common.SafeLog.e(TAG, "getVendorReviews failed", e)
     }
 
     override suspend fun createVendorReply(
@@ -184,7 +184,7 @@ class SupabaseReviewRepository @Inject constructor(
 
         dto.toDomain()
     }.onFailure { e ->
-        android.util.Log.e(TAG, "createVendorReply(reviewId=$reviewId) failed", e)
+        com.srmfood.gag.core.common.SafeLog.e(TAG, "createVendorReply(reviewId=$reviewId) failed", e)
     }
 
     override suspend fun updateVendorReply(
@@ -202,7 +202,7 @@ class SupabaseReviewRepository @Inject constructor(
 
         dto.toDomain()
     }.onFailure { e ->
-        android.util.Log.e(TAG, "updateVendorReply($replyId) failed", e)
+        com.srmfood.gag.core.common.SafeLog.e(TAG, "updateVendorReply($replyId) failed", e)
     }
 
     override suspend fun deleteVendorReply(replyId: String): Result<Unit> = runCatching {
@@ -213,7 +213,7 @@ class SupabaseReviewRepository @Inject constructor(
         }
         Unit
     }.onFailure { e ->
-        android.util.Log.e(TAG, "deleteVendorReply($replyId) failed", e)
+        com.srmfood.gag.core.common.SafeLog.e(TAG, "deleteVendorReply($replyId) failed", e)
     }
 
     // ─── Management / Admin Operations ───────────────────────────────────────
@@ -229,7 +229,7 @@ class SupabaseReviewRepository @Inject constructor(
 
         page.toDomain()
     }.onFailure { e ->
-        android.util.Log.e(TAG, "getManagementReviews failed", e)
+        com.srmfood.gag.core.common.SafeLog.e(TAG, "getManagementReviews failed", e)
     }
 
     override suspend fun setReviewVisibility(
@@ -245,7 +245,7 @@ class SupabaseReviewRepository @Inject constructor(
         }
         Unit
     }.onFailure { e ->
-        android.util.Log.e(TAG, "setReviewVisibility($reviewId) failed", e)
+        com.srmfood.gag.core.common.SafeLog.e(TAG, "setReviewVisibility($reviewId) failed", e)
     }
 
     // ─── Outlet Reviews ───────────────────────────────────────────────────────
@@ -273,7 +273,7 @@ class SupabaseReviewRepository @Inject constructor(
 
         dto.toDomain()
     }.onFailure { e ->
-        android.util.Log.e(TAG, "submitOutletReview failed", e)
+        com.srmfood.gag.core.common.SafeLog.e(TAG, "submitOutletReview failed", e)
     }
 
     override suspend fun updateOutletReview(
@@ -295,7 +295,7 @@ class SupabaseReviewRepository @Inject constructor(
 
         dto.toDomain()
     }.onFailure { e ->
-        android.util.Log.e(TAG, "updateOutletReview($reviewId) failed", e)
+        com.srmfood.gag.core.common.SafeLog.e(TAG, "updateOutletReview($reviewId) failed", e)
     }
 
     override suspend fun deleteOutletReview(reviewId: String): Result<Unit> = runCatching {
@@ -305,7 +305,7 @@ class SupabaseReviewRepository @Inject constructor(
         }
         Unit
     }.onFailure { e ->
-        android.util.Log.e(TAG, "deleteOutletReview($reviewId) failed", e)
+        com.srmfood.gag.core.common.SafeLog.e(TAG, "deleteOutletReview($reviewId) failed", e)
     }
 
     override suspend fun getOutletReviews(
@@ -327,7 +327,7 @@ class SupabaseReviewRepository @Inject constructor(
 
         pageDto.toDomain()
     }.onFailure { e ->
-        android.util.Log.e(TAG, "getOutletReviews($outletId) failed", e)
+        com.srmfood.gag.core.common.SafeLog.e(TAG, "getOutletReviews($outletId) failed", e)
     }
 
     override suspend fun getOutletReviewForOrder(orderId: String): Result<OutletReview?> = runCatching {
@@ -347,7 +347,7 @@ class SupabaseReviewRepository @Inject constructor(
             null
         }
     }.onFailure { e ->
-        android.util.Log.e(TAG, "getOutletReviewForOrder($orderId) failed", e)
+        com.srmfood.gag.core.common.SafeLog.e(TAG, "getOutletReviewForOrder($orderId) failed", e)
     }
 
     override suspend fun submitOutletVendorReply(
@@ -369,7 +369,7 @@ class SupabaseReviewRepository @Inject constructor(
 
         dto.toDomain()
     }.onFailure { e ->
-        android.util.Log.e(TAG, "submitOutletVendorReply failed", e)
+        com.srmfood.gag.core.common.SafeLog.e(TAG, "submitOutletVendorReply failed", e)
     }
 
     override suspend fun updateOutletVendorReply(
@@ -387,7 +387,7 @@ class SupabaseReviewRepository @Inject constructor(
 
         dto.toDomain()
     }.onFailure { e ->
-        android.util.Log.e(TAG, "updateOutletVendorReply($replyId) failed", e)
+        com.srmfood.gag.core.common.SafeLog.e(TAG, "updateOutletVendorReply($replyId) failed", e)
     }
 
     override suspend fun deleteOutletVendorReply(replyId: String): Result<Unit> = runCatching {
@@ -398,7 +398,7 @@ class SupabaseReviewRepository @Inject constructor(
         }
         Unit
     }.onFailure { e ->
-        android.util.Log.e(TAG, "deleteOutletVendorReply($replyId) failed", e)
+        com.srmfood.gag.core.common.SafeLog.e(TAG, "deleteOutletVendorReply($replyId) failed", e)
     }
 
     override suspend fun getVendorOutletReviews(
@@ -414,7 +414,7 @@ class SupabaseReviewRepository @Inject constructor(
 
         page.toDomain()
     }.onFailure { e ->
-        android.util.Log.e(TAG, "getVendorOutletReviews failed", e)
+        com.srmfood.gag.core.common.SafeLog.e(TAG, "getVendorOutletReviews failed", e)
     }
 
     override suspend fun getManagementOutletReviews(
@@ -428,7 +428,7 @@ class SupabaseReviewRepository @Inject constructor(
 
         page.toDomain()
     }.onFailure { e ->
-        android.util.Log.e(TAG, "getManagementOutletReviews failed", e)
+        com.srmfood.gag.core.common.SafeLog.e(TAG, "getManagementOutletReviews failed", e)
     }
 
     override suspend fun setOutletReviewVisibility(
@@ -444,7 +444,7 @@ class SupabaseReviewRepository @Inject constructor(
         }
         Unit
     }.onFailure { e ->
-        android.util.Log.e(TAG, "setOutletReviewVisibility($reviewId) failed", e)
+        com.srmfood.gag.core.common.SafeLog.e(TAG, "setOutletReviewVisibility($reviewId) failed", e)
     }
 
     // ─── Private Helpers ──────────────────────────────────────────────────────

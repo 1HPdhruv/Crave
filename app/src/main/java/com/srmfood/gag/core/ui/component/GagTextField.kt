@@ -65,7 +65,9 @@ fun GagTextField(
     singleLine: Boolean = true,
     maxLines: Int = 1,
     enabled: Boolean = true,
-    readOnly: Boolean = false
+    readOnly: Boolean = false,
+    visualTransformation: androidx.compose.ui.text.input.VisualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
+    trailingIconDescription: String? = null
 ) {
     var isFocused by remember { mutableStateOf(false) }
     val borderWidth by animateDpAsState(
@@ -95,7 +97,7 @@ fun GagTextField(
                         IconButton(onClick = onTrailingIconClick) {
                             Icon(
                                 imageVector = it,
-                                contentDescription = null,
+                                contentDescription = trailingIconDescription,
                                 tint = GagOnSurfaceVariant,
                                 modifier = Modifier.size(20.dp)
                             )
@@ -112,16 +114,17 @@ fun GagTextField(
             },
             isError = isError,
             keyboardOptions = keyboardOptions,
+            visualTransformation = visualTransformation,
             keyboardActions = keyboardActions,
             singleLine = singleLine,
             maxLines = maxLines,
             enabled = enabled,
             readOnly = readOnly,
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = GagOrange,
-                unfocusedBorderColor = GagOutline,
+                focusedBorderColor = com.srmfood.gag.core.ui.theme.CraveInk,
+                unfocusedBorderColor = com.srmfood.gag.core.ui.theme.CraveInk,
                 errorBorderColor = GagError,
-                focusedLabelColor = GagOrange,
+                focusedLabelColor = com.srmfood.gag.core.ui.theme.CraveOrangeDeep,
                 unfocusedLabelColor = GagOnSurfaceVariant,
                 cursorColor = GagOrange,
                 focusedContainerColor = GagSurface,
@@ -170,6 +173,9 @@ fun GagPasswordField(
         leadingIcon = leadingIcon,
         trailingIcon = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
         onTrailingIconClick = { passwordVisible = !passwordVisible },
+        trailingIconDescription = if (passwordVisible) "Hide password" else "Show password",
+        // The visibility toggle used to change only the icon: the password was always shown in clear text.
+        visualTransformation = if (passwordVisible) androidx.compose.ui.text.input.VisualTransformation.None else PasswordVisualTransformation(),
         isError = isError,
         errorMessage = errorMessage,
         keyboardOptions = KeyboardOptions(

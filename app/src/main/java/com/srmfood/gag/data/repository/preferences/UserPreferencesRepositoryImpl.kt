@@ -20,6 +20,7 @@ class UserPreferencesRepositoryImpl @Inject constructor(
     private object PreferencesKeys {
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val NOTIFICATIONS_ENABLED = booleanPreferencesKey("notifications_enabled")
+        val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
     }
 
     override val themeMode: Flow<ThemeMode> = dataStore.data.map { preferences ->
@@ -33,6 +34,12 @@ class UserPreferencesRepositoryImpl @Inject constructor(
 
     override val notificationsEnabled: Flow<Boolean> = dataStore.data.map { preferences ->
         preferences[PreferencesKeys.NOTIFICATIONS_ENABLED] ?: true
+    }
+
+    override val onboardingComplete: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.ONBOARDING_COMPLETE] ?: false }
+
+    override suspend fun setOnboardingComplete() {
+        dataStore.edit { it[PreferencesKeys.ONBOARDING_COMPLETE] = true }
     }
 
     override suspend fun setThemeMode(mode: ThemeMode) {

@@ -125,4 +125,14 @@ class RepositoryModule {
     fun provideReviewRepository(
         impl: com.srmfood.gag.data.repository.supabase.SupabaseReviewRepository
     ): com.srmfood.gag.domain.repository.ReviewRepository = impl
+
+    /**
+     * Support tickets always use the Supabase implementation: ownership and
+     * management authorization are enforced by RLS + RPCs (migration 023).
+     */
+    @Provides
+    @Singleton
+    fun provideSupportTicketRepository(
+        impl: com.srmfood.gag.data.repository.supabase.SupabaseSupportTicketRepository
+    ): com.srmfood.gag.domain.repository.SupportTicketRepository = impl
 }

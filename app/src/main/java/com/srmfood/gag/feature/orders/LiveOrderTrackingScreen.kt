@@ -126,7 +126,7 @@ fun LiveOrderTrackingScreen(
                                 )
                                 Icon(Icons.Default.Circle, contentDescription = "Live", tint = GagPink.copy(alpha = alpha), modifier = Modifier.size(10.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Live updates", style = MaterialTheme.typography.labelMedium, color = GagPink, fontWeight = FontWeight.Bold)
+                                Text("Live updates", style = MaterialTheme.typography.labelMedium, color = CraveOrangeDeep, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -141,13 +141,13 @@ fun LiveOrderTrackingScreen(
                             Column(modifier = Modifier.padding(20.dp)) {
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                     Text(order.orderNumber, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
-                                    Text("₹${order.total.toInt()}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = GagPink)
+                                    Text("₹${order.total.toInt()}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = CraveOrangeDeep)
                                 }
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(order.outletName, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 order.pickupSlot?.let {
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    Text("Pickup: ${it.displayTime}", style = MaterialTheme.typography.bodySmall, color = GagPink, fontWeight = FontWeight.SemiBold)
+                                    Text("Pickup: ${it.displayTime}", style = MaterialTheme.typography.bodySmall, color = CraveOrangeDeep, fontWeight = FontWeight.SemiBold)
                                 }
                             }
                         }
@@ -219,7 +219,7 @@ fun LiveOrderTrackingScreen(
                                                 .background(
                                                     when {
                                                         isDone -> GagSuccess
-                                                        isCurrent -> GagPink
+                                                        isCurrent -> CraveOrange
                                                         else -> MaterialTheme.colorScheme.surfaceVariant
                                                     },
                                                     CircleShape
@@ -227,9 +227,9 @@ fun LiveOrderTrackingScreen(
                                             contentAlignment = Alignment.Center
                                         ) {
                                             if (isDone) {
-                                                Icon(Icons.Default.CheckCircle, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                                                Icon(Icons.Default.CheckCircle, null, tint = CraveInk, modifier = Modifier.size(20.dp))
                                             } else {
-                                                Text("${index + 1}", color = if (isCurrent) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                Text("${index + 1}", color = if (isCurrent) CraveInk else MaterialTheme.colorScheme.onSurfaceVariant,
                                                     style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold)
                                             }
                                         }

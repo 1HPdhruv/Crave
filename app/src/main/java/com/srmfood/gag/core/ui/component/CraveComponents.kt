@@ -27,6 +27,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import androidx.compose.ui.unit.sp
+import com.srmfood.gag.core.ui.theme.CraveChartreuse
+import com.srmfood.gag.core.ui.theme.CraveInk
+import com.srmfood.gag.core.ui.theme.CraveOrange
+import com.srmfood.gag.core.ui.theme.CravePaper
+import com.srmfood.gag.core.ui.theme.CraveWhite
+import com.srmfood.gag.core.ui.theme.GagEyebrowStyle
+import com.srmfood.gag.core.ui.theme.GagMonoStyle
 import com.srmfood.gag.core.ui.theme.GagStarYellow
 import com.srmfood.gag.domain.model.Outlet
 
@@ -36,33 +44,16 @@ import com.srmfood.gag.domain.model.Outlet
 fun CraveSectionHeader(
     title: String,
     modifier: Modifier = Modifier,
-    onSeeAll: (() -> Unit)? = null
+    onSeeAll: (() -> Unit)? = null,
+    eyebrow: String? = null
 ) {
-    Row(
+    CraveHeading(
+        eyebrow = eyebrow,
+        title = title,
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        if (onSeeAll != null) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable(onClick = onSeeAll)
-            ) {
-                Text(
-                    text = "See all",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary    // Token — no raw GagPink
-                )
-            }
-        }
-    }
+        actionText = if (onSeeAll != null) "see all" else null,
+        onAction = onSeeAll
+    )
 }
 
 // ─── Restaurant Card (Horizontal Rail) ────────────────────────────
@@ -71,101 +62,81 @@ fun CraveSectionHeader(
 fun CraveRestaurantCard(
     outlet: Outlet,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    fillWidth: Boolean = false
 ) {
+    val shape = RoundedCornerShape(15.dp)
     Column(
         modifier = modifier
-            .width(200.dp)
-            .clip(RoundedCornerShape(16.dp))
+            .then(if (fillWidth) Modifier.fillMaxWidth() else Modifier.width(176.dp))
+            .clip(shape)
             .background(MaterialTheme.colorScheme.surface)
-            .border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant,
-                shape = RoundedCornerShape(16.dp)
-            )
+            .border(1.dp, MaterialTheme.colorScheme.outline, shape)
             .clickable(onClick = onClick)
     ) {
-        // Image — 4:3
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(130.dp)
-                .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .height(112.dp)
+                .background(craveToneFor(outlet.id))
         ) {
-            AsyncImage(
-                model = outlet.imageUrl,
-                contentDescription = outlet.name,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-            // Closed overlay — slightly stronger scrim
-            if (!outlet.isOpen) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.55f))
+            if (outlet.imageUrl.isNullOrBlank()) {
+                Text("🍴", fontSize = 46.sp, modifier = Modifier.align(Alignment.Center))
+            } else {
+                AsyncImage(
+                    model = outlet.imageUrl,
+                    contentDescription = outlet.name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
                 )
-                // Pill-style "Closed" label
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .clip(CircleShape)
-                        .background(Color.Black.copy(alpha = 0.6f))
-                        .padding(horizontal = 14.dp, vertical = 6.dp)
-                ) {
-                    Text(
-                        text = "Closed",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                }
             }
+            Text(
+                text = if (outlet.isOpen) "OPEN" else "CLOSED",
+                style = GagEyebrowStyle.copy(fontSize = 8.sp, letterSpacing = 0.3.sp),
+                color = CraveInk,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(8.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(CraveWhite)
+                    .border(1.dp, CraveInk, RoundedCornerShape(3.dp))
+                    .padding(horizontal = 5.dp, vertical = 3.dp)
+            )
         }
+        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(CraveInk))
 
-        // Info below image
-        Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
-        ) {
+        Column(modifier = Modifier.padding(start = 11.dp, end = 11.dp, top = 12.dp, bottom = 11.dp)) {
             Text(
                 text = outlet.name,
                 style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Filled.Star,
-                    contentDescription = null,
-                    tint = GagStarYellow,           // Named token — not hard-coded
-                    modifier = Modifier.size(12.dp)
-                )
-                Spacer(modifier = Modifier.width(3.dp))
+            val place = outlet.location.building.ifBlank { outlet.description }
+            Text(
+                text = place,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 3.dp)
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
-                    text = "${outlet.rating}",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Medium,
+                    text = if (outlet.totalReviews > 0) "★ ${"%.1f".format(outlet.rating)}" else "New",
+                    style = GagMonoStyle.copy(fontSize = 10.sp),
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = " · ",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Icon(
-                    imageVector = Icons.Outlined.Schedule,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(11.dp)
-                )
-                Spacer(modifier = Modifier.width(3.dp))
-                Text(
                     text = "${outlet.estimatedWaitMinutes} min",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = GagMonoStyle.copy(fontSize = 10.sp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -185,26 +156,25 @@ fun CraveFilterChip(
 ) {
     val bgColor by animateColorAsState(
         // Selected: primary; unselected: transparent with border
-        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+        targetValue = if (isSelected) CraveInk else MaterialTheme.colorScheme.surface,
         animationSpec = tween(150),
         label = "chip_bg_$label"
     )
     val textColor by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                      else MaterialTheme.colorScheme.onSurface,
+        targetValue = if (isSelected) CravePaper
+                      else MaterialTheme.colorScheme.onSurfaceVariant,
         animationSpec = tween(150),
         label = "chip_text_$label"
     )
-    val borderColor = if (isSelected) Color.Transparent
-                      else MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
+    val borderColor = if (isSelected) CraveInk else MaterialTheme.colorScheme.outline
 
     Row(
         modifier = modifier
             .clip(CircleShape)
             .background(bgColor)
-            .border(0.5.dp, borderColor, CircleShape)
+            .border(1.dp, borderColor, CircleShape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
+            .padding(horizontal = 13.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(5.dp)
     ) {
@@ -220,6 +190,7 @@ fun CraveFilterChip(
             text = label,
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Medium,
+            maxLines = 1,
             color = textColor
         )
     }
@@ -241,6 +212,7 @@ fun CraveCircularButton(
             .size(size.dp)
             .clip(CircleShape)
             .background(containerColor)
+            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
@@ -265,7 +237,7 @@ fun CraveAddButton(
         modifier = modifier
             .size(size.dp)
             .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primary)  // Token — no raw GagPink
+            .background(CraveInk)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
@@ -273,7 +245,7 @@ fun CraveAddButton(
             text = "+",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onPrimary
+            color = CravePaper
         )
     }
 }
@@ -288,14 +260,16 @@ fun CravePromoBanner(
     onCtaClick: () -> Unit,
     modifier: Modifier = Modifier,
     imageUrl: String? = null,
-    backgroundColor: Color = MaterialTheme.colorScheme.primary
+    backgroundColor: Color = CraveChartreuse
 ) {
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(120.dp)
-            .clip(RoundedCornerShape(16.dp))
+            .craveShadow(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(18.dp))
             .background(backgroundColor)
+            .border(2.dp, CraveInk, RoundedCornerShape(18.dp))
     ) {
         // Background food image (blended)
         if (imageUrl != null) {
@@ -337,20 +311,20 @@ fun CravePromoBanner(
                 text = title,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onPrimary,
+                color = CraveInk,
                 maxLines = 2
             )
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f),
+                color = CraveInk,
                 maxLines = 2
             )
             Spacer(modifier = Modifier.height(4.dp))
             Box(
                 modifier = Modifier
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f))
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(CraveInk)
                     .clickable(onClick = onCtaClick)
                     .padding(horizontal = 14.dp, vertical = 6.dp)
             ) {
@@ -358,7 +332,7 @@ fun CravePromoBanner(
                     text = ctaText,
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
-                    color = backgroundColor
+                    color = CravePaper
                 )
             }
         }
@@ -389,9 +363,8 @@ fun CravePriceRow(
         )
         Text(
             text = value,
-            style = if (isTotal) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
-            fontWeight = if (isTotal) FontWeight.ExtraBold else FontWeight.Medium,
-            color = if (isTotal) MaterialTheme.colorScheme.primary else valueColor  // Total uses primary
+            style = if (isTotal) GagMonoStyle.copy(fontSize = 18.sp) else GagMonoStyle.copy(fontSize = 12.sp),
+            color = if (isTotal) MaterialTheme.colorScheme.onSurface else valueColor
         )
     }
 }
@@ -417,15 +390,8 @@ fun CraveCategoryChip(
             modifier = Modifier
                 .size(56.dp)
                 .clip(RoundedCornerShape(14.dp))
-                .background(
-                    if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
-                    else MaterialTheme.colorScheme.surfaceVariant
-                )
-                .border(
-                    if (isSelected) 1.5.dp else 0.dp,
-                    if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                    RoundedCornerShape(14.dp)
-                ),
+                .background(if (isSelected) CraveChartreuse else MaterialTheme.colorScheme.surface)
+                .border(1.dp, if (isSelected) CraveInk else MaterialTheme.colorScheme.outline, RoundedCornerShape(14.dp)),
             contentAlignment = Alignment.Center
         ) {
             if (imageUrl != null) {
@@ -442,7 +408,7 @@ fun CraveCategoryChip(
                     text = label.take(1).uppercase(),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (isSelected) MaterialTheme.colorScheme.primary
+                    color = if (isSelected) CraveInk
                             else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -452,7 +418,7 @@ fun CraveCategoryChip(
             text = label,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (isSelected) MaterialTheme.colorScheme.primary
+            color = if (isSelected) MaterialTheme.colorScheme.onSurface
                     else MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1
         )
@@ -473,14 +439,10 @@ fun CraveSearchBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(54.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                shape = RoundedCornerShape(14.dp)
-            )
+            .height(50.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, CraveInk, RoundedCornerShape(10.dp))
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -488,7 +450,7 @@ fun CraveSearchBar(
         Icon(
             imageVector = Icons.Outlined.Search,
             contentDescription = "Search",
-            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(20.dp)
         )
         Spacer(modifier = Modifier.width(12.dp))

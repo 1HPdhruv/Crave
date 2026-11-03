@@ -5,6 +5,7 @@ import com.srmfood.gag.domain.model.FoodItem
 import com.srmfood.gag.domain.model.SelectedCustomization
 import com.srmfood.gag.domain.repository.CartRepository
 import kotlinx.coroutines.flow.Flow
+import com.srmfood.gag.domain.usecase.outlet.studentMessage
 import javax.inject.Inject
 
 class GetCartUseCase @Inject constructor(
@@ -20,7 +21,8 @@ class SyncCartUseCase @Inject constructor(
 }
 
 class AddToCartUseCase @Inject constructor(
-    private val cartRepository: CartRepository
+    private val cartRepository: CartRepository,
+    private val checkOutletAvailability: com.srmfood.gag.domain.usecase.outlet.CheckOutletAvailabilityUseCase
 ) {
     suspend operator fun invoke(
         foodItem: FoodItem,
@@ -30,6 +32,15 @@ class AddToCartUseCase @Inject constructor(
     ): Result<Cart> {
         if (quantity < 1) return Result.failure(IllegalArgumentException("Quantity must be at least 1"))
         if (!foodItem.isAvailable) return Result.failure(IllegalStateException("Food item is not available"))
+        // Authoritative server check; unreachable server => allow (order placement enforces it again).
+        val availability = checkOutletAvailability(foodItem.outletId)
+        if (availability is com.srmfood.gag.domain.usecase.outlet.OutletAvailability.Unavailable) {
+            return Result.failure(
+                com.srmfood.gag.domain.usecase.outlet.OutletUnavailableException(
+                    availability.status, availability.status.studentMessage(availability.outletName)
+                )
+            )
+        }
         return cartRepository.addToCart(
             foodItemId = foodItem.id,
             foodName = foodItem.name,

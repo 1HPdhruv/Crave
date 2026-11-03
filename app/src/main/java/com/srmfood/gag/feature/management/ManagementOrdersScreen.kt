@@ -61,7 +61,7 @@ fun ManagementOrdersScreen(
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     text = "CRAVE | MANAGEMENT",
-                    color = OrbitLime,
+                    color = OrbitLimeDark,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp
@@ -78,9 +78,9 @@ fun ManagementOrdersScreen(
                 enabled = !isRefreshing
             ) {
                 if (isRefreshing) {
-                    CircularProgressIndicator(color = OrbitLime, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                    CircularProgressIndicator(color = OrbitLimeDark, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                 } else {
-                    Icon(imageVector = Icons.Filled.Refresh, contentDescription = "Refresh", tint = OrbitLime)
+                    Icon(imageVector = Icons.Filled.Refresh, contentDescription = "Refresh", tint = OrbitLimeDark)
                 }
             }
         }
@@ -93,7 +93,7 @@ fun ManagementOrdersScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
             placeholder = { Text("Search orders...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "Search", tint = OrbitLime) },
+            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "Search", tint = OrbitLimeDark) },
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
                     IconButton(onClick = {
@@ -146,7 +146,7 @@ fun ManagementOrdersScreen(
         when (val state = ordersState) {
             is UiState.Loading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = OrbitLime)
+                    CircularProgressIndicator(color = OrbitLimeDark)
                 }
             }
             is UiState.Error -> {
@@ -204,7 +204,7 @@ private fun ManagementOrderCard(
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(order.orderNumber, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                Text("₹${currencyFormatter.format(order.total)}", color = OrbitLime, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                Text("₹${currencyFormatter.format(order.total)}", color = OrbitLimeDark, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
             }
             
             Text(order.outletName, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)

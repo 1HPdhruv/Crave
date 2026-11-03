@@ -1,6 +1,11 @@
 package com.srmfood.gag.feature.management
 
+import com.srmfood.gag.core.ui.theme.OrbitLimeDark
+
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import com.srmfood.gag.core.ui.component.*
+import com.srmfood.gag.core.ui.theme.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,7 +42,7 @@ fun ManagementOverviewScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(16.dp),
+            .padding(17.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         item {
@@ -47,18 +52,11 @@ fun ManagementOverviewScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CraveEyebrow("Management workspace", color = OrbitLimeDark)
                     Text(
-                        text = "CRAVE | MANAGEMENT",
-                        color = OrbitLime,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
-                    )
-                    Text(
-                        text = "Overview",
+                        text = "Campus overview",
                         color = MaterialTheme.colorScheme.onBackground,
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.displayMedium.copy(fontSize = 32.sp, lineHeight = 32.sp)
                     )
                 }
                 
@@ -69,7 +67,7 @@ fun ManagementOverviewScreen(
                 ) {
                     if (isRefreshing) {
                         CircularProgressIndicator(
-                            color = OrbitLime,
+                            color = OrbitLimeDark,
                             modifier = Modifier.size(24.dp),
                             strokeWidth = 2.dp
                         )
@@ -77,7 +75,7 @@ fun ManagementOverviewScreen(
                         Icon(
                             imageVector = Icons.Filled.Refresh,
                             contentDescription = "Refresh data",
-                            tint = OrbitLime
+                            tint = OrbitLimeDark
                         )
                     }
                 }
@@ -88,7 +86,7 @@ fun ManagementOverviewScreen(
             is UiState.Loading -> {
                 item {
                     Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = OrbitLime)
+                        CircularProgressIndicator(color = OrbitLimeDark)
                     }
                 }
             }
@@ -99,6 +97,7 @@ fun ManagementOverviewScreen(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
                             .background(MaterialTheme.colorScheme.errorContainer)
+                            .border(1.dp, MaterialTheme.colorScheme.error, RoundedCornerShape(12.dp))
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -114,12 +113,7 @@ fun ManagementOverviewScreen(
                             color = MaterialTheme.colorScheme.onErrorContainer,
                             style = MaterialTheme.typography.bodySmall
                         )
-                        Button(
-                            onClick = { viewModel.refresh() },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onErrorContainer)
-                        ) {
-                            Text("Retry", color = MaterialTheme.colorScheme.errorContainer)
-                        }
+                        GagPrimaryButton(text = "Retry", onClick = { viewModel.refresh() }, modifier = Modifier.width(160.dp))
                     }
                 }
             }
@@ -128,7 +122,7 @@ fun ManagementOverviewScreen(
                 
                 // TODAY SECTION
                 item {
-                    SectionTitle("TODAY")
+                    SectionTitle("Today")
                     Spacer(modifier = Modifier.height(12.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         ManagementStatBox(
@@ -148,7 +142,7 @@ fun ManagementOverviewScreen(
 
                 // SYSTEM TOTALS
                 item {
-                    SectionTitle("SYSTEM TOTALS")
+                    SectionTitle("System totals")
                     Spacer(modifier = Modifier.height(12.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         ManagementStatBox("Total Revenue", "₹${currencyFormatter.format(stats.revenue)}", Modifier.weight(1f))
@@ -164,10 +158,10 @@ fun ManagementOverviewScreen(
 
                 // ORDER STATUS
                 item {
-                    SectionTitle("ORDER STATUS")
+                    SectionTitle("Order status")
                     Spacer(modifier = Modifier.height(12.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        ManagementStatBox("Active (Preparing)", stats.activeOrders.toString(), Modifier.weight(1f))
+                        ManagementStatBox("Active orders", stats.activeOrders.toString(), Modifier.weight(1f))
                         ManagementStatBox("Completed", stats.completedOrders.toString(), Modifier.weight(1f))
                     }
                 }
@@ -183,13 +177,7 @@ fun ManagementOverviewScreen(
 
 @Composable
 private fun SectionTitle(title: String) {
-    Text(
-        text = title,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        style = MaterialTheme.typography.labelLarge,
-        fontWeight = FontWeight.Bold,
-        letterSpacing = 1.5.sp
-    )
+    CraveEyebrow(title, color = MaterialTheme.colorScheme.onSurface)
 }
 
 @Composable
@@ -199,21 +187,18 @@ private fun ManagementStatBox(
     modifier: Modifier = Modifier,
     highlight: Boolean = false
 ) {
+    val tone = if (highlight) CraveChartreuse else MaterialTheme.colorScheme.surface
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (highlight) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface)
+            .clip(RoundedCornerShape(15.dp))
+            .background(tone)
+            .border(1.dp, if (highlight) CraveInk else MaterialTheme.colorScheme.outline, RoundedCornerShape(15.dp))
             .padding(16.dp)
     ) {
         Column {
-            Text(text = label, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = value,
-                color = if (highlight) OrbitLime else MaterialTheme.colorScheme.onSurface,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
+            CraveMono(value, fontSize = 24f, color = CraveInk.takeIf { highlight } ?: MaterialTheme.colorScheme.onSurface)
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(text = label, color = if (highlight) CraveInk else MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
         }
     }
 }
