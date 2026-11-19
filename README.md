@@ -57,21 +57,25 @@ The Android source is organized by application feature and architectural respons
 
 ```text
 Crave/
-├── app/
-│   └── src/
-│       ├── main/
-│       │   ├── java/com/srmfood/
-│       │   │   ├── core/
-│       │   │   ├── data/
-│       │   │   ├── domain/
-│       │   │   ├── feature/
-│       │   │   └── navigation/
-│       │   └── res/
-│       ├── test/
-│       └── androidTest/
+├── app/                         # Android application, source sets, resources, and tests
+├── docs/
+│   ├── README.md
+│   └── diagnostics/
+│       └── archive/             # Historical investigation notes and SQL diagnostics
+├── gradle/                      # Gradle wrapper and version catalog
 ├── supabase/
-│   └── migrations/
-├── gradle/
+│   ├── drafts_unapproved/       # SQL/function drafts not approved for deployment
+│   ├── functions/               # Supabase Edge Functions
+│   ├── migrations/              # Ordered database migrations
+│   ├── reference/                # Informational schema snapshots
+│   ├── staging/                  # Staging setup and seed assets
+│   └── tests/                    # Database and API test suites
+├── .gitignore
+├── build.gradle.kts
+├── gradle.properties
+├── gradlew
+├── gradlew.bat
+├── settings.gradle.kts
 └── README.md
 ```
 
