@@ -6,9 +6,9 @@
 
 Crave will be published on the **Google Play Store & App Store on 10th December**.
 
-<!-- This is a comment -->   **[Download Crave from Google Play](https://play.google.com/store/search?q=Crave&c=apps)**
+<!-- **[Download Crave from Google Play](https://play.google.com/store/search?q=Crave&c=apps)** --> 
 
-<!-- This is a comment -->   Open the Play Store link and search for **Crave** if the app listing does not open directly.
+<!--  Open the Play Store link and search for **Crave** if the app listing does not open directly. --> 
 
 ## Features
 
