@@ -1,83 +1,151 @@
-# 🍔 Crave (GaG) - SRMIST Food Ordering App
+# Crave — Campus Food Ordering App
 
-Welcome to the official repository for **Crave (GaG)**, a comprehensive food ordering and management application designed specifically for the SRMIST campus. 
+**Crave** is a campus-focused food ordering and management application built for the SRMIST community. It brings students, food vendors, and administrators together in one platform, making it easier to discover campus food outlets, place orders, manage preparation, and collect meals.
 
-This app streamlines the food ordering process by offering role-based access for Students, Vendors, and Administrators, providing a seamless experience from browsing menus to picking up orders.
+## Download the app
 
-## ✨ Features
+Crave is published on the **Google Play Store**.
 
-### 👨‍🎓 For Students / Users
-- **Browse Food Outlets:** Explore various food stalls and their menus available on campus.
-- **Smart Cart & Checkout:** Customize food items and add them to the cart for a quick checkout.
-- **Pickup Slots:** Schedule convenient pickup times to avoid long queues.
-- **Live Order Tracking:** Get real-time updates on your order status.
-- **Digital Tokens:** Secure QR code-based pickup tokens for easy collection.
-- **Favorites & History:** Reorder your favorite meals in just a few taps.
+**[Download Crave from Google Play](https://play.google.com/store/search?q=Crave&c=apps)**
 
-### 🧑‍🍳 For Vendors
-- **Order Management:** View, accept, and process incoming orders efficiently.
-- **Menu Management:** Update food availability, variations, and prices in real-time.
-- **QR Scanner:** Quickly scan student pickup tokens to verify and hand over orders.
-- **Analytics Dashboard:** Track daily sales, popular items, and revenue.
+Open the Play Store link and search for **Crave** if the app listing does not open directly.
 
-### 👨‍💻 For Administrators
-- **System Monitoring:** Oversee all platform activities and active outlets.
-- **User Management:** Manage permissions and roles across the platform.
-- **Global Settings:** Configure global pickup slots, tax rates, and policies.
+## Features
 
-## 🛠️ Tech Stack
+### For students
+- **Discover campus outlets:** Browse participating food outlets and their menus.
+- **Food catalogue:** Explore food items, descriptions, prices, and availability.
+- **Cart and checkout:** Add items and review an order before placing it.
+- **Scheduled pickup:** Choose an available pickup slot where supported.
+- **Order updates:** Follow order progress and view order history.
+- **Digital pickup tokens:** Use QR-based tokens for order collection.
+- **Favourites:** Keep track of preferred food items.
 
-This project is built using modern Android development practices:
+### For vendors
+- **Order processing:** View and manage incoming orders.
+- **Menu management:** Maintain food listings, prices, variations, and availability.
+- **QR verification:** Scan pickup tokens when handing over orders.
+- **Business insights:** View sales and item-performance information where enabled.
 
-- **UI Framework:** [Jetpack Compose](https://developer.android.com/jetpack/compose) - fully declarative UI.
-- **Language:** [Kotlin](https://kotlinlang.org/)
-- **Architecture:** Clean Architecture with MVVM (Model-View-ViewModel)
-- **Dependency Injection:** [Dagger-Hilt](https://dagger.dev/hilt/)
-- **Backend & Database:** [Supabase](https://supabase.com/) (PostgreSQL, Realtime, Auth, Storage)
-- **Local Database:** [Room](https://developer.android.com/training/data-storage/room)
-- **Networking:** Retrofit / Ktor
-- **Async Programming:** Kotlin Coroutines & Flow
+### For administrators
+- **Platform oversight:** Monitor outlets and platform activity.
+- **User and role management:** Manage access across the platform.
+- **Configuration:** Manage supported platform-wide settings and policies.
 
-## 🚀 Getting Started
+> Feature availability may depend on account role, outlet configuration, and the currently deployed backend environment.
 
-### Prerequisites
-- Android Studio Ladybug (or latest)
-- JDK 17+
-- Supabase Project (with properly configured schemas and RLS policies)
+## Technology
 
-### Setup Instructions
+| Area | Technology |
+|---|---|
+| Android application | Kotlin, Jetpack Compose |
+| Architecture | Clean Architecture, MVVM |
+| Dependency injection | Dagger Hilt |
+| Backend platform | Supabase |
+| Database | PostgreSQL |
+| Authentication | Supabase Auth |
+| Local persistence | Room, DataStore |
+| Networking | Retrofit, OkHttp, Ktor |
+| Asynchronous operations | Kotlin Coroutines, Flow |
+| Notifications | Firebase Cloud Messaging |
+| QR functionality | ZXing, ML Kit, CameraX |
+| Payments | Razorpay SDK integration |
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/1HPdhruv/Crave.git
-   ```
+## Project structure
 
-2. **Configure Local Properties:**
-   Create a `local.properties` file in the root directory and add your Supabase credentials:
-   ```properties
-   SUPABASE_URL="your_supabase_project_url"
-   SUPABASE_ANON_KEY="your_supabase_anon_key"
-   ```
+The Android source is organized by application feature and architectural responsibility.
 
-3. **Run the Project:**
-   Open the project in Android Studio, sync Gradle, and run the app on an emulator or physical device.
+```text
+Crave/
+├── app/
+│   └── src/
+│       ├── main/
+│       │   ├── java/com/srmfood/
+│       │   │   ├── core/
+│       │   │   ├── data/
+│       │   │   ├── domain/
+│       │   │   ├── feature/
+│       │   │   └── navigation/
+│       │   └── res/
+│       ├── test/
+│       └── androidTest/
+├── supabase/
+│   └── migrations/
+├── gradle/
+└── README.md
+```
 
-## 🗄️ Database Architecture
+The feature modules cover areas such as authentication, food discovery, cart, checkout, orders, outlets, pickup, vendor operations, administration, notifications, reviews, favourites, and support.
 
-The backend uses a structured relational database with robust Row Level Security (RLS) policies. You can find the database migrations and policies in the `supabase/migrations/` directory. 
+## Run locally
 
-Key tables include:
-- `profiles`, `outlets`, `categories`, `food_items`
-- `orders`, `carts`, `payments`, `pickup_slots`
+### Requirements
+- Android Studio (current stable version recommended)
+- JDK 17
+- Android SDK required by the project
+- A Supabase project configured with the required database schema, migrations, and Row Level Security policies
 
-## 🤝 Contributing
+### 1. Clone the repository
 
-Contributions are welcome! If you'd like to improve the app:
-1. Fork the project.
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`).
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`).
-4. Push to the branch (`git push origin feature/AmazingFeature`).
-5. Open a Pull Request.
+```bash
+git clone https://github.com/1HPdhruv/Crave.git
+cd Crave
+```
+
+### 2. Configure local credentials
+
+Create a `local.properties` file in the project root. Add the appropriate client-side Supabase project URL and publishable/anonymous key for the environment you intend to run.
+
+```properties
+SUPABASE_URL="https://YOUR_PROJECT_REF.supabase.co"
+SUPABASE_ANON_KEY="YOUR_SUPABASE_PUBLISHABLE_OR_ANON_KEY"
+```
+
+Do not commit `local.properties`, service-role keys, secret API keys, signing credentials, or other private configuration.
+
+The Gradle configuration defines separate mock, staging, and production environments. Use the matching environment configuration and build variant; production builds require the production backend configuration.
+
+### 3. Apply database migrations
+
+Review the SQL files in `supabase/migrations/` and apply the migrations to your own Supabase project in the intended order. Verify the resulting schema, database functions, triggers, and RLS policies before running the app.
+
+### 4. Open and run
+
+Open the project in Android Studio, allow Gradle to sync, select the appropriate build variant, and run it on an Android emulator or physical device.
+
+## Backend and database
+
+Crave uses Supabase with PostgreSQL. Database migrations are maintained in `supabase/migrations/`.
+
+The schema and policies support core application concepts including:
+- User profiles and roles
+- Food outlets, categories, and food items
+- Carts, orders, and payments
+- Pickup slots and order collection
+- Reviews and platform operations
+
+When deploying your own instance, inspect every migration and policy and configure your Supabase environment independently. Never assume that the public repository includes access to the hosted production backend.
+
+## Testing
+
+The project includes unit-test and Android instrumentation-test source sets. Run the checks available in your local environment before submitting changes. Test against a non-production backend and synthetic accounts/data whenever possible.
+
+## Contributing
+
+Contributions are welcome.
+
+1. Fork the repository.
+2. Create a focused branch: `git checkout -b feature/your-change`.
+3. Make and test your changes.
+4. Commit with a descriptive message.
+5. Push your branch and open a pull request explaining the change and how it was tested.
+
+Please avoid committing credentials, real user data, generated build outputs, local IDE files, or temporary diagnostic artifacts.
+
+## Security
+
+If you discover a security issue, do not publish credentials, personal data, or exploitable details in a public issue. Contact the repository maintainer privately with a concise description and reproduction steps.
 
 ---
-*Built with ❤️ for SRMIST.*
+
+Built with care for the SRMIST campus community.
